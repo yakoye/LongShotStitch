@@ -654,9 +654,26 @@
 
 
   function drawArrowPill(c, x, y, dir, area, active=false){
+    // 单图/整体裁剪的上下左右入口按钮：比普通 ✓ / + / 拼接按钮更小。
+    // 双箭头提示不改尺寸，只缩小中间的单向箭头按钮。
     const symbol = {up:'↑', down:'↓', left:'←', right:'→'}[dir] || '•';
-    drawPill(c, x, y, symbol, area, active);
     const z = Math.max(0.03, state.zoom || 1);
+    const padX = 10 / z, h = 32 / z;
+    c.save();
+    c.font = `700 ${18 / z}px ui-sans-serif, system-ui, sans-serif`;
+    const w = Math.max(42 / z, c.measureText(symbol).width + padX*2);
+    const rx = 13 / z;
+    c.fillStyle = active ? '#ffbf00' : '#ffcc33';
+    c.strokeStyle = '#f6b700';
+    c.lineWidth = 1.35 / z;
+    roundRect(c, x-w/2, y-h/2, w, h, rx);
+    c.fill(); c.stroke();
+    c.fillStyle = '#7a5200';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(symbol, x, y+0.5/z);
+    c.restore();
+    if(area) hitAreas.push({...area, x:x-w/2, y:y-h/2, w, h});
+
     const off = 34 / z;
     if(dir === 'up') drawDoubleChevron(c, x, y - off, 'up', .45);
     else if(dir === 'down') drawDoubleChevron(c, x, y + off, 'down', .45);
@@ -789,7 +806,16 @@
   }
 
   function drawImageCropOverlay(c, layout){
+    const vertical = state.orientation === 'vertical';
+    const seamActive = state.activeHandle?.kind === 'seamCenter' ? state.activeHandle : null;
     const activeHandle = state.activeHandle?.kind === 'imageCrop' ? state.activeHandle : null;
+
+    if(seamActive){
+      // 单图裁剪模式下，相邻两图交界处直接复用“拼接线”的完整能力。
+      // 这里只显示当前正在编辑的这一条接缝，不显示其它单图箭头。
+      drawSeamOverlay(c, layout);
+      return;
+    }
 
     if(activeHandle){
       // 单图裁剪编辑态：只显示当前图片的编辑态。
@@ -823,11 +849,27 @@
       c.strokeRect(b.x,b.y,b.w,b.h);
       c.restore();
 
-      // 单图裁剪默认态：所有图都显示四边箭头，不需要先选中。
-      drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
-      drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
-      drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
-      drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
+      // 单图裁剪默认态：每张图的“外边界”显示单向箭头。
+      // 相邻两图交界处不再显示两个单向箭头，改为下方 seam 控件直接复用拼接线能力。
+      const isFirst = b.index === 0;
+      const isLast = b.index === state.images.length - 1;
+      if(vertical){
+        if(isFirst) drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
+        if(isLast) drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
+        drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
+        drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
+      } else {
+        drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
+        drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
+        if(isFirst) drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
+        if(isLast) drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
+      }
+    }
+
+    // 两张图交界处直接使用拼接线控件：纵向是 上图底部/下图顶部，横向是 左图右侧/右图左侧。
+    for(const sv of layout.seams){
+      if(vertical) drawSeamPill(c, layout.fullWidth/2, sv.y, true, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
+      else drawSeamPill(c, sv.x, layout.fullHeight/2, false, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
     }
   }
 
