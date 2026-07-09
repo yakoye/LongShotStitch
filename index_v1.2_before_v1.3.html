@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShot Stitch & Trim v1.6 - 长图拼裁工具</title>
+  <title>LongShot Stitch & Trim v1.2 - 长图拼裁工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -54,7 +54,6 @@
     .mode-label span{display:block;color:var(--muted);font-size:11px;font-weight:500;margin-top:2px}
     .props{min-height:0;overflow:auto;padding:12px;background:linear-gradient(#fff,#f8fafc)}
     .prop-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:12px;box-shadow:0 1px 2px rgba(15,23,42,.03)}
-    .tool-active-card{position:sticky;top:0;z-index:2;max-height:min(420px,calc(100vh - var(--topbar) - 116px));overflow:auto;box-shadow:0 12px 26px rgba(15,23,42,.10)}
     .prop-card h3{margin:0 0 10px;font-size:14px}
     .hint{font-size:12px;color:var(--muted);line-height:1.6;margin:0}
     .row{display:flex;gap:8px;align-items:center;margin:8px 0}
@@ -99,36 +98,6 @@
     .divider-line{height:1px;background:var(--line);margin:10px 0}
     .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#f3f4f6;border:1px solid #e5e7eb;border-bottom-width:2px;border-radius:6px;padding:1px 5px;color:#374151}
 
-    .floating-toolkit{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:12;display:none;align-items:center;gap:4px;padding:7px 8px;border:1px solid rgba(203,213,225,.86);border-radius:13px;background:rgba(255,255,255,.94);box-shadow:0 14px 34px rgba(15,23,42,.18);backdrop-filter:blur(18px);max-width:calc(100% - 28px);overflow-x:auto;overscroll-behavior:contain;pointer-events:auto}
-    .floating-toolkit.show{display:flex}
-    .tool-dock-btn{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#0f172a;background:transparent;border:1px solid transparent;flex:0 0 auto}
-    .tool-dock-btn:hover{background:#f8fafc;border-color:#dbe2ea}
-    .tool-dock-btn.active{background:#eff6ff;border-color:#3b82f6;color:#2563eb;box-shadow:0 0 0 2px rgba(59,130,246,.16)}
-    .tool-dock-btn.danger.active{background:#fff1f2;border-color:#ef4444;color:#ef4444}
-    .tool-dock-btn svg{width:20px;height:20px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    .tool-dock-sep{width:1px;height:22px;background:#e5e7eb;margin:0 2px;flex:0 0 auto}
-    .tool-popover{position:absolute;z-index:13;display:none;min-width:250px;max-width:min(430px,calc(100% - 24px));max-height:min(360px,calc(100% - 30px));overflow:auto;padding:10px;border:1px solid rgba(203,213,225,.94);border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 20px 48px rgba(15,23,42,.23);backdrop-filter:blur(18px);pointer-events:auto}
-    .tool-popover.show{display:block}
-    .tool-popover.compact{min-width:210px}
-    .pop-title{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:800;font-size:12px;color:#334155;margin:0 0 8px}
-    .pop-row{display:flex;align-items:center;gap:8px;margin:8px 0;min-height:32px}
-    .pop-row label{font-size:12px;color:#64748b;min-width:58px;white-space:nowrap}
-    .pop-row input[type="number"],.pop-row input[type="text"],.pop-row select{height:32px;border:1px solid #d9dee7;border-radius:9px;background:#fff;padding:0 8px;min-width:0;flex:1}
-    .pop-row input[type="color"]{width:34px;height:32px;border:1px solid #d9dee7;border-radius:9px;background:#fff;padding:3px;flex:0 0 auto}
-    .pop-chip-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-    .pop-chip{height:30px;min-width:30px;padding:0 8px;border:1px solid #d9dee7;border-radius:9px;background:#fff;display:inline-grid;place-items:center;font-weight:750;color:#0f172a}
-    .pop-chip:hover{background:#f8fafc;border-color:#b8c1cf}
-    .pop-chip.active{background:#111827;color:#fff;border-color:#111827}
-    .pop-chip svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    .pop-icon-chip{width:32px;padding:0}
-    .pop-actions{display:flex;gap:8px;margin-top:10px;border-top:1px solid #eef2f7;padding-top:10px}
-    .pop-actions .mini-btn{flex:1}
-    .tool-hint-card{font-size:12px;line-height:1.7;color:var(--muted)}
-    @media (max-width: 760px){
-      .floating-toolkit{bottom:calc(var(--mobilebar) + 10px);left:8px;right:8px;transform:none;justify-content:flex-start}
-      .tool-popover{max-height:calc(100% - var(--topbar) - var(--mobilebar) - 28px)}
-    }
-
     @media (max-width: 760px){
       :root{--topbar:56px}
       .app{display:block;height:100vh;overflow:hidden;background:#f3f5f8}
@@ -154,7 +123,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShot Stitch<small>长图拼裁工具 v1.6</small></div>
+      <div>LongShot Stitch<small>长图拼裁工具 v1.2</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -215,8 +184,6 @@
       </div>
       <div class="preview-badge">预览模式</div>
       <div class="statusbar" id="statusbar">Ready</div>
-      <div class="floating-toolkit" id="toolDock" aria-label="工具栏"></div>
-      <div class="tool-popover" id="toolPopover"></div>
     </div>
   </main>
 
@@ -246,8 +213,6 @@
   const statusbar = $('#statusbar');
   const toastEl = $('#toast');
   const app = $('#app');
-  const toolDock = $('#toolDock');
-  const toolPopover = $('#toolPopover');
 
   let state = {
     orientation: 'vertical',
@@ -262,7 +227,6 @@
     annotations: [],
     activeHandle: null,
     toolArmed: null,
-    toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'输入文字', textColor:'#111827', textSize:28, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
     splitDraft: null,
     splitDraftManual: false
   };
@@ -690,26 +654,9 @@
 
 
   function drawArrowPill(c, x, y, dir, area, active=false){
-    // 单图/整体裁剪的上下左右入口按钮：比普通 ✓ / + / 拼接按钮更小。
-    // 双箭头提示不改尺寸，只缩小中间的单向箭头按钮。
     const symbol = {up:'↑', down:'↓', left:'←', right:'→'}[dir] || '•';
+    drawPill(c, x, y, symbol, area, active);
     const z = Math.max(0.03, state.zoom || 1);
-    const padX = 10 / z, h = 32 / z;
-    c.save();
-    c.font = `700 ${18 / z}px ui-sans-serif, system-ui, sans-serif`;
-    const w = Math.max(42 / z, c.measureText(symbol).width + padX*2);
-    const rx = 13 / z;
-    c.fillStyle = active ? '#ffbf00' : '#ffcc33';
-    c.strokeStyle = '#f6b700';
-    c.lineWidth = 1.35 / z;
-    roundRect(c, x-w/2, y-h/2, w, h, rx);
-    c.fill(); c.stroke();
-    c.fillStyle = '#7a5200';
-    c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(symbol, x, y+0.5/z);
-    c.restore();
-    if(area) hitAreas.push({...area, x:x-w/2, y:y-h/2, w, h});
-
     const off = 34 / z;
     if(dir === 'up') drawDoubleChevron(c, x, y - off, 'up', .45);
     else if(dir === 'down') drawDoubleChevron(c, x, y + off, 'down', .45);
@@ -842,16 +789,7 @@
   }
 
   function drawImageCropOverlay(c, layout){
-    const vertical = state.orientation === 'vertical';
-    const seamActive = state.activeHandle?.kind === 'seamCenter' ? state.activeHandle : null;
     const activeHandle = state.activeHandle?.kind === 'imageCrop' ? state.activeHandle : null;
-
-    if(seamActive){
-      // 单图裁剪模式下，相邻两图交界处直接复用“拼接线”的完整能力。
-      // 这里只显示当前正在编辑的这一条接缝，不显示其它单图箭头。
-      drawSeamOverlay(c, layout);
-      return;
-    }
 
     if(activeHandle){
       // 单图裁剪编辑态：只显示当前图片的编辑态。
@@ -885,48 +823,19 @@
       c.strokeRect(b.x,b.y,b.w,b.h);
       c.restore();
 
-      // 单图裁剪默认态：每张图的“外边界”显示单向箭头。
-      // 相邻两图交界处不再显示两个单向箭头，改为下方 seam 控件直接复用拼接线能力。
-      const isFirst = b.index === 0;
-      const isLast = b.index === state.images.length - 1;
-      if(vertical){
-        if(isFirst) drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
-        if(isLast) drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
-        drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
-        drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
-      } else {
-        drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
-        drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
-        if(isFirst) drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
-        if(isLast) drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
-      }
+      // 单图裁剪默认态：所有图都显示四边箭头，不需要先选中。
+      drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
+      drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
+      drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
+      drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
     }
-
-    // 两张图交界处直接使用拼接线控件：纵向是 上图底部/下图顶部，横向是 左图右侧/右图左侧。
-    for(const sv of layout.seams){
-      if(vertical) drawSeamPill(c, layout.fullWidth/2, sv.y, true, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
-      else drawSeamPill(c, sv.x, layout.fullHeight/2, false, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
-    }
-  }
-
-  function splitDraftIsVisible(layout, marginPx=24){
-    if(!state.splitDraft) return false;
-    const rect = stageWrap.getBoundingClientRect();
-    const pos = Math.round(state.splitDraft.pos || 0);
-    if(state.orientation === 'vertical'){
-      const sy = pos * state.zoom + state.pan.y;
-      return sy >= marginPx && sy <= rect.height - marginPx;
-    }
-    const sx = pos * state.zoom + state.pan.x;
-    return sx >= marginPx && sx <= rect.width - marginPx;
   }
 
   function drawDividerOverlay(c, layout){
     ensureSplitDraft();
-    // v1.4 分割线预定位态：
-    // - 如果分割线还在当前可视范围内，保持不动，尊重用户刚刚调好的位置；
-    // - 如果分割线已经离开当前可视范围，自动跳到屏幕中心，避免长图放大后还要回头找线。
-    if(!drag && !splitDraftIsVisible(layout)){
+    // 分割线预定位态：默认是“屏幕中心准星”。
+    // 用户没有手动拖线时，画布滚到哪里，分割线就跟随当前视口中心。
+    if(!state.splitDraftManual && !drag){
       syncSplitDraftToViewportCenter();
     }
     const vertical = state.orientation === 'vertical';
@@ -946,224 +855,6 @@
       hitAreas.push({type:'splitDraftDrag', x:pos-10, y:0, w:20, h:layout.fullHeight, cursor:'ew-resize'});
       drawPill(c, pos, layout.fullHeight/2, '+', {type:'splitDraftCommit', cursor:'pointer'}, true);
     }
-  }
-
-
-  const svgIcon = name => ({
-    select:'<svg viewBox="0 0 24 24"><path d="M4 4l7 17 2-7 7-2z"/></svg>',
-    shape:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="10" height="10" rx="1"/><circle cx="17" cy="17" r="4"/></svg>',
-    pen:'<svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M13 6l3 3"/></svg>',
-    arrow:'<svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><path d="M10 5h9v9"/></svg>',
-    text:'<svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M12 6v12"/><path d="M8 18h8"/></svg>',
-    badge:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8"/><path d="M10 10l2-2 2 2"/></svg>',
-    mosaic:'<svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>',
-    eraser:'<svg viewBox="0 0 24 24"><path d="M4 16l8-8 6 6-6 6H8z"/><path d="M12 20h8"/></svg>',
-    watermark:'<svg viewBox="0 0 24 24"><path d="M4 16c3-8 13-8 16 0"/><path d="M7 16c2-4 8-4 10 0"/><path d="M9 9h6"/><path d="M12 6v6"/></svg>',
-    line:'<svg viewBox="0 0 24 24"><path d="M5 19L19 5"/></svg>',
-    doubleArrow:'<svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><path d="M10 5h9v9"/><path d="M14 19H5v-9"/></svg>',
-    circle:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>',
-    rect:'<svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="1"/></svg>'
-  }[name] || '•');
-
-  function activeToolFromSettings(){
-    const s = state.toolSettings;
-    if(s.group === 'select') return 'select';
-    if(s.group === 'shape') return s.shapeKind === 'circle' ? (s.shapeFill ? 'circleFill' : 'circle') : (s.shapeFill ? 'boxFill' : 'box');
-    if(s.group === 'pen') return s.penKind === 'highlight' ? 'highlight' : 'pen';
-    if(s.group === 'arrow') return s.arrowKind || 'arrow';
-    if(s.group === 'text') return 'text';
-    if(s.group === 'badge') return 'badge';
-    if(s.group === 'mosaic') return s.mosaicKind === 'free' ? 'mosaicPen' : 'mosaic';
-    if(s.group === 'eraser') return 'eraser';
-    if(s.group === 'watermark') return 'watermark';
-    return 'select';
-  }
-
-  function applyActiveTool(){
-    state.toolArmed = activeToolFromSettings();
-  }
-
-  function groupForAnnotationType(type){
-    if(['box','boxFill','circle','circleFill','redact'].includes(type)) return 'shape';
-    if(['pen','highlight'].includes(type)) return 'pen';
-    if(['line','arrow','doubleArrow'].includes(type)) return 'arrow';
-    if(type === 'text') return 'text';
-    if(type === 'badge') return 'badge';
-    if(['mosaic','mosaicPen'].includes(type)) return 'mosaic';
-    if(type === 'watermark') return 'watermark';
-    return 'select';
-  }
-
-  function setToolGroup(group){
-    state.toolSettings.group = group;
-    if(group !== 'select') state.selected = null;
-    applyActiveTool();
-    renderProps(); requestRender();
-  }
-
-  function renderToolDock(){
-    if(!toolDock || !toolPopover) return;
-    if(state.mode !== 'tools' || state.preview || !state.images.length){
-      toolDock.classList.remove('show');
-      toolPopover.classList.remove('show');
-      return;
-    }
-    const groups = [
-      ['select','select','选择 / 移动'],
-      ['shape','shape','几何图形'],
-      ['pen','pen','铅笔 / 荧光笔'],
-      ['arrow','arrow','直线 / 箭头'],
-      ['text','text','文字'],
-      ['badge','badge','标号 1~10'],
-      ['mosaic','mosaic','马赛克'],
-      ['eraser','eraser','橡皮擦'],
-      ['watermark','watermark','水印']
-    ];
-    const activeGroup = state.selected?.type === 'annotation' ? 'select' : (state.toolSettings.group || 'select');
-    toolDock.innerHTML = groups.map(([g,icon,title],i) => `${i===7?'<span class="tool-dock-sep"></span>':''}<button class="tool-dock-btn ${activeGroup===g?'active':''} ${g==='eraser'?'danger':''}" data-tool-group="${g}" title="${title}" aria-label="${title}">${svgIcon(icon)}</button>`).join('');
-    toolDock.classList.add('show');
-    toolDock.querySelectorAll('[data-tool-group]').forEach(btn=>{
-      btn.addEventListener('pointerdown', e=>e.stopPropagation());
-      btn.addEventListener('click', e=>{ e.stopPropagation(); setToolGroup(btn.dataset.toolGroup); });
-    });
-    renderToolPopover();
-  }
-
-  function activeAnchorButton(){
-    if(!toolDock) return null;
-    const group = state.selected?.type === 'annotation' ? 'select' : (state.toolSettings.group || 'select');
-    return toolDock.querySelector(`[data-tool-group="${group}"]`) || toolDock.querySelector('[data-tool-group="select"]');
-  }
-
-  function positionToolPopover(anchor){
-    if(!toolPopover || !anchor) return;
-    toolPopover.style.visibility = 'hidden';
-    toolPopover.classList.add('show');
-    const sw = stageWrap.clientWidth, sh = stageWrap.clientHeight;
-    const pw = toolPopover.offsetWidth, ph = toolPopover.offsetHeight;
-    const ar = anchor.getBoundingClientRect();
-    const sr = stageWrap.getBoundingClientRect();
-    const ax = ar.left - sr.left + ar.width/2;
-    const ayTop = ar.top - sr.top;
-    const ayBottom = ar.bottom - sr.top;
-    let left = clamp(ax - pw/2, 8, Math.max(8, sw - pw - 8));
-    let below = ayBottom + 8;
-    let above = ayTop - ph - 8;
-    let top = (below + ph <= sh - 8) ? below : Math.max(8, above);
-    if(top + ph > sh - 8) top = Math.max(8, sh - ph - 8);
-    toolPopover.style.left = `${left}px`;
-    toolPopover.style.top = `${top}px`;
-    toolPopover.style.visibility = '';
-  }
-
-  function renderToolPopover(){
-    if(!toolPopover) return;
-    if(state.mode !== 'tools' || state.preview){ toolPopover.classList.remove('show'); return; }
-    const a = state.selected?.type === 'annotation' ? state.annotations[state.selected.index] : null;
-    toolPopover.innerHTML = a ? annotationPopover(a) : groupPopover();
-    toolPopover.classList.toggle('compact', !a && ['select','eraser'].includes(state.toolSettings.group));
-    toolPopover.onpointerdown = e => e.stopPropagation();
-    bindToolPopoverEvents();
-    requestAnimationFrame(()=>positionToolPopover(activeAnchorButton()));
-  }
-
-  function colorInput(key, value){ return `<input type="color" data-tool-setting="${key}" value="${value || '#ef4444'}" title="颜色">`; }
-  function numberInput(key, value, min=1, max='', step=1){ return `<input type="number" data-tool-setting="${key}" value="${value}" min="${min}" ${max!==''?`max="${max}"`:''} step="${step}">`; }
-  function chip(key, val, active, body, title=''){ return `<button class="pop-chip ${active?'active':''}" data-tool-setting="${key}" data-value="${val}" title="${title}">${body}</button>`; }
-
-  function groupPopover(){
-    const s = state.toolSettings, g = s.group || 'select';
-    if(g === 'select') return `<div class="pop-title">选择 / 移动</div><p class="hint">点击已有标注可移动、缩放和编辑参数。方向键可微调，Delete 删除。</p>`;
-    if(g === 'shape') return `<div class="pop-title">几何图形</div><div class="pop-chip-row">
-      ${chip('shapeKind','box',s.shapeKind!=='circle',svgIcon('rect'),'方框')}${chip('shapeKind','circle',s.shapeKind==='circle',svgIcon('circle'),'圆形')}
-      ${chip('shapeFill','toggle',!!s.shapeFill,'填充','填充 / 空心')}
-      ${colorInput('color',s.color)}${colorInput('fillColor',s.fillColor)}
-    </div><div class="pop-row"><label>边框</label>${numberInput('lineWidth',s.lineWidth||4,1,40)}</div><div class="pop-row"><label>透明度</label>${numberInput('opacity',s.opacity||1,0.05,1,0.05)}</div>`;
-    if(g === 'pen') return `<div class="pop-title">铅笔</div><div class="pop-chip-row">
-      ${chip('penKind','pen',s.penKind!=='highlight','✎','自由笔')}${chip('penKind','highlight',s.penKind==='highlight','▰','荧光笔')}
-      ${colorInput('penColor',s.penColor || (s.penKind==='highlight'?'#facc15':'#ef4444'))}
-    </div><div class="pop-row"><label>粗细</label>${numberInput(s.penKind==='highlight'?'highlightWidth':'penWidth',s.penKind==='highlight'?(s.highlightWidth||18):(s.penWidth||4),1,80)}</div>`;
-    if(g === 'arrow') return `<div class="pop-title">线条 / 箭头</div><div class="pop-chip-row">
-      ${chip('arrowKind','line',s.arrowKind==='line',svgIcon('line'),'直线')}${chip('arrowKind','arrow',s.arrowKind!=='line'&&s.arrowKind!=='doubleArrow',svgIcon('arrow'),'单箭头')}${chip('arrowKind','doubleArrow',s.arrowKind==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}
-      ${colorInput('color',s.color)}
-    </div><div class="pop-row"><label>粗细</label>${numberInput('lineWidth',s.lineWidth||4,1,40)}</div>`;
-    if(g === 'text') return `<div class="pop-title">文字</div><div class="pop-row"><label>内容</label><input type="text" data-tool-setting="textValue" value="${escapeHtml(s.textValue||'输入文字')}"></div><div class="pop-row"><label>字号</label>${numberInput('textSize',s.textSize||28,8,160)}</div><div class="pop-row"><label>颜色</label>${colorInput('textColor',s.textColor||'#111827')}<button class="pop-chip ${s.textOutline?'active':''}" data-tool-setting="textOutline" data-value="toggle">描边</button></div><div class="pop-row"><label>背景</label><select data-tool-setting="textBg"><option value="transparent" ${s.textBg==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${s.textBg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${s.textBg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${s.textBg==='#ffeb3b'?'selected':''}>黄底</option></select></div>`;
-    if(g === 'badge') return `<div class="pop-title">标号</div><div class="pop-chip-row">${Array.from({length:10},(_,i)=>chip('badgeNumber',i+1,(s.badgeNumber||1)===i+1,String(i+1),`标号 ${i+1}`)).join('')}</div><div class="pop-row"><label>颜色</label>${colorInput('badgeColor',s.badgeColor||'#2f80ed')}</div><div class="pop-row"><label>大小</label>${numberInput('badgeSize',s.badgeSize||34,14,120)}</div>`;
-    if(g === 'mosaic') return `<div class="pop-title">马赛克</div><div class="pop-chip-row">${chip('mosaicKind','mosaic',s.mosaicKind!=='free','▦','矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}</div><div class="pop-row"><label>块大小</label>${numberInput('mosaicGrid',s.mosaicGrid||14,4,80)}</div>`;
-    if(g === 'eraser') return `<div class="pop-title">橡皮擦</div><p class="hint">点击已有标注即可删除；只擦工具标注层，不破坏原图。</p><div class="pop-row"><label>大小</label>${numberInput('eraserSize',s.eraserSize||24,4,120)}</div>`;
-    if(g === 'watermark') return `<div class="pop-title">水印</div><div class="pop-row"><label>文字</label><input type="text" data-tool-setting="watermarkText" value="${escapeHtml(s.watermarkText||'水印')}"></div><div class="pop-row"><label>字号</label>${numberInput('watermarkSize',s.watermarkSize||34,8,180)}</div><div class="pop-row"><label>颜色</label>${colorInput('watermarkColor',s.watermarkColor||'#111827')}</div><div class="pop-row"><label>透明度</label>${numberInput('watermarkOpacity',s.watermarkOpacity||.22,0.05,1,0.05)}</div><div class="pop-row"><label>次数</label>${numberInput('watermarkRepeat',s.watermarkRepeat||1,1,80)}</div>`;
-    return '';
-  }
-
-  function annotationPopover(a){
-    const typeName = ({text:'文字', watermark:'水印', mosaic:'马赛克', mosaicPen:'自由马赛克', redact:'遮挡', pen:'自由笔', highlight:'荧光笔', box:'矩形', boxFill:'填充矩形', circle:'圆圈', circleFill:'填充圆圈', line:'直线', arrow:'箭头', doubleArrow:'双箭头', badge:'标号'}[a.type] || a.type);
-    const shapeLike = ['box','boxFill','circle','circleFill','mosaic','redact','line','arrow','doubleArrow'].includes(a.type);
-    const lineLike = ['box','boxFill','circle','circleFill','line','arrow','doubleArrow','pen','highlight'].includes(a.type);
-    const fillLike = ['boxFill','circleFill'].includes(a.type);
-    const textLike = ['text','watermark'].includes(a.type);
-    const opacityLike = ['watermark','highlight','boxFill','circleFill','mosaic','mosaicPen'].includes(a.type);
-    return `<div class="pop-title"><span>${typeName}</span><span class="hint">对象属性</span></div>
-      <div class="pop-row"><label>X</label><input type="number" data-ann="x" value="${Math.round(a.x||0)}"></div>
-      <div class="pop-row"><label>Y</label><input type="number" data-ann="y" value="${Math.round(a.y||0)}"></div>
-      ${shapeLike ? `<div class="pop-row"><label>宽高</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : ''}
-      ${textLike || a.type==='badge' ? `<div class="pop-row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}"></div><div class="pop-row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div>` : ''}
-      <div class="pop-row"><label>颜色</label><input type="color" data-ann="color" value="${a.color||'#ef4444'}">${fillLike ? `<input type="color" data-ann="fillColor" value="${a.fillColor||'#fee2e2'}" title="填充色">` : ''}</div>
-      ${textLike ? `<div class="pop-row"><label>背景</label><select data-ann="bg"><option value="transparent" ${(a.bg||'transparent')==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${a.bg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${a.bg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${a.bg==='#ffeb3b'?'selected':''}>黄底</option></select></div><div class="pop-row"><label>描边</label><select data-ann="outline"><option value="false" ${!a.outline?'selected':''}>关闭</option><option value="true" ${a.outline?'selected':''}>开启</option></select></div>` : ''}
-      ${lineLike ? `<div class="pop-row"><label>粗细</label><input type="number" data-ann="lineWidth" value="${Math.round(a.lineWidth||4)}"></div>` : ''}
-      ${a.type==='mosaic' || a.type==='mosaicPen' ? `<div class="pop-row"><label>块大小</label><input type="number" data-ann="gridSize" value="${Math.round(a.gridSize||14)}"></div>` : ''}
-      ${a.type==='watermark' ? `<div class="pop-row"><label>次数</label><input type="number" data-ann="repeatCount" value="${Math.round(a.repeatCount||1)}"></div>` : ''}
-      ${opacityLike ? `<div class="pop-row"><label>透明度</label><input type="number" step="0.05" min="0.05" max="1" data-ann="opacity" value="${a.opacity == null ? 1 : a.opacity}"></div>` : ''}
-      <div class="pop-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat">删除</button><button class="mini-btn" id="duplicateAnnotationBtnFloat">复制</button></div>`;
-  }
-
-  function bindToolPopoverEvents(){
-    if(!toolPopover) return;
-    toolPopover.querySelectorAll('[data-tool-setting]').forEach(el=>{
-      const ev = (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number' || el.type === 'color')) ? 'input' : 'click';
-      el.addEventListener(ev, e=>{
-        const key = el.dataset.toolSetting;
-        let val = el.dataset.value != null ? el.dataset.value : (el.type === 'checkbox' ? el.checked : el.value);
-        if(val === 'toggle') val = !state.toolSettings[key];
-        if(['shapeFill','textOutline'].includes(key)) val = !!val;
-        if(['lineWidth','penWidth','highlightWidth','textSize','badgeNumber','badgeSize','mosaicGrid','eraserSize','watermarkSize','watermarkRepeat'].includes(key)) val = Math.round(+val || 1);
-        if(['opacity','watermarkOpacity'].includes(key)) val = clamp(parseFloat(val || '1'), .05, 1);
-        state.toolSettings[key] = val;
-        applyActiveTool();
-        if(el.tagName === 'INPUT' && ['text','number','color'].includes(el.type)) requestRender();
-        else { renderToolDock(); requestRender(); }
-      });
-    });
-    toolPopover.querySelectorAll('[data-ann]').forEach(el=>{
-      const ev = (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number' || el.type === 'color')) ? 'input' : 'change';
-      el.addEventListener(ev, ()=> updateAnnotationInput(el));
-    });
-    $('#deleteAnnotationBtnFloat')?.addEventListener('click', deleteSelectedAnnotation);
-    $('#duplicateAnnotationBtnFloat')?.addEventListener('click', duplicateSelectedAnnotation);
-  }
-
-  function updateAnnotationInput(inp){
-    const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
-    if(idx < 0) return;
-    const a = state.annotations[idx];
-    const key = inp.dataset.ann;
-    pushHistory();
-    if(key === 'outline') a.outline = inp.value === 'true';
-    else if(inp.type === 'number'){
-      if(key === 'opacity') a[key] = clamp(parseFloat(inp.value || '1'), .05, 1);
-      else a[key] = Math.round(+inp.value || 0);
-    } else a[key] = inp.value;
-    requestRender();
-  }
-
-  function duplicateSelectedAnnotation(){
-    const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
-    if(idx < 0) return;
-    pushHistory();
-    const copy = JSON.parse(JSON.stringify(state.annotations[idx]));
-    copy.id = uid('ann'); copy.x = (copy.x||0)+24; copy.y = (copy.y||0)+24;
-    state.annotations.push(copy);
-    state.selected = {type:'annotation', index:state.annotations.length-1};
-    renderProps(); requestRender();
   }
 
   function drawToolsOverlay(c, layout){
@@ -1191,226 +882,66 @@
 
 
   function drawAnnotations(c, layout, exportMode=false){
-    const drawArrowHead = (x1,y1,x2,y2,color,lineWidth=4) => {
-      const ang = Math.atan2(y2-y1, x2-x1);
-      const len = Math.max(12, (lineWidth || 4) * 4.2);
-      c.save();
-      c.fillStyle = color;
-      c.beginPath();
-      c.moveTo(x2,y2);
-      c.lineTo(x2-len*Math.cos(ang-Math.PI/6), y2-len*Math.sin(ang-Math.PI/6));
-      c.lineTo(x2-len*Math.cos(ang+Math.PI/6), y2-len*Math.sin(ang+Math.PI/6));
-      c.closePath();
-      c.fill();
-      c.restore();
-    };
-
     for(const a of state.annotations){
       c.save();
-      c.globalAlpha = clamp(a.opacity == null ? 1 : +a.opacity, 0.05, 1);
       c.translate(a.x || 0, a.y || 0);
-      const w = a.w == null ? 180 : a.w;
-      const h = a.h == null ? 90 : a.h;
-      const lw = Math.max(1, a.lineWidth || 3);
-      const color = a.color || '#ef4444';
-
-      if(a.type === 'text' || a.type === 'watermark'){
-        const fs = a.fontSize || (a.type === 'watermark' ? 34 : 28);
-        c.font = `700 ${fs}px ui-sans-serif, system-ui, sans-serif`;
+      if(a.type === 'text'){
+        c.font = `700 ${a.fontSize || 28}px ui-sans-serif, system-ui, sans-serif`;
         c.textAlign = 'left'; c.textBaseline = 'top';
-        const lines = String(a.text || (a.type === 'watermark' ? '水印' : 'Text')).split('\n');
-        const drawTextBlock = (ox=0, oy=0) => {
-          if(a.bg && a.bg !== 'transparent'){
-            const temp = document.createElement('canvas').getContext('2d');
-            temp.font = c.font;
-            const mw = Math.max(...lines.map(line => temp.measureText(line).width), 40);
-            const hh = lines.length * (fs + 6) + 12;
-            c.fillStyle = a.bg;
-            c.fillRect(ox-8,oy-6,mw+16,hh);
-          }
-          if(a.outline){
-            c.strokeStyle = a.outlineColor || '#ffffff';
-            c.lineWidth = Math.max(2, fs/10);
-            lines.forEach((line,i)=> c.strokeText(line,ox,oy+i*(fs+6)));
-          }
-          c.fillStyle = a.color || '#111827';
-          lines.forEach((line,i)=> c.fillText(line,ox,oy+i*(fs+6)));
-        };
-        if(a.type === 'watermark' && (a.repeatCount || 1) > 1 && layout){
-          const count = clamp(Math.round(a.repeatCount || 1), 1, 120);
-          const cols = Math.max(1, Math.ceil(Math.sqrt(count * Math.max(1, layout.fullWidth) / Math.max(1, layout.fullHeight))));
-          const rows = Math.max(1, Math.ceil(count / cols));
-          let n = 0;
-          for(let r=0;r<rows;r++){
-            for(let col=0;col<cols && n<count;col++,n++){
-              const px = (col + .5) * layout.fullWidth / cols - (a.x||0);
-              const py = (r + .5) * layout.fullHeight / rows - (a.y||0);
-              c.save(); c.translate(px, py); c.rotate(-Math.PI/9); drawTextBlock(0,0); c.restore();
-            }
-          }
-        } else drawTextBlock(0,0);
-      } else if(a.type === 'badge'){
-        const fs = a.fontSize || 34;
-        const r = Math.max(12, fs * .62);
-        c.beginPath(); c.arc(r, r, r, 0, Math.PI*2);
-        c.fillStyle = a.color || '#2f80ed'; c.fill();
-        c.strokeStyle = '#fff'; c.lineWidth = Math.max(2, fs/10); c.stroke();
-        c.fillStyle = '#fff'; c.font = `800 ${fs}px ui-sans-serif, system-ui, sans-serif`; c.textAlign='center'; c.textBaseline='middle';
-        c.fillText(String(a.text || '1'), r, r+1);
-      } else if(a.type === 'mosaic'){
-        const cell = Math.max(6, a.gridSize || 14);
-        const x0 = Math.min(0,w), y0 = Math.min(0,h), ww = Math.abs(w), hh = Math.abs(h);
-        c.save();
-        c.beginPath(); c.rect(x0,y0,ww,hh); c.clip();
-        c.fillStyle = 'rgba(229,231,235,.88)';
-        c.fillRect(x0,y0,ww,hh);
-        for(let yy=y0; yy<y0+hh; yy+=cell){
-          for(let xx=x0; xx<x0+ww; xx+=cell){
-            const k = (Math.floor(xx/cell) + Math.floor(yy/cell)) % 4;
-            c.fillStyle = ['rgba(31,41,55,.42)','rgba(107,114,128,.42)','rgba(209,213,219,.72)','rgba(17,24,39,.30)'][k];
-            c.fillRect(xx, yy, cell+0.5, cell+0.5);
-          }
+        if(a.bg && a.bg !== 'transparent'){
+          const temp = document.createElement('canvas').getContext('2d');
+          temp.font = c.font;
+          const m = temp.measureText(a.text || 'Text');
+          const hh = (a.fontSize || 28) + 12;
+          c.fillStyle = a.bg;
+          c.fillRect(-8,-6,m.width+16,hh);
         }
-        c.restore();
+        c.fillStyle = a.color || '#111827';
+        (String(a.text || 'Text').split('\n')).forEach((line,i)=> c.fillText(line,0,i*((a.fontSize||28)+6)));
       } else if(a.type === 'redact'){
         c.fillStyle = a.color || '#111827';
-        c.fillRect(0,0,w,h);
-      } else if(a.type === 'box' || a.type === 'boxFill'){
-        if(a.type === 'boxFill'){
-          c.fillStyle = a.fillColor || color;
-          c.fillRect(0,0,w,h);
-        }
-        c.strokeStyle = color;
-        c.lineWidth = lw;
-        c.strokeRect(0,0,w,h);
-      } else if(a.type === 'circle' || a.type === 'circleFill'){
-        const x0 = Math.min(0,w), y0 = Math.min(0,h), ww = Math.abs(w), hh = Math.abs(h);
-        c.beginPath();
-        c.ellipse(x0+ww/2, y0+hh/2, Math.max(1,ww/2), Math.max(1,hh/2), 0, 0, Math.PI*2);
-        if(a.type === 'circleFill'){
-          c.fillStyle = a.fillColor || color;
-          c.fill();
-        }
-        c.strokeStyle = color;
-        c.lineWidth = lw;
-        c.stroke();
-      } else if(a.type === 'line' || a.type === 'arrow' || a.type === 'doubleArrow'){
-        c.strokeStyle = color;
-        c.fillStyle = color;
-        c.lineWidth = lw;
-        c.lineCap = 'round';
-        c.lineJoin = 'round';
+        c.fillRect(0,0,a.w || 180,a.h || 64);
+      } else if(a.type === 'box'){
+        c.strokeStyle = a.color || '#ef4444';
+        c.lineWidth = a.lineWidth || 3;
+        c.strokeRect(0,0,a.w || 180,a.h || 90);
+      } else if(a.type === 'arrow'){
+        const w = a.w || 180, h = a.h || 90;
+        c.strokeStyle = a.color || '#ef4444';
+        c.fillStyle = a.color || '#ef4444';
+        c.lineWidth = a.lineWidth || 4;
         c.beginPath(); c.moveTo(0,0); c.lineTo(w,h); c.stroke();
-        if(a.type === 'arrow' || a.type === 'doubleArrow') drawArrowHead(0,0,w,h,color,lw);
-        if(a.type === 'doubleArrow') drawArrowHead(w,h,0,0,color,lw);
-      } else if(a.type === 'pen' || a.type === 'highlight' || a.type === 'mosaicPen'){
-        const pts = a.points || [];
-        if(pts.length){
-          if(a.type === 'mosaicPen'){
-            const cell = Math.max(6, a.gridSize || 14);
-            const size = Math.max(cell*1.4, a.lineWidth || cell*2);
-            for(const p of pts){
-              const x0 = p.x - size/2, y0 = p.y - size/2;
-              for(let yy=y0; yy<y0+size; yy+=cell){
-                for(let xx=x0; xx<x0+size; xx+=cell){
-                  const k = (Math.floor(xx/cell) + Math.floor(yy/cell)) % 4;
-                  c.fillStyle = ['rgba(31,41,55,.42)','rgba(107,114,128,.42)','rgba(209,213,219,.72)','rgba(17,24,39,.30)'][k];
-                  c.fillRect(xx, yy, cell+0.5, cell+0.5);
-                }
-              }
-            }
-          } else {
-            c.strokeStyle = a.color || (a.type === 'highlight' ? '#facc15' : '#ef4444');
-            c.lineWidth = a.lineWidth || (a.type === 'highlight' ? 18 : 4);
-            c.lineCap = 'round'; c.lineJoin = 'round';
-            if(a.type === 'highlight') c.globalCompositeOperation = 'multiply';
-            c.beginPath();
-            c.moveTo(pts[0].x, pts[0].y);
-            for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x, pts[i].y);
-            c.stroke();
-          }
-        }
+        const ang = Math.atan2(h,w), len = 18;
+        c.beginPath(); c.moveTo(w,h); c.lineTo(w-len*Math.cos(ang-Math.PI/6), h-len*Math.sin(ang-Math.PI/6)); c.lineTo(w-len*Math.cos(ang+Math.PI/6), h-len*Math.sin(ang+Math.PI/6)); c.closePath(); c.fill();
       }
       c.restore();
     }
   }
 
   function annotationBounds(a){
-    if(a.type === 'text' || a.type === 'watermark'){
+    if(a.type === 'text'){
       const temp = document.createElement('canvas').getContext('2d');
-      const fs = a.fontSize || (a.type === 'watermark' ? 34 : 28);
-      temp.font = `700 ${fs}px ui-sans-serif, system-ui, sans-serif`;
-      const lines = String(a.text || (a.type === 'watermark' ? '水印' : 'Text')).split('\n');
+      temp.font = `700 ${a.fontSize || 28}px ui-sans-serif, system-ui, sans-serif`;
+      const lines = String(a.text || 'Text').split('\n');
       const width = Math.max(...lines.map(line => temp.measureText(line).width), 40) + ((a.bg && a.bg !== 'transparent') ? 16 : 0);
-      const height = Math.max(24, lines.length * (fs+6));
-      return {x:(a.x||0)-8, y:(a.y||0)-6, w:width+16, h:height+12};
+      const height = Math.max(24, lines.length * ((a.fontSize || 28)+6));
+      return {x:a.x||0, y:a.y||0, w:width, h:height};
     }
-    if(a.type === 'badge'){
-      const fs = a.fontSize || 34; const r = Math.max(12, fs*.62);
-      return {x:a.x||0, y:a.y||0, w:r*2, h:r*2};
-    }
-    if(a.type === 'pen' || a.type === 'highlight' || a.type === 'mosaicPen'){
-      const pts = a.points || [];
-      if(!pts.length) return {x:a.x||0, y:a.y||0, w:24, h:24};
-      const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
-      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-      const pad = Math.max(8, (a.lineWidth || (a.type === 'highlight' ? 18 : 4)) / 2 + 4);
-      return {x:(a.x||0)+minX-pad, y:(a.y||0)+minY-pad, w:Math.max(24,maxX-minX+pad*2), h:Math.max(24,maxY-minY+pad*2)};
-    }
-    const w = a.w == null ? 180 : a.w;
-    const h = a.h == null ? 90 : a.h;
-    const pad = Math.max(6, (a.lineWidth || 3) + 4);
-    return {x:(a.x||0)+Math.min(0,w)-pad, y:(a.y||0)+Math.min(0,h)-pad, w:Math.max(24,Math.abs(w)+pad*2), h:Math.max(24,Math.abs(h)+pad*2)};
-  }
-
-  function makeAnnotation(type, pt){
-    const s = state.toolSettings || {};
-    const base = { id: uid('ann'), type, x: Math.round(pt.x), y: Math.round(pt.y), w: 180, h: 90, color: s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', bg: 'transparent', opacity: s.opacity == null ? 1 : s.opacity, lineWidth: s.lineWidth || 4, fontSize: 28, text: '文本' };
-    if(type === 'redact') Object.assign(base, {color:'#111827', fillColor:'#111827', w:220, h:72});
-    if(type === 'mosaic') Object.assign(base, {w:220, h:90, gridSize:s.mosaicGrid || 14, opacity:1});
-    if(type === 'mosaicPen') Object.assign(base, {points:[{x:0,y:0}], w:0, h:0, gridSize:s.mosaicGrid || 14, lineWidth:Math.max(18,(s.mosaicGrid||14)*2), opacity:1});
-    if(type === 'box') Object.assign(base, {color:s.color || '#ef4444', w:220, h:110, lineWidth:s.lineWidth || 4});
-    if(type === 'boxFill') Object.assign(base, {color:s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', opacity:s.opacity == null ? .72 : s.opacity, w:220, h:110, lineWidth:s.lineWidth || 4});
-    if(type === 'circle') Object.assign(base, {color:s.color || '#ef4444', w:180, h:120, lineWidth:s.lineWidth || 4});
-    if(type === 'circleFill') Object.assign(base, {color:s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', opacity:s.opacity == null ? .72 : s.opacity, w:180, h:120, lineWidth:s.lineWidth || 4});
-    if(type === 'line') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
-    if(type === 'arrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
-    if(type === 'doubleArrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
-    if(type === 'text') Object.assign(base, {color:s.textColor || '#111827', bg:s.textBg || 'transparent', outline:!!s.textOutline, text:s.textValue || '输入文字', fontSize:s.textSize || 28, w:0, h:0});
-    if(type === 'badge') Object.assign(base, {color:s.badgeColor || '#2f80ed', text:String(s.badgeNumber || 1), fontSize:s.badgeSize || 34, w:0, h:0});
-    if(type === 'watermark') Object.assign(base, {color:s.watermarkColor || '#111827', bg:'transparent', text:s.watermarkText || '水印', fontSize:s.watermarkSize || 34, opacity:s.watermarkOpacity == null ? .22 : s.watermarkOpacity, repeatCount:s.watermarkRepeat || 1, w:0, h:0});
-    if(type === 'pen') Object.assign(base, {color:s.penColor || '#ef4444', lineWidth:s.penWidth || 4, points:[{x:0,y:0}], w:0, h:0});
-    if(type === 'highlight') Object.assign(base, {color:s.penColor || '#facc15', opacity:.45, lineWidth:s.highlightWidth || 18, points:[{x:0,y:0}], w:0, h:0});
-    return base;
+    return {x:a.x||0, y:a.y||0, w:Math.max(24,a.w||180), h:Math.max(24,a.h||90)};
   }
 
   function addAnnotation(type){
     if(!state.images.length) return;
-    const layout = computeLayout(true);
-    addAnnotationAt(type, { x: Math.max(20, layout.fullWidth/2 - 80), y: Math.max(20, layout.fullHeight/2 - 40) });
-  }
-
-  function beginToolDraw(type, pt){
-    if(!type || type === 'select' || !state.images.length) return false;
     pushHistory();
-    const a = makeAnnotation(type, pt);
-    state.annotations.push(a);
-    const idx = state.annotations.length - 1;
-    state.selected = {type:'annotation', index:idx};
-    if(type === 'text' || type === 'watermark' || type === 'badge'){
-      if(type === 'badge' && state.toolSettings.badgeNumber < 10) state.toolSettings.badgeNumber++;
-      state.toolArmed = 'select';
-      state.toolSettings.group = 'select';
-      renderProps(); requestRender();
-      return true;
-    }
-    drag = { type:'toolCreate', index:idx, tool:type, start:{...pt}, ann:{...a} };
+    const layout = computeLayout(true);
+    const base = { id: uid('ann'), type, x: Math.max(20, layout.fullWidth/2 - 80), y: Math.max(20, layout.fullHeight/2 - 40), w: 180, h: 90, color: '#ef4444', bg: 'transparent', lineWidth: 4, fontSize: 28, text: '文本' };
+    if(type === 'redact') Object.assign(base, {color:'#111827', bg:'#111827', w:220, h:72});
+    if(type === 'box') Object.assign(base, {color:'#ef4444', w:220, h:110});
+    if(type === 'arrow') Object.assign(base, {color:'#ef4444', w:200, h:80});
+    if(type === 'text') Object.assign(base, {color:'#111827', bg:'transparent', text:'双击文字或左侧修改'});
+    state.annotations.push(base);
+    state.selected = {type:'annotation', index: state.annotations.length - 1};
     renderProps(); requestRender();
-    return true;
-  }
-
-  function addAnnotationAt(type, pt){
-    return beginToolDraw(type, pt);
   }
 
   function deleteSelectedAnnotation(){
@@ -1428,7 +959,19 @@
     state.seams.forEach(s => { s.beforeCrop = 0; s.afterCrop = 0; });
   }
 
-
+  function addAnnotationAt(type, pt){
+    if(!type || type==='select' || !state.images.length) return;
+    pushHistory();
+    const base = { id: uid('ann'), type, x: Math.round(pt.x), y: Math.round(pt.y), w: 180, h: 90, color: '#ef4444', bg: 'transparent', lineWidth: 4, fontSize: 28, text: '文本' };
+    if(type === 'redact') Object.assign(base, {color:'#111827', bg:'#111827', w:220, h:72});
+    if(type === 'box') Object.assign(base, {color:'#ef4444', w:220, h:110});
+    if(type === 'arrow') Object.assign(base, {color:'#ef4444', w:200, h:80});
+    if(type === 'text') Object.assign(base, {color:'#111827', bg:'transparent', text:'输入文字'});
+    state.annotations.push(base);
+    state.selected = {type:'annotation', index: state.annotations.length-1};
+    state.toolArmed = 'select';
+    renderProps(); requestRender();
+  }
 
   function splitImageAt(index, localPos=null){
     const original = state.images[index];
@@ -1513,19 +1056,10 @@
     const p = getPointer(e);
     const w = screenToWorld(p.x,p.y);
     const h = hitTest(w.x,w.y);
-    if(!state.preview && state.mode === 'tools' && state.toolArmed === 'eraser'){
-      if(h?.type === 'annotationSelect'){
-        state.selected = {type:'annotation', index:h.index};
-        deleteSelectedAnnotation();
-      }
-      return;
-    }
-    if(!state.preview && state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select' && (!h || h.type === 'annotationSelect')){
-      beginToolDraw(state.toolArmed, w);
-    } else if(h && !state.preview){
+    if(h && !state.preview){
       handleHitDown(h, w, e);
     } else if(!state.preview && state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select'){
-      beginToolDraw(state.toolArmed, w);
+      addAnnotationAt(state.toolArmed, w);
     } else {
       drag = { type:'pan', startX:p.x, startY:p.y, pan:{...state.pan} };
       stage.classList.add('dragging');
@@ -1534,21 +1068,11 @@
 
   function handleHitDown(h, w, e){
     if(h.type === 'activeDone'){
-      const finishedActive = state.activeHandle ? {...state.activeHandle} : null;
-      if(state.mode === 'divider' && finishedActive?.kind === 'seamCenter'){
-        // 完成接缝编辑后，分割线应停在当前接缝原位置。
-        // 之后由 drawDividerOverlay 判断：仍在可视范围就保持；离开可视范围才自动回到屏幕中心。
-        const layout = computeLayout(true);
-        const sv = layout.seams.find(v => v.index === finishedActive.index);
-        if(sv){
-          if(!state.splitDraft) state.splitDraft = {pos:1};
-          state.splitDraft.pos = Math.round(state.orientation === 'vertical' ? sv.y : sv.x);
-          state.splitDraftManual = true;
-        }
-      }
       state.activeHandle = null;
       if(state.mode === 'divider'){
         state.selected = null;
+        state.splitDraftManual = false;
+        syncSplitDraftToViewportCenter();
       }
       renderProps(); requestRender(); return;
     }
@@ -1563,11 +1087,6 @@
     }
     if(h.type === 'seamSelect'){ state.activeHandle = null; state.selected = {type:'seam', index:h.index}; renderProps(); requestRender(); return; }
     if(h.type === 'annotationSelect'){
-      if(state.mode === 'tools' && state.toolArmed === 'eraser'){
-        state.selected = {type:'annotation', index:h.index};
-        deleteSelectedAnnotation();
-        return;
-      }
       state.selected = {type:'annotation', index:h.index}; renderProps(); requestRender();
       if(state.toolArmed === 'select'){ const a = state.annotations[h.index]; drag = {type:'annotationMove', index:h.index, start:w, ann:{...a}}; }
       return;
@@ -1582,7 +1101,7 @@
     if(h.type === 'canvasCrop'){ state.selected = {type:'canvasCrop'}; state.activeHandle = {kind:'canvasCrop', edge:h.edge}; renderProps(); requestRender(); return; }
     if(h.type === 'imageCrop'){ state.selected = {type:'image', index:h.index}; state.activeHandle = {kind:'imageCrop', index:h.index, edge:h.edge}; renderProps(); requestRender(); return; }
     if(['seamBefore','seamAfter','seamCenter'].includes(h.type)){ state.selected = {type:'seam', index:h.index}; state.activeHandle = {kind:'seamCenter', index:h.index}; renderProps(); requestRender(); return; }
-    if(state.mode === 'tools' && state.toolArmed && !['select','eraser'].includes(state.toolArmed)){ addAnnotationAt(state.toolArmed, w); return; }
+    if(state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select'){ addAnnotationAt(state.toolArmed, w); return; }
   }
 
   function startActiveDrag(w, sp){
@@ -1698,19 +1217,6 @@
       }
       renderProps(); requestRender(); return;
     }
-    if(drag.type === 'toolCreate'){
-      const a = state.annotations[drag.index];
-      if(!a) return;
-      if(a.type === 'pen' || a.type === 'highlight' || a.type === 'mosaicPen'){
-        const last = (a.points || [])[a.points.length-1];
-        const next = {x: Math.round(w.x - (a.x||0)), y: Math.round(w.y - (a.y||0))};
-        if(!last || Math.hypot(next.x-last.x, next.y-last.y) >= 2) a.points.push(next);
-      } else {
-        a.w = Math.round(w.x - drag.start.x);
-        a.h = Math.round(w.y - drag.start.y);
-      }
-      requestRender(); return;
-    }
     if(drag.type === 'annotationMove'){
       const a = state.annotations[drag.index];
       a.x = Math.round(drag.ann.x + (w.x - drag.start.x));
@@ -1747,15 +1253,6 @@
     drag = null;
     stage.classList.remove('dragging');
     if(finished && finished.type === 'splitDraft') renderProps();
-    if(finished && finished.type === 'toolCreate'){
-      const a = state.annotations[finished.index];
-      if(a && a.type !== 'pen' && a.type !== 'highlight' && a.type !== 'mosaicPen'){
-        if(Math.abs(a.w || 0) < 6 && Math.abs(a.h || 0) < 6){ a.w = finished.ann.w || 180; a.h = finished.ann.h || 90; }
-      }
-      state.toolArmed = 'select';
-      state.toolSettings.group = 'select';
-      renderProps(); requestRender();
-    }
   }
 
   function getPointer(e){
@@ -1785,7 +1282,7 @@
 
   function renderProps(){
     updateToolbarButtons();
-    if(!state.images.length){ props.innerHTML = ''; renderToolDock(); return; }
+    if(!state.images.length){ props.innerHTML = ''; return; }
     const mode = state.mode;
     let html = '';
     if(mode !== 'tools' && mode !== 'divider') html += imageListCard();
@@ -1796,7 +1293,6 @@
     if(mode === 'tools') html += toolsProps();
     props.innerHTML = html;
     bindPropEvents();
-    renderToolDock();
   }
 
   function imageListCard(){
@@ -1862,12 +1358,24 @@
   }
 
   function toolsProps(){
-    return `<div class="prop-card tool-hint-card">
-      <h3>工具</h3>
-      <p class="hint">工具栏已移动到画布底部：只显示图标，鼠标悬停可查看提示。点击图标后，属性浮窗会出现在图标附近，并自动避让屏幕边界。</p>
-      <div class="divider-line"></div>
-      <p class="hint">支持几何图形、铅笔/荧光笔、直线/箭头、文字、标号、马赛克、橡皮擦和水印。选中已有标注后，可在浮窗中修改参数。</p>
-    </div>`;
+    const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+    const a = idx >= 0 ? state.annotations[idx] : null;
+    const iconBtn = (key, icon, title) => `<button class="tool-icon-btn ${state.toolArmed===key?'active':''}" data-tool="${key}" title="${title}"><span class="ti">${icon}</span><span class="tt">${title}</span></button>`;
+    return `<div class="prop-card"><div class="tool-icon-grid">
+      ${iconBtn('select','⌖','选择')}
+      ${iconBtn('text','T','文字')}
+      ${iconBtn('redact','◼','遮挡')}
+      ${iconBtn('box','▭','矩形')}
+      ${iconBtn('arrow','↗','箭头')}
+    </div></div>` + (a ? `<div class="prop-card">
+      <div class="row"><label>X</label><input type="number" data-ann="x" value="${Math.round(a.x||0)}"></div>
+      <div class="row"><label>Y</label><input type="number" data-ann="y" value="${Math.round(a.y||0)}"></div>
+      ${a.type!=='text' ? `<div class="row"><label>宽度</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"></div><div class="row"><label>高度</label><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : `<div class="row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div><div class="row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}"></div>`}
+      <div class="row"><label>颜色</label><input type="color" data-ann="color" value="${a.color||'#111827'}"></div>
+      ${a.type==='text' ? `<div class="row"><label>背景</label><select data-ann="bg"><option value="transparent" ${(a.bg||'transparent')==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${a.bg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${a.bg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${a.bg==='#ffeb3b'?'selected':''}>黄底</option></select></div>` : ''}
+      ${(a.type==='box' || a.type==='arrow') ? `<div class="row"><label>线宽</label><input type="number" data-ann="lineWidth" value="${Math.round(a.lineWidth||4)}"></div>` : ''}
+      <div class="mini-grid"><button class="mini-btn warn" id="deleteAnnotationBtn">删除对象</button></div>
+    </div>` : '');
   }
 
   function cropInputs(prefix, c){
@@ -1931,10 +1439,7 @@
       pushHistory();
       const a = state.annotations[idx];
       const key = inp.dataset.ann;
-      if(inp.type === 'number'){
-        if(key === 'opacity') a[key] = clamp(parseFloat(inp.value || '1'), 0.05, 1);
-        else a[key] = Math.round(+inp.value || 0);
-      } else a[key] = inp.value;
+      if(inp.type === 'number') a[key] = Math.round(+inp.value || 0); else a[key] = inp.value;
       renderProps(); requestRender();
     }));
   }
@@ -2008,7 +1513,7 @@
       syncSplitDraftToViewportCenter();
       state.selected = null;
     }
-    if(m === 'tools'){ state.toolSettings.group = state.toolSettings.group || 'select'; applyActiveTool(); }
+    if(m === 'tools') state.toolArmed = state.toolArmed || 'select';
     updateModeButtons(); renderProps(); requestRender();
   }
 
@@ -2238,14 +1743,13 @@
   $('#saveProjectBtn').addEventListener('click', saveProject);
   $('#exportBtn').addEventListener('click', exportPng);
   $('#fitBtn').addEventListener('click', () => fitToView());
-  $('#previewBtn').addEventListener('click', () => { state.preview=!state.preview; requestRender(); updateToolbarButtons(); renderToolDock(); });
+  $('#previewBtn').addEventListener('click', () => { state.preview=!state.preview; requestRender(); updateToolbarButtons(); });
   $('#undoBtn').addEventListener('click', undo);
   $('#redoBtn').addEventListener('click', redo);
   $('#clearBtn').addEventListener('click', clearAll);
   $('#verticalBtn').addEventListener('click', () => setOrientation('vertical'));
   $('#horizontalBtn').addEventListener('click', () => setOrientation('horizontal'));
   $$('.mode-btn,.mobile-mode').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
-  window.addEventListener('resize', () => renderToolDock());
 
   document.addEventListener('paste', async e => {
     const files = [];
