@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
+  <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShot Stitch & Trim v1.6 - 长图拼裁工具</title>
+  <title>LongShotStitch v1.7 - 长图拼接裁剪工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -85,9 +86,10 @@
       linear-gradient(180deg,#f5f7fb,#eef2f7);}
     .stage.dragging{cursor:grabbing}
     canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
-    .drop-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,82%);padding:28px;border:2px dashed #cbd5e1;border-radius:22px;background:rgba(255,255,255,.86);text-align:center;box-shadow:var(--shadow);pointer-events:none}
+    .drop-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,82%);padding:28px;border:2px dashed #cbd5e1;border-radius:22px;background:rgba(255,255,255,.86);text-align:center;box-shadow:var(--shadow);pointer-events:auto;cursor:pointer}
     .drop-hint h2{margin:0 0 8px;font-size:23px}
     .drop-hint p{margin:6px 0;color:var(--muted);line-height:1.65}
+    .drop-actions{display:flex;justify-content:center;gap:10px;margin:16px 0 10px}.drop-actions .mini-btn{min-width:112px;height:38px;background:#111827;color:#fff;border-color:#111827}.drop-actions .mini-btn+ .mini-btn{background:#fff;color:#111827;border-color:var(--line)}
     .statusbar{position:absolute;left:14px;bottom:12px;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:12px;box-shadow:0 6px 18px rgba(15,23,42,.08);backdrop-filter:blur(14px)}
     .mobile-title{display:none}
     .mobile-bottom{display:none}
@@ -124,7 +126,22 @@
     .pop-actions{display:flex;gap:8px;margin-top:10px;border-top:1px solid #eef2f7;padding-top:10px}
     .pop-actions .mini-btn{flex:1}
     .tool-hint-card{font-size:12px;line-height:1.7;color:var(--muted)}
+    .desktop-tools-slot{display:block}
+    .tool-panel-card{padding:10px}
+    .tool-panel-card .floating-toolkit{position:static;left:auto;right:auto;bottom:auto;transform:none;display:flex;flex-wrap:wrap;justify-content:flex-start;max-width:100%;overflow:visible;box-shadow:none;border:0;background:transparent;backdrop-filter:none;padding:0;margin:0 0 10px;gap:6px}
+    .tool-panel-card .floating-toolkit:not(.show){display:none}
+    .tool-panel-card .tool-dock-btn{width:34px;height:34px;background:#fff;border-color:#e5e7eb;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+    .tool-panel-card .tool-popover{position:static;display:block;min-width:0;max-width:none;max-height:none;overflow:visible;box-shadow:none;border-color:#e5e7eb;background:#fff;padding:10px;margin-top:8px;backdrop-filter:none}
+    .tool-panel-card .tool-popover:not(.show){display:none}
+    .pop-section{border:1px solid #eef2f7;border-radius:10px;margin:8px 0;background:#fff;overflow:hidden}
+    .pop-section summary{cursor:pointer;list-style:none;padding:8px 10px;font-size:12px;font-weight:800;color:#334155;background:#f8fafc;display:flex;align-items:center;justify-content:space-between}
+    .pop-section summary::-webkit-details-marker{display:none}
+    .pop-section summary::after{content:'⌄';font-size:12px;color:#64748b;transition:.16s}
+    .pop-section:not([open]) summary::after{transform:rotate(-90deg)}
+    .pop-section-body{padding:8px 10px}
+
     @media (max-width: 760px){
+      .desktop-tools-slot{display:none}
       .floating-toolkit{bottom:calc(var(--mobilebar) + 10px);left:8px;right:8px;transform:none;justify-content:flex-start}
       .tool-popover{max-height:calc(100% - var(--topbar) - var(--mobilebar) - 28px)}
     }
@@ -154,7 +171,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShot Stitch<small>长图拼裁工具 v1.6</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.7</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -199,7 +216,7 @@
         <button class="mode-btn" data-mode="canvasCrop"><span class="mode-icon">▢</span><span class="mode-label">整体裁剪<span>裁最终长图</span></span></button>
         <button class="mode-btn" data-mode="imageCrop"><span class="mode-icon">▢¹</span><span class="mode-label">单图裁剪<span>每张图四边</span></span></button>
         <button class="mode-btn" data-mode="divider"><span class="mode-icon">≡</span><span class="mode-label">分割线<span>整体插入接缝</span></span></button>
-        <button class="mode-btn" data-mode="tools"><span class="mode-icon">✎</span><span class="mode-label">工具<span>图标工具栏</span></span></button>
+        <button class="mode-btn" data-mode="tools"><span class="mode-icon">✎</span><span class="mode-label">工具<span>左侧工具栏</span></span></button>
       </div>
     </section>
     <section class="props" id="props"></section>
@@ -211,6 +228,11 @@
       <div class="drop-hint" id="dropHint">
         <h2>拖入、打开或粘贴图片</h2>
         <p>支持长图拼接、整体裁剪、单图裁剪、接缝调整、整体插入分割线。</p>
+        <div class="drop-actions">
+          <button class="mini-btn" id="openImageEmpty" type="button">打开图片</button>
+          <button class="mini-btn" id="openProjectEmpty" type="button">打开工程</button>
+        </div>
+        <p>也可以直接拖入图片 / 工程文件，或粘贴剪贴板图片。</p>
         <p>快捷键：<span class="kbd">1</span> 拼接线，<span class="kbd">2</span> 整体裁剪，<span class="kbd">3</span> 单图裁剪，<span class="kbd">4</span> 分隔线，方向键微调。</p>
       </div>
       <div class="preview-badge">预览模式</div>
@@ -1001,8 +1023,24 @@
     renderProps(); requestRender();
   }
 
+  function isDesktopLayout(){ return window.matchMedia('(min-width: 761px)').matches; }
+
+  function attachToolUi(){
+    if(!toolDock || !toolPopover) return;
+    const desktopSlot = $('#desktopToolDockSlot');
+    const desktopPanel = $('#desktopToolPanel');
+    if(isDesktopLayout() && state.mode === 'tools' && desktopSlot && desktopPanel){
+      if(toolDock.parentElement !== desktopSlot) desktopSlot.appendChild(toolDock);
+      if(toolPopover.parentElement !== desktopPanel) desktopPanel.appendChild(toolPopover);
+    } else {
+      if(toolDock.parentElement !== stage) stage.appendChild(toolDock);
+      if(toolPopover.parentElement !== stage) stage.appendChild(toolPopover);
+    }
+  }
+
   function renderToolDock(){
     if(!toolDock || !toolPopover) return;
+    attachToolUi();
     if(state.mode !== 'tools' || state.preview || !state.images.length){
       toolDock.classList.remove('show');
       toolPopover.classList.remove('show');
@@ -1019,7 +1057,7 @@
       ['eraser','eraser','橡皮擦'],
       ['watermark','watermark','水印']
     ];
-    const activeGroup = state.selected?.type === 'annotation' ? 'select' : (state.toolSettings.group || 'select');
+    const activeGroup = state.toolSettings.group || 'select';
     toolDock.innerHTML = groups.map(([g,icon,title],i) => `${i===7?'<span class="tool-dock-sep"></span>':''}<button class="tool-dock-btn ${activeGroup===g?'active':''} ${g==='eraser'?'danger':''}" data-tool-group="${g}" title="${title}" aria-label="${title}">${svgIcon(icon)}</button>`).join('');
     toolDock.classList.add('show');
     toolDock.querySelectorAll('[data-tool-group]').forEach(btn=>{
@@ -1031,12 +1069,18 @@
 
   function activeAnchorButton(){
     if(!toolDock) return null;
-    const group = state.selected?.type === 'annotation' ? 'select' : (state.toolSettings.group || 'select');
+    const group = state.toolSettings.group || 'select';
     return toolDock.querySelector(`[data-tool-group="${group}"]`) || toolDock.querySelector('[data-tool-group="select"]');
   }
 
   function positionToolPopover(anchor){
     if(!toolPopover || !anchor) return;
+    if(isDesktopLayout() && state.mode === 'tools'){
+      toolPopover.style.left = '';
+      toolPopover.style.top = '';
+      toolPopover.style.visibility = '';
+      return;
+    }
     toolPopover.style.visibility = 'hidden';
     toolPopover.classList.add('show');
     const sw = stageWrap.clientWidth, sh = stageWrap.clientHeight;
@@ -1058,40 +1102,49 @@
 
   function renderToolPopover(){
     if(!toolPopover) return;
-    if(state.mode !== 'tools' || state.preview){ toolPopover.classList.remove('show'); return; }
+    if(state.mode !== 'tools' || state.preview || !state.images.length){ toolPopover.classList.remove('show'); return; }
     const a = state.selected?.type === 'annotation' ? state.annotations[state.selected.index] : null;
     toolPopover.innerHTML = a ? annotationPopover(a) : groupPopover();
     toolPopover.classList.toggle('compact', !a && ['select','eraser'].includes(state.toolSettings.group));
     toolPopover.onpointerdown = e => e.stopPropagation();
     bindToolPopoverEvents();
+    toolPopover.classList.add('show');
     requestAnimationFrame(()=>positionToolPopover(activeAnchorButton()));
   }
 
   function colorInput(key, value){ return `<input type="color" data-tool-setting="${key}" value="${value || '#ef4444'}" title="颜色">`; }
   function numberInput(key, value, min=1, max='', step=1){ return `<input type="number" data-tool-setting="${key}" value="${value}" min="${min}" ${max!==''?`max="${max}"`:''} step="${step}">`; }
   function chip(key, val, active, body, title=''){ return `<button class="pop-chip ${active?'active':''}" data-tool-setting="${key}" data-value="${val}" title="${title}">${body}</button>`; }
+  function popSection(title, body, open=true){ return `<details class="pop-section" ${open?'open':''}><summary>${title}</summary><div class="pop-section-body">${body}</div></details>`; }
 
   function groupPopover(){
     const s = state.toolSettings, g = s.group || 'select';
-    if(g === 'select') return `<div class="pop-title">选择 / 移动</div><p class="hint">点击已有标注可移动、缩放和编辑参数。方向键可微调，Delete 删除。</p>`;
-    if(g === 'shape') return `<div class="pop-title">几何图形</div><div class="pop-chip-row">
-      ${chip('shapeKind','box',s.shapeKind!=='circle',svgIcon('rect'),'方框')}${chip('shapeKind','circle',s.shapeKind==='circle',svgIcon('circle'),'圆形')}
-      ${chip('shapeFill','toggle',!!s.shapeFill,'填充','填充 / 空心')}
-      ${colorInput('color',s.color)}${colorInput('fillColor',s.fillColor)}
-    </div><div class="pop-row"><label>边框</label>${numberInput('lineWidth',s.lineWidth||4,1,40)}</div><div class="pop-row"><label>透明度</label>${numberInput('opacity',s.opacity||1,0.05,1,0.05)}</div>`;
-    if(g === 'pen') return `<div class="pop-title">铅笔</div><div class="pop-chip-row">
-      ${chip('penKind','pen',s.penKind!=='highlight','✎','自由笔')}${chip('penKind','highlight',s.penKind==='highlight','▰','荧光笔')}
-      ${colorInput('penColor',s.penColor || (s.penKind==='highlight'?'#facc15':'#ef4444'))}
-    </div><div class="pop-row"><label>粗细</label>${numberInput(s.penKind==='highlight'?'highlightWidth':'penWidth',s.penKind==='highlight'?(s.highlightWidth||18):(s.penWidth||4),1,80)}</div>`;
-    if(g === 'arrow') return `<div class="pop-title">线条 / 箭头</div><div class="pop-chip-row">
-      ${chip('arrowKind','line',s.arrowKind==='line',svgIcon('line'),'直线')}${chip('arrowKind','arrow',s.arrowKind!=='line'&&s.arrowKind!=='doubleArrow',svgIcon('arrow'),'单箭头')}${chip('arrowKind','doubleArrow',s.arrowKind==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}
-      ${colorInput('color',s.color)}
-    </div><div class="pop-row"><label>粗细</label>${numberInput('lineWidth',s.lineWidth||4,1,40)}</div>`;
-    if(g === 'text') return `<div class="pop-title">文字</div><div class="pop-row"><label>内容</label><input type="text" data-tool-setting="textValue" value="${escapeHtml(s.textValue||'输入文字')}"></div><div class="pop-row"><label>字号</label>${numberInput('textSize',s.textSize||28,8,160)}</div><div class="pop-row"><label>颜色</label>${colorInput('textColor',s.textColor||'#111827')}<button class="pop-chip ${s.textOutline?'active':''}" data-tool-setting="textOutline" data-value="toggle">描边</button></div><div class="pop-row"><label>背景</label><select data-tool-setting="textBg"><option value="transparent" ${s.textBg==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${s.textBg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${s.textBg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${s.textBg==='#ffeb3b'?'selected':''}>黄底</option></select></div>`;
-    if(g === 'badge') return `<div class="pop-title">标号</div><div class="pop-chip-row">${Array.from({length:10},(_,i)=>chip('badgeNumber',i+1,(s.badgeNumber||1)===i+1,String(i+1),`标号 ${i+1}`)).join('')}</div><div class="pop-row"><label>颜色</label>${colorInput('badgeColor',s.badgeColor||'#2f80ed')}</div><div class="pop-row"><label>大小</label>${numberInput('badgeSize',s.badgeSize||34,14,120)}</div>`;
-    if(g === 'mosaic') return `<div class="pop-title">马赛克</div><div class="pop-chip-row">${chip('mosaicKind','mosaic',s.mosaicKind!=='free','▦','矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}</div><div class="pop-row"><label>块大小</label>${numberInput('mosaicGrid',s.mosaicGrid||14,4,80)}</div>`;
-    if(g === 'eraser') return `<div class="pop-title">橡皮擦</div><p class="hint">点击已有标注即可删除；只擦工具标注层，不破坏原图。</p><div class="pop-row"><label>大小</label>${numberInput('eraserSize',s.eraserSize||24,4,120)}</div>`;
-    if(g === 'watermark') return `<div class="pop-title">水印</div><div class="pop-row"><label>文字</label><input type="text" data-tool-setting="watermarkText" value="${escapeHtml(s.watermarkText||'水印')}"></div><div class="pop-row"><label>字号</label>${numberInput('watermarkSize',s.watermarkSize||34,8,180)}</div><div class="pop-row"><label>颜色</label>${colorInput('watermarkColor',s.watermarkColor||'#111827')}</div><div class="pop-row"><label>透明度</label>${numberInput('watermarkOpacity',s.watermarkOpacity||.22,0.05,1,0.05)}</div><div class="pop-row"><label>次数</label>${numberInput('watermarkRepeat',s.watermarkRepeat||1,1,80)}</div>`;
+    if(g === 'select') return `<div class="pop-title">选择 / 移动</div>${popSection('使用说明', `<p class="hint">点击已有标注可移动、缩放和编辑参数。方向键可微调，Delete 删除。选择其它工具后会保持该工具连续使用。</p>`)}`;
+    if(g === 'shape') return `<div class="pop-title">几何图形</div>`+
+      popSection('形状', `<div class="pop-chip-row">${chip('shapeKind','box',s.shapeKind!=='circle',svgIcon('rect'),'方框')}${chip('shapeKind','circle',s.shapeKind==='circle',svgIcon('circle'),'圆形')}${chip('shapeFill','toggle',!!s.shapeFill,'填充','填充 / 空心')}</div>`, true)+
+      popSection('颜色', `<div class="pop-row"><label>边框</label>${colorInput('color',s.color)}</div><div class="pop-row"><label>填充</label>${colorInput('fillColor',s.fillColor)}</div>`, true)+
+      popSection('线条', `<div class="pop-row"><label>边框</label>${numberInput('lineWidth',s.lineWidth||4,1,40)}</div><div class="pop-row"><label>透明度</label>${numberInput('opacity',s.opacity||1,0.05,1,0.05)}</div>`, false);
+    if(g === 'pen') return `<div class="pop-title">铅笔</div>`+
+      popSection('类型', `<div class="pop-chip-row">${chip('penKind','pen',s.penKind!=='highlight','✎','自由笔')}${chip('penKind','highlight',s.penKind==='highlight','▰','荧光笔')}</div>`, true)+
+      popSection('样式', `<div class="pop-row"><label>颜色</label>${colorInput('penColor',s.penColor || (s.penKind==='highlight'?'#facc15':'#ef4444'))}</div><div class="pop-row"><label>粗细</label>${numberInput(s.penKind==='highlight'?'highlightWidth':'penWidth',s.penKind==='highlight'?(s.highlightWidth||18):(s.penWidth||4),1,80)}</div>`, true);
+    if(g === 'arrow') return `<div class="pop-title">线条 / 箭头</div>`+
+      popSection('类型', `<div class="pop-chip-row">${chip('arrowKind','line',s.arrowKind==='line',svgIcon('line'),'直线')}${chip('arrowKind','arrow',s.arrowKind!=='line'&&s.arrowKind!=='doubleArrow',svgIcon('arrow'),'单箭头')}${chip('arrowKind','doubleArrow',s.arrowKind==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}</div>`, true)+
+      popSection('样式', `<div class="pop-row"><label>颜色</label>${colorInput('color',s.color)}</div><div class="pop-row"><label>粗细</label>${numberInput('lineWidth',s.lineWidth||4,1,40)}</div>`, true);
+    if(g === 'text') return `<div class="pop-title">文字</div>`+
+      popSection('内容', `<div class="pop-row"><label>内容</label><input type="text" data-tool-setting="textValue" value="${escapeHtml(s.textValue||'输入文字')}"></div>`, true)+
+      popSection('字体', `<div class="pop-row"><label>字号</label>${numberInput('textSize',s.textSize||28,8,160)}</div><div class="pop-row"><label>颜色</label>${colorInput('textColor',s.textColor||'#111827')}<button class="pop-chip ${s.textOutline?'active':''}" data-tool-setting="textOutline" data-value="toggle">描边</button></div>`, true)+
+      popSection('背景', `<div class="pop-row"><label>背景</label><select data-tool-setting="textBg"><option value="transparent" ${s.textBg==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${s.textBg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${s.textBg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${s.textBg==='#ffeb3b'?'selected':''}>黄底</option></select></div>`, false);
+    if(g === 'badge') return `<div class="pop-title">标号</div>`+
+      popSection('数字', `<div class="pop-chip-row">${Array.from({length:10},(_,i)=>chip('badgeNumber',i+1,(s.badgeNumber||1)===i+1,String(i+1),`标号 ${i+1}`)).join('')}</div>`, true)+
+      popSection('样式', `<div class="pop-row"><label>颜色</label>${colorInput('badgeColor',s.badgeColor||'#2f80ed')}</div><div class="pop-row"><label>大小</label>${numberInput('badgeSize',s.badgeSize||34,14,120)}</div>`, true);
+    if(g === 'mosaic') return `<div class="pop-title">马赛克</div>`+
+      popSection('类型', `<div class="pop-chip-row">${chip('mosaicKind','mosaic',s.mosaicKind!=='free','▦','矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}</div>`, true)+
+      popSection('参数', `<div class="pop-row"><label>块大小</label>${numberInput('mosaicGrid',s.mosaicGrid||14,4,80)}</div>`, true);
+    if(g === 'eraser') return `<div class="pop-title">橡皮擦</div>`+
+      popSection('使用说明', `<p class="hint">点击已有标注即可删除；只擦工具标注层，不破坏原图。</p><div class="pop-row"><label>大小</label>${numberInput('eraserSize',s.eraserSize||24,4,120)}</div>`, true);
+    if(g === 'watermark') return `<div class="pop-title">水印</div>`+
+      popSection('内容', `<div class="pop-row"><label>文字</label><input type="text" data-tool-setting="watermarkText" value="${escapeHtml(s.watermarkText||'水印')}"></div>`, true)+
+      popSection('样式', `<div class="pop-row"><label>字号</label>${numberInput('watermarkSize',s.watermarkSize||34,8,180)}</div><div class="pop-row"><label>颜色</label>${colorInput('watermarkColor',s.watermarkColor||'#111827')}</div><div class="pop-row"><label>透明度</label>${numberInput('watermarkOpacity',s.watermarkOpacity||.22,0.05,1,0.05)}</div><div class="pop-row"><label>次数</label>${numberInput('watermarkRepeat',s.watermarkRepeat||1,1,80)}</div>`, true);
     return '';
   }
 
@@ -1102,18 +1155,16 @@
     const fillLike = ['boxFill','circleFill'].includes(a.type);
     const textLike = ['text','watermark'].includes(a.type);
     const opacityLike = ['watermark','highlight','boxFill','circleFill','mosaic','mosaicPen'].includes(a.type);
-    return `<div class="pop-title"><span>${typeName}</span><span class="hint">对象属性</span></div>
-      <div class="pop-row"><label>X</label><input type="number" data-ann="x" value="${Math.round(a.x||0)}"></div>
-      <div class="pop-row"><label>Y</label><input type="number" data-ann="y" value="${Math.round(a.y||0)}"></div>
-      ${shapeLike ? `<div class="pop-row"><label>宽高</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : ''}
-      ${textLike || a.type==='badge' ? `<div class="pop-row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}"></div><div class="pop-row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div>` : ''}
-      <div class="pop-row"><label>颜色</label><input type="color" data-ann="color" value="${a.color||'#ef4444'}">${fillLike ? `<input type="color" data-ann="fillColor" value="${a.fillColor||'#fee2e2'}" title="填充色">` : ''}</div>
-      ${textLike ? `<div class="pop-row"><label>背景</label><select data-ann="bg"><option value="transparent" ${(a.bg||'transparent')==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${a.bg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${a.bg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${a.bg==='#ffeb3b'?'selected':''}>黄底</option></select></div><div class="pop-row"><label>描边</label><select data-ann="outline"><option value="false" ${!a.outline?'selected':''}>关闭</option><option value="true" ${a.outline?'selected':''}>开启</option></select></div>` : ''}
-      ${lineLike ? `<div class="pop-row"><label>粗细</label><input type="number" data-ann="lineWidth" value="${Math.round(a.lineWidth||4)}"></div>` : ''}
-      ${a.type==='mosaic' || a.type==='mosaicPen' ? `<div class="pop-row"><label>块大小</label><input type="number" data-ann="gridSize" value="${Math.round(a.gridSize||14)}"></div>` : ''}
-      ${a.type==='watermark' ? `<div class="pop-row"><label>次数</label><input type="number" data-ann="repeatCount" value="${Math.round(a.repeatCount||1)}"></div>` : ''}
-      ${opacityLike ? `<div class="pop-row"><label>透明度</label><input type="number" step="0.05" min="0.05" max="1" data-ann="opacity" value="${a.opacity == null ? 1 : a.opacity}"></div>` : ''}
-      <div class="pop-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat">删除</button><button class="mini-btn" id="duplicateAnnotationBtnFloat">复制</button></div>`;
+    const position = `<div class="pop-row"><label>X</label><input type="number" data-ann="x" value="${Math.round(a.x||0)}"></div><div class="pop-row"><label>Y</label><input type="number" data-ann="y" value="${Math.round(a.y||0)}"></div>${shapeLike ? `<div class="pop-row"><label>宽高</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : ''}`;
+    const content = `${textLike || a.type==='badge' ? `<div class="pop-row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}"></div><div class="pop-row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div>` : ''}`;
+    const color = `<div class="pop-row"><label>颜色</label><input type="color" data-ann="color" value="${a.color||'#ef4444'}">${fillLike ? `<input type="color" data-ann="fillColor" value="${a.fillColor||'#fee2e2'}" title="填充色">` : ''}</div>${textLike ? `<div class="pop-row"><label>背景</label><select data-ann="bg"><option value="transparent" ${(a.bg||'transparent')==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${a.bg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${a.bg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${a.bg==='#ffeb3b'?'selected':''}>黄底</option></select></div><div class="pop-row"><label>描边</label><select data-ann="outline"><option value="false" ${!a.outline?'selected':''}>关闭</option><option value="true" ${a.outline?'selected':''}>开启</option></select></div>` : ''}`;
+    const stroke = `${lineLike ? `<div class="pop-row"><label>粗细</label><input type="number" data-ann="lineWidth" value="${Math.round(a.lineWidth||4)}"></div>` : ''}${a.type==='mosaic' || a.type==='mosaicPen' ? `<div class="pop-row"><label>块大小</label><input type="number" data-ann="gridSize" value="${Math.round(a.gridSize||14)}"></div>` : ''}${a.type==='watermark' ? `<div class="pop-row"><label>次数</label><input type="number" data-ann="repeatCount" value="${Math.round(a.repeatCount||1)}"></div>` : ''}${opacityLike ? `<div class="pop-row"><label>透明度</label><input type="number" step="0.05" min="0.05" max="1" data-ann="opacity" value="${a.opacity == null ? 1 : a.opacity}"></div>` : ''}`;
+    return `<div class="pop-title"><span>${typeName}</span><span class="hint">对象属性</span></div>`+
+      popSection('位置 / 尺寸', position, true)+
+      (content ? popSection('内容', content, true) : '')+
+      popSection('颜色 / 背景', color, true)+
+      (stroke ? popSection('线条 / 高级', stroke, false) : '')+
+      `<div class="pop-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat">删除</button><button class="mini-btn" id="duplicateAnnotationBtnFloat">复制</button></div>`;
   }
 
   function bindToolPopoverEvents(){
@@ -1399,8 +1450,7 @@
     state.selected = {type:'annotation', index:idx};
     if(type === 'text' || type === 'watermark' || type === 'badge'){
       if(type === 'badge' && state.toolSettings.badgeNumber < 10) state.toolSettings.badgeNumber++;
-      state.toolArmed = 'select';
-      state.toolSettings.group = 'select';
+      applyActiveTool();
       renderProps(); requestRender();
       return true;
     }
@@ -1752,8 +1802,7 @@
       if(a && a.type !== 'pen' && a.type !== 'highlight' && a.type !== 'mosaicPen'){
         if(Math.abs(a.w || 0) < 6 && Math.abs(a.h || 0) < 6){ a.w = finished.ann.w || 180; a.h = finished.ann.h || 90; }
       }
-      state.toolArmed = 'select';
-      state.toolSettings.group = 'select';
+      applyActiveTool();
       renderProps(); requestRender();
     }
   }
@@ -1864,9 +1913,12 @@
   function toolsProps(){
     return `<div class="prop-card tool-hint-card">
       <h3>工具</h3>
-      <p class="hint">工具栏已移动到画布底部：只显示图标，鼠标悬停可查看提示。点击图标后，属性浮窗会出现在图标附近，并自动避让屏幕边界。</p>
+      <p class="hint">电脑端工具图标放在左侧工具区；手机端仍使用底部工具栏。图标只显示图形，鼠标悬停可看名称。</p>
       <div class="divider-line"></div>
-      <p class="hint">支持几何图形、铅笔/荧光笔、直线/箭头、文字、标号、马赛克、橡皮擦和水印。选中已有标注后，可在浮窗中修改参数。</p>
+      <p class="hint">选择工具后会保持当前工具，连续绘制不会自动回到选择/移动。属性区域可展开或隐藏。</p>
+    </div>
+    <div class="prop-card tool-panel-card" id="desktopToolPanel">
+      <div class="desktop-tools-slot" id="desktopToolDockSlot"></div>
     </div>`;
   }
 
@@ -2254,8 +2306,20 @@
     }
     if(files.length) await addFiles(files);
   });
+  function handleDroppedFiles(files){
+    const list = Array.from(files || []);
+    const project = list.find(f => /\.json$/i.test(f.name || '') || f.type === 'application/json');
+    if(project && list.length === 1) openProject(project);
+    else addFiles(list.filter(f => f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name || '')));
+  }
   stage.addEventListener('dragover', e => { e.preventDefault(); });
-  stage.addEventListener('drop', e => { e.preventDefault(); addFiles(e.dataTransfer.files); });
+  stage.addEventListener('drop', e => { e.preventDefault(); handleDroppedFiles(e.dataTransfer.files); });
+  dropHint.addEventListener('pointerdown', e => e.stopPropagation());
+  dropHint.addEventListener('click', e => {
+    e.stopPropagation();
+    if(e.target?.id === 'openProjectEmpty') $('#projectInput').click();
+    else $('#fileInput').click();
+  });
   stage.addEventListener('pointerdown', onPointerDown);
   stage.addEventListener('pointermove', onPointerMove);
   stage.addEventListener('pointerup', onPointerUp);
