@@ -65,6 +65,11 @@
     .mini-btn:hover{background:#f9fafb;border-color:#b8c1cf}
     .mini-btn.active{background:#111827;color:#fff;border-color:#111827}
     .mini-btn.warn{color:var(--danger)}
+    .tool-icon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .tool-icon-btn{height:58px;border:1px solid var(--line);border-radius:12px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:700}
+    .tool-icon-btn .ti{font-size:24px;line-height:1}
+    .tool-icon-btn.active{border-color:var(--accent-strong);background:#fff8d5;box-shadow:0 0 0 3px rgba(255,204,51,.18)}
+    .tool-icon-btn .tt{font-size:11px;color:var(--muted)}
     .image-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}
     .image-item{border:1px solid var(--line);border-radius:11px;padding:8px;background:#fff;display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center}
     .image-item.selected{border-color:var(--accent-strong);box-shadow:0 0 0 3px rgba(255,204,51,.18)}
@@ -162,8 +167,8 @@
         <button class="mode-btn active" data-mode="seam"><span class="mode-icon">☰</span><span class="mode-label">拼接线<span>调接缝/覆盖</span></span></button>
         <button class="mode-btn" data-mode="canvasCrop"><span class="mode-icon">▢</span><span class="mode-label">整体裁剪<span>裁最终长图</span></span></button>
         <button class="mode-btn" data-mode="imageCrop"><span class="mode-icon">▢¹</span><span class="mode-label">单图裁剪<span>每张图四边</span></span></button>
-        <button class="mode-btn" data-mode="divider"><span class="mode-icon">≡</span><span class="mode-label">分隔线<span>插入风格线</span></span></button>
-        <button class="mode-btn" data-mode="tools"><span class="mode-icon">✎</span><span class="mode-label">工具<span>遮挡/文字待加</span></span></button>
+        <button class="mode-btn" data-mode="divider"><span class="mode-icon">≡</span><span class="mode-label">分割线<span>整体插入接缝</span></span></button>
+        <button class="mode-btn" data-mode="tools"><span class="mode-icon">✎</span><span class="mode-label">工具<span>图标工具栏</span></span></button>
       </div>
     </section>
     <section class="props" id="props"></section>
@@ -174,7 +179,7 @@
       <canvas id="editorCanvas"></canvas>
       <div class="drop-hint" id="dropHint">
         <h2>拖入、打开或粘贴图片</h2>
-        <p>支持多图纵向/横向拼接、拼接线微调、整体裁剪、单图四边裁剪、插入横向分隔线。</p>
+        <p>支持长图拼接、整体裁剪、单图裁剪、接缝调整、整体插入分割线。</p>
         <p>快捷键：<span class="kbd">1</span> 拼接线，<span class="kbd">2</span> 整体裁剪，<span class="kbd">3</span> 单图裁剪，<span class="kbd">4</span> 分隔线，方向键微调。</p>
       </div>
       <div class="preview-badge">预览模式</div>
@@ -186,7 +191,7 @@
     <button class="mobile-mode active" data-mode="seam"><span class="mi">☰</span><span>拼接</span></button>
     <button class="mobile-mode" data-mode="canvasCrop"><span class="mi">▢</span><span>整体</span></button>
     <button class="mobile-mode" data-mode="imageCrop"><span class="mi">▢¹</span><span>单图</span></button>
-    <button class="mobile-mode" data-mode="divider"><span class="mi">≡</span><span>分隔</span></button>
+    <button class="mobile-mode" data-mode="divider"><span class="mi">≡</span><span>分割</span></button>
     <button class="mobile-mode" data-mode="tools"><span class="mi">✎</span><span>工具</span></button>
   </nav>
 </div>
@@ -220,7 +225,9 @@
     pan: { x: 0, y: 0 },
     preview: false,
     annotations: [],
-    activeHandle: null
+    activeHandle: null,
+    toolArmed: null,
+    splitDraft: null
   };
 
   let history = [];
@@ -248,7 +255,9 @@
       })),
       seams: state.seams.map(s => ({...s, divider: s.divider ? {...s.divider} : null})),
       canvasCrop: {...state.canvasCrop},
-      annotations: state.annotations.map(a => ({...a}))
+      annotations: state.annotations.map(a => ({...a})),
+      toolArmed: state.toolArmed,
+      splitDraft: state.splitDraft ? {...state.splitDraft} : null
     });
   }
 
@@ -272,6 +281,8 @@
     state.canvasCrop = data.canvasCrop || {top:0,right:0,bottom:0,left:0};
     state.seams = data.seams || [];
     state.annotations = data.annotations || [];
+    state.toolArmed = data.toolArmed || null;
+    state.splitDraft = data.splitDraft || null;
     state.activeHandle = null;
     const imgs = [];
     for(const raw of data.images || []){
@@ -541,6 +552,55 @@
     c.restore();
   }
 
+
+  function ensureSplitDraft(){
+    const layout = computeLayout(true);
+    if(!state.splitDraft){
+      state.splitDraft = { pos: state.orientation === 'vertical' ? Math.round(layout.fullHeight/2) : Math.round(layout.fullWidth/2) };
+    }
+    const max = state.orientation === 'vertical' ? layout.fullHeight : layout.fullWidth;
+    state.splitDraft.pos = clamp(Math.round(state.splitDraft.pos || 0), 1, Math.max(1, max-1));
+  }
+
+  function drawDoubleChevron(c, x, y, dir, scale=1){
+    const color = '#f6b700';
+    const stroke = 4 / state.zoom * scale;
+    const span = 11 / state.zoom * scale;
+    const gap = 10 / state.zoom * scale;
+    c.save();
+    c.strokeStyle = color;
+    c.lineWidth = stroke;
+    c.lineCap = 'round';
+    const drawOne = (cx, cy) => {
+      c.beginPath();
+      if(dir === 'down'){ c.moveTo(cx-span, cy-span*0.6); c.lineTo(cx, cy+span*0.6); c.lineTo(cx+span, cy-span*0.6); }
+      else if(dir === 'up'){ c.moveTo(cx-span, cy+span*0.6); c.lineTo(cx, cy-span*0.6); c.lineTo(cx+span, cy+span*0.6); }
+      else if(dir === 'left'){ c.moveTo(cx+span*0.6, cy-span); c.lineTo(cx-span*0.6, cy); c.lineTo(cx+span*0.6, cy+span); }
+      else if(dir === 'right'){ c.moveTo(cx-span*0.6, cy-span); c.lineTo(cx+span*0.6, cy); c.lineTo(cx-span*0.6, cy+span); }
+      c.stroke();
+    };
+    if(dir === 'down' || dir === 'up'){ drawOne(x,y-gap/2); drawOne(x,y+gap/2); }
+    else { drawOne(x-gap/2,y); drawOne(x+gap/2,y); }
+    c.restore();
+  }
+
+  function drawArrowPill(c, x, y, dir, area, active=false){
+    drawPill(c, x, y, ' ', area, active);
+    drawDoubleChevron(c, x, y, dir, .8);
+  }
+
+  function drawSeamPill(c, x, y, vertical, area, active=false){
+    drawPill(c, x, y, ' ', area, active);
+    if(vertical){
+      drawDoubleChevron(c, x, y - 7, 'down', .48);
+      drawDoubleChevron(c, x, y + 7, 'up', .48);
+    } else {
+      drawDoubleChevron(c, x - 7, y, 'right', .48);
+      drawDoubleChevron(c, x + 7, y, 'left', .48);
+    }
+  }
+
+
   function drawPill(c, x, y, text, area, active=false){
     const padX = 16, h = 38;
     c.save();
@@ -560,29 +620,29 @@
   }
 
 
-  function drawActiveGuide(c, line, orientation, dragArea, doneArea){
+  function drawActiveGuide(c, line, orientation, dragArea, arrowMode='both'){
     const verticalMove = orientation === 'vertical';
+    const hit = (cx, cy) => {
+      const size = 86 / Math.max(state.zoom, .08);
+      hitAreas.push({type:'activeDrag', x:cx-size/2, y:cy-size/2, w:size, h:size, cursor: verticalMove ? 'ns-resize' : 'ew-resize'});
+    };
     c.save();
     c.strokeStyle = '#ffbf00';
     c.lineWidth = 2;
-    c.setLineDash([]);
     c.beginPath();
     if(verticalMove){ c.moveTo(line.x1, line.y); c.lineTo(line.x2, line.y); }
     else { c.moveTo(line.x, line.y1); c.lineTo(line.x, line.y2); }
     c.stroke();
-
-    if(dragArea) hitAreas.push({...dragArea, type:'activeDrag', cursor: verticalMove ? 'ns-resize' : 'ew-resize'});
-    c.fillStyle = '#ffcc33';
-    c.font = '800 38px ui-sans-serif, system-ui, sans-serif';
-    c.textAlign = 'center'; c.textBaseline = 'middle';
     if(verticalMove){
-      c.fillText('∨∨', (line.x1+line.x2)/2, line.y - 70);
-      c.fillText('∧∧', (line.x1+line.x2)/2, line.y + 70);
-      drawPill(c, (line.x1+line.x2)/2, line.y, '✓', {type:'activeDone', cursor:'pointer'}, true);
+      const cx = (line.x1+line.x2)/2;
+      if(arrowMode === 'both' || arrowMode === 'down') { drawDoubleChevron(c, cx, line.y - 70, 'down'); hit(cx, line.y - 70); }
+      if(arrowMode === 'both' || arrowMode === 'up') { drawDoubleChevron(c, cx, line.y + 70, 'up'); hit(cx, line.y + 70); }
+      drawPill(c, cx, line.y, '✓', {type:'activeDone', cursor:'pointer'}, true);
     } else {
-      c.fillText('‹‹', line.x - 70, (line.y1+line.y2)/2);
-      c.fillText('››', line.x + 70, (line.y1+line.y2)/2);
-      drawPill(c, line.x, (line.y1+line.y2)/2, '✓', {type:'activeDone', cursor:'pointer'}, true);
+      const cy = (line.y1+line.y2)/2;
+      if(arrowMode === 'both' || arrowMode === 'left') { drawDoubleChevron(c, line.x - 70, cy, 'left'); hit(line.x - 70, cy); }
+      if(arrowMode === 'both' || arrowMode === 'right') { drawDoubleChevron(c, line.x + 70, cy, 'right'); hit(line.x + 70, cy); }
+      drawPill(c, line.x, cy, '✓', {type:'activeDone', cursor:'pointer'}, true);
     }
     c.restore();
   }
@@ -608,7 +668,6 @@
     const vertical = state.orientation === 'vertical';
     for(const sv of layout.seams){
       const selected = state.selected?.type === 'seam' && state.selected.index === sv.index;
-      const unlocked = !state.seams[sv.index]?.locked;
       c.save();
       c.strokeStyle = selected ? '#ffbf00' : 'rgba(246,183,0,.82)';
       c.lineWidth = selected ? 3 : 2;
@@ -617,27 +676,15 @@
       if(vertical){ c.moveTo(0, sv.y); c.lineTo(layout.fullWidth, sv.y); }
       else { c.moveTo(sv.x, 0); c.lineTo(sv.x, layout.fullHeight); }
       c.stroke();
-      c.setLineDash([]);
       c.restore();
-      hitAreas.push(vertical ? {type:'seamSelect', index:sv.index, x:0, y:sv.y-12, w:layout.fullWidth, h:24} : {type:'seamSelect', index:sv.index, x:sv.x-12, y:0, w:24, h:layout.fullHeight});
-      if(selected){
-        const active = state.activeHandle?.kind?.startsWith('seam') && state.activeHandle.index === sv.index;
-        if(active){
-          let area;
-          if(state.activeHandle.kind === 'seamBefore') area = layout.imageBounds.find(b => b.index === sv.index);
-          else if(state.activeHandle.kind === 'seamAfter') area = layout.imageBounds.find(b => b.index === sv.index + 1);
-          else area = vertical ? {x:0,y:0,w:layout.fullWidth,h:layout.fullHeight} : {x:0,y:0,w:layout.fullWidth,h:layout.fullHeight};
-          if(vertical) drawActiveGuide(c, {x1:0,x2:layout.fullWidth,y:sv.y}, 'vertical', area);
-          else drawActiveGuide(c, {x:sv.x,y1:0,y2:layout.fullHeight}, 'horizontal', area);
-        } else if(vertical){
-          drawPill(c, layout.fullWidth/2, sv.y, unlocked ? '↕' : '🔒', {type:'seamCenter', index:sv.index, cursor:'pointer'}, unlocked);
-          drawPill(c, layout.fullWidth/2, sv.y-52, '↑', {type:'seamBefore', index:sv.index, cursor:'pointer'}, unlocked);
-          drawPill(c, layout.fullWidth/2, sv.y+52, '↓', {type:'seamAfter', index:sv.index, cursor:'pointer'}, unlocked);
-        } else {
-          drawPill(c, sv.x, layout.fullHeight/2, unlocked ? '↔' : '🔒', {type:'seamCenter', index:sv.index, cursor:'pointer'}, unlocked);
-          drawPill(c, sv.x-52, layout.fullHeight/2, '←', {type:'seamBefore', index:sv.index, cursor:'pointer'}, unlocked);
-          drawPill(c, sv.x+52, layout.fullHeight/2, '→', {type:'seamAfter', index:sv.index, cursor:'pointer'}, unlocked);
-        }
+      const active = state.activeHandle?.kind === 'seamCenter' && state.activeHandle.index === sv.index;
+      if(active){
+        const area = vertical ? {x:0, y:Math.max(0, sv.y-120), w:layout.fullWidth, h:240} : {x:Math.max(0, sv.x-120), y:0, w:240, h:layout.fullHeight};
+        if(vertical) drawActiveGuide(c, {x1:0,x2:layout.fullWidth,y:sv.y}, 'vertical', area, 'both');
+        else drawActiveGuide(c, {x:sv.x,y1:0,y2:layout.fullHeight}, 'horizontal', area, 'both');
+      } else {
+        if(vertical) drawSeamPill(c, layout.fullWidth/2, sv.y, true, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
+        else drawSeamPill(c, sv.x, layout.fullHeight/2, false, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
       }
     }
   }
@@ -651,27 +698,27 @@
     c.fillRect(0,y, x, h);
     c.fillRect(x+w,y, layout.fullWidth-(x+w), h);
     c.fillRect(0,y+h, layout.fullWidth, layout.fullHeight-(y+h));
-    c.strokeStyle = '#ffbf00'; c.lineWidth = 3; c.setLineDash([]);
-    c.strokeRect(x,y,w,h);
+    c.strokeStyle = '#ffbf00'; c.lineWidth = 3; c.strokeRect(x,y,w,h);
     c.restore();
     const midX = x + w/2, midY = y + h/2;
     const active = state.activeHandle?.kind === 'canvasCrop';
     if(active){
       const edge = state.activeHandle.edge;
       const area = {x, y, w, h};
-      if(edge === 'top') drawActiveGuide(c, {x1:x,x2:x+w,y}, 'vertical', area);
-      else if(edge === 'bottom') drawActiveGuide(c, {x1:x,x2:x+w,y:y+h}, 'vertical', area);
-      else if(edge === 'left') drawActiveGuide(c, {x,y1:y,y2:y+h}, 'horizontal', area);
-      else if(edge === 'right') drawActiveGuide(c, {x:x+w,y1:y,y2:y+h}, 'horizontal', area);
+      if(edge === 'top') drawActiveGuide(c, {x1:x,x2:x+w,y:y}, 'vertical', area, 'up');
+      else if(edge === 'bottom') drawActiveGuide(c, {x1:x,x2:x+w,y:y+h}, 'vertical', area, 'down');
+      else if(edge === 'left') drawActiveGuide(c, {x:x,y1:y,y2:y+h}, 'horizontal', area, 'left');
+      else if(edge === 'right') drawActiveGuide(c, {x:x+w,y1:y,y2:y+h}, 'horizontal', area, 'right');
     } else {
-      drawPill(c, midX, y, '↑', {type:'canvasCrop', edge:'top', x:x, y:y-24, w, h:48, cursor:'pointer'}, true);
-      drawPill(c, midX, y+h, '↓', {type:'canvasCrop', edge:'bottom', x:x, y:y+h-24, w, h:48, cursor:'pointer'}, true);
-      drawPill(c, x, midY, '←', {type:'canvasCrop', edge:'left', x:x-24, y:y, w:48, h, cursor:'pointer'}, true);
-      drawPill(c, x+w, midY, '→', {type:'canvasCrop', edge:'right', x:x+w-24, y:y, w:48, h, cursor:'pointer'}, true);
+      drawArrowPill(c, midX, y, 'up', {type:'canvasCrop', edge:'top', cursor:'pointer'}, true);
+      drawArrowPill(c, midX, y+h, 'down', {type:'canvasCrop', edge:'bottom', cursor:'pointer'}, true);
+      drawArrowPill(c, x, midY, 'left', {type:'canvasCrop', edge:'left', cursor:'pointer'}, true);
+      drawArrowPill(c, x+w, midY, 'right', {type:'canvasCrop', edge:'right', cursor:'pointer'}, true);
     }
   }
 
   function drawImageCropOverlay(c, layout){
+    const vertical = state.orientation === 'vertical';
     for(const b of layout.imageBounds){
       const selected = state.selected?.type === 'image' && state.selected.index === b.index;
       c.save();
@@ -679,53 +726,45 @@
       c.lineWidth = selected ? 3 : 2;
       c.strokeRect(b.x,b.y,b.w,b.h);
       c.restore();
-      hitAreas.push({type:'imageSelect', index:b.index, x:b.x, y:b.y, w:b.w, h:b.h});
-      if(selected){
-        const active = state.activeHandle?.kind === 'imageCrop' && state.activeHandle.index === b.index;
-        if(active){
-          const edge = state.activeHandle.edge;
-          const area = {x:b.x, y:b.y, w:b.w, h:b.h};
-          if(edge === 'top') drawActiveGuide(c, {x1:b.x,x2:b.x+b.w,y:b.y}, 'vertical', area);
-          else if(edge === 'bottom') drawActiveGuide(c, {x1:b.x,x2:b.x+b.w,y:b.y+b.h}, 'vertical', area);
-          else if(edge === 'left') drawActiveGuide(c, {x:b.x,y1:b.y,y2:b.y+b.h}, 'horizontal', area);
-          else if(edge === 'right') drawActiveGuide(c, {x:b.x+b.w,y1:b.y,y2:b.y+b.h}, 'horizontal', area);
-        } else {
-          drawPill(c, b.x+b.w/2, b.y, '↑', {type:'imageCrop', index:b.index, edge:'top', x:b.x, y:b.y-26, w:b.w, h:52, cursor:'pointer'}, true);
-          drawPill(c, b.x+b.w/2, b.y+b.h, '↓', {type:'imageCrop', index:b.index, edge:'bottom', x:b.x, y:b.y+b.h-26, w:b.w, h:52, cursor:'pointer'}, true);
-          drawPill(c, b.x, b.y+b.h/2, '←', {type:'imageCrop', index:b.index, edge:'left', x:b.x-26, y:b.y, w:52, h:b.h, cursor:'pointer'}, true);
-          drawPill(c, b.x+b.w, b.y+b.h/2, '→', {type:'imageCrop', index:b.index, edge:'right', x:b.x+b.w-26, y:b.y, w:52, h:b.h, cursor:'pointer'}, true);
-        }
+      const active = state.activeHandle?.kind === 'imageCrop' && state.activeHandle.index === b.index;
+      if(active){
+        const edge = state.activeHandle.edge;
+        const area = {x:b.x, y:b.y, w:b.w, h:b.h};
+        if(edge === 'top') drawActiveGuide(c, {x1:b.x,x2:b.x+b.w,y:b.y}, 'vertical', area, 'up');
+        else if(edge === 'bottom') drawActiveGuide(c, {x1:b.x,x2:b.x+b.w,y:b.y+b.h}, 'vertical', area, 'down');
+        else if(edge === 'left') drawActiveGuide(c, {x:b.x,y1:b.y,y2:b.y+b.h}, 'horizontal', area, 'left');
+        else if(edge === 'right') drawActiveGuide(c, {x:b.x+b.w,y1:b.y,y2:b.y+b.h}, 'horizontal', area, 'right');
+      } else {
+        drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
+        drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
+        drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
+        drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
       }
+    }
+    for(const sv of layout.seams){
+      if(vertical) drawSeamPill(c, layout.fullWidth/2, sv.y, true, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
+      else drawSeamPill(c, sv.x, layout.fullHeight/2, false, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
     }
   }
 
   function drawDividerOverlay(c, layout){
+    ensureSplitDraft();
     const vertical = state.orientation === 'vertical';
-    for(const b of layout.imageBounds){
-      c.save();
-      c.strokeStyle = 'rgba(246,183,0,.45)';
-      c.lineWidth = 1.5;
-      c.setLineDash([6,5]);
-      c.strokeRect(b.x,b.y,b.w,b.h);
-      c.restore();
-      hitAreas.push({type:'splitImageAt', index:b.index, x:b.x, y:b.y, w:b.w, h:b.h, cursor: vertical ? 'row-resize' : 'col-resize'});
-      if(b.w > 80 && b.h > 80){
-        drawPill(c, b.x + b.w/2, b.y + b.h/2, '+', {type:'splitImageMid', index:b.index, cursor:'pointer'}, true);
-      }
-    }
-    for(const sv of layout.seams){
-      const selected = state.selected?.type === 'divider' && state.selected.index === sv.index;
-      c.save();
-      c.strokeStyle = selected ? '#ffbf00' : 'rgba(246,183,0,.92)';
-      c.lineWidth = selected ? 3 : 2;
-      c.beginPath();
-      if(vertical){ c.moveTo(0, sv.y); c.lineTo(layout.fullWidth, sv.y); }
-      else { c.moveTo(sv.x, 0); c.lineTo(sv.x, layout.fullHeight); }
-      c.stroke();
-      c.restore();
-      hitAreas.push(vertical ? {type:'dividerSelect', index:sv.index, x:0, y:sv.y-20, w:layout.fullWidth, h:40} : {type:'dividerSelect', index:sv.index, x:sv.x-20, y:0, w:40, h:layout.fullHeight});
-      if(vertical) drawPill(c, layout.fullWidth/2, sv.y, state.seams[sv.index]?.divider?.enabled ? '−' : '+', {type:'dividerToggle', index:sv.index, cursor:'pointer'}, true);
-      else drawPill(c, sv.x, layout.fullHeight/2, state.seams[sv.index]?.divider?.enabled ? '−' : '+', {type:'dividerToggle', index:sv.index, cursor:'pointer'}, true);
+    const pos = state.splitDraft.pos;
+    c.save();
+    c.strokeStyle = 'rgba(246,183,0,.92)';
+    c.lineWidth = 2.5;
+    c.beginPath();
+    if(vertical){ c.moveTo(0,pos); c.lineTo(layout.fullWidth,pos); }
+    else { c.moveTo(pos,0); c.lineTo(pos,layout.fullHeight); }
+    c.stroke();
+    c.restore();
+    if(vertical){
+      hitAreas.push({type:'splitDraftDrag', x:0, y:pos-10, w:layout.fullWidth, h:20, cursor:'ns-resize'});
+      drawPill(c, layout.fullWidth/2, pos, '+', {type:'splitDraftCommit', cursor:'pointer'}, true);
+    } else {
+      hitAreas.push({type:'splitDraftDrag', x:pos-10, y:0, w:20, h:layout.fullHeight, cursor:'ew-resize'});
+      drawPill(c, pos, layout.fullHeight/2, '+', {type:'splitDraftCommit', cursor:'pointer'}, true);
     }
   }
 
@@ -733,7 +772,8 @@
     for(let i=0;i<state.annotations.length;i++){
       const a = state.annotations[i];
       const b = annotationBounds(a);
-      hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move'});
+      const selectable = state.toolArmed === 'select' || state.selected?.type === 'annotation';
+      hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor: selectable ? 'move' : 'default'});
       const selected = state.selected?.type === 'annotation' && state.selected.index === i;
       if(selected){
         c.save();
@@ -745,7 +785,7 @@
         const hs = 14 / state.zoom;
         c.fillStyle = '#2f80ed';
         c.fillRect(b.x+b.w-hs/2, b.y+b.h-hs/2, hs, hs);
-        hitAreas.push({type:'annotationResize', index:i, x:b.x+b.w-hs, y:b.y+b.h-hs, w:hs*2, h:hs*2, cursor:'nwse-resize'});
+        if(state.toolArmed === 'select') hitAreas.push({type:'annotationResize', index:i, x:b.x+b.w-hs, y:b.y+b.h-hs, w:hs*2, h:hs*2, cursor:'nwse-resize'});
         c.restore();
       }
     }
@@ -830,6 +870,20 @@
     state.seams.forEach(s => { s.beforeCrop = 0; s.afterCrop = 0; });
   }
 
+  function addAnnotationAt(type, pt){
+    if(!type || type==='select' || !state.images.length) return;
+    pushHistory();
+    const base = { id: uid('ann'), type, x: Math.round(pt.x), y: Math.round(pt.y), w: 180, h: 90, color: '#ef4444', bg: 'transparent', lineWidth: 4, fontSize: 28, text: '文本' };
+    if(type === 'redact') Object.assign(base, {color:'#111827', bg:'#111827', w:220, h:72});
+    if(type === 'box') Object.assign(base, {color:'#ef4444', w:220, h:110});
+    if(type === 'arrow') Object.assign(base, {color:'#ef4444', w:200, h:80});
+    if(type === 'text') Object.assign(base, {color:'#111827', bg:'transparent', text:'输入文字'});
+    state.annotations.push(base);
+    state.selected = {type:'annotation', index: state.annotations.length-1};
+    state.toolArmed = 'select';
+    renderProps(); requestRender();
+  }
+
   function splitImageAt(index, localPos=null){
     const original = state.images[index];
     if(!original) return;
@@ -854,8 +908,33 @@
     if(state.seams[index]) state.seams[index].locked = false;
     state.selected = {type:'seam', index};
     state.mode = 'seam';
-    updateModeButtons(); renderProps(); fitToView(false); requestRender();
+    updateModeButtons(); renderProps(); requestRender();
     toast('已插入分割线，并把当前图片分成两段');
+  }
+
+  function insertSeamAtDraft(){
+    if(!state.images.length) return;
+    ensureSplitDraft();
+    const layout = computeLayout(true);
+    const pos = state.splitDraft.pos;
+    const seamThreshold = 18;
+    if(state.orientation === 'vertical'){
+      const existing = layout.seams.find(sv => Math.abs(sv.y - pos) <= seamThreshold);
+      if(existing){ state.mode='seam'; state.selected={type:'seam', index:existing.index}; state.activeHandle={kind:'seamCenter', index:existing.index}; updateModeButtons(); renderProps(); requestRender(); return; }
+      const target = layout.imageBounds.find(b => pos > b.y + 1 && pos < b.y + b.h - 1);
+      if(!target) return;
+      splitImageAt(target.index, pos - target.y);
+      state.activeHandle = {kind:'seamCenter', index: target.index};
+      renderProps(); requestRender();
+    } else {
+      const existing = layout.seams.find(sv => Math.abs(sv.x - pos) <= seamThreshold);
+      if(existing){ state.mode='seam'; state.selected={type:'seam', index:existing.index}; state.activeHandle={kind:'seamCenter', index:existing.index}; updateModeButtons(); renderProps(); requestRender(); return; }
+      const target = layout.imageBounds.find(b => pos > b.x + 1 && pos < b.x + b.w - 1);
+      if(!target) return;
+      splitImageAt(target.index, pos - target.x);
+      state.activeHandle = {kind:'seamCenter', index: target.index};
+      renderProps(); requestRender();
+    }
   }
 
   function fitToView(animate=true){
@@ -886,6 +965,8 @@
     const h = hitTest(w.x,w.y);
     if(h && !state.preview){
       handleHitDown(h, w, e);
+    } else if(!state.preview && state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select'){
+      addAnnotationAt(state.toolArmed, w);
     } else {
       drag = { type:'pan', startX:p.x, startY:p.y, pan:{...state.pan} };
       stage.classList.add('dragging');
@@ -893,89 +974,26 @@
   }
 
   function handleHitDown(h, w, e){
-    const selectedBefore = JSON.stringify(state.selected);
-    if(h.type === 'activeDone'){
-      state.activeHandle = null;
-      renderProps(); requestRender();
-      return;
-    }
-    if(h.type === 'activeDrag'){
-      startActiveDrag(w);
-      return;
-    }
-    if(h.type === 'seamSelect'){
-      state.activeHandle = null;
-      state.selected = {type:'seam', index:h.index};
-      renderProps(); requestRender();
-      if(JSON.stringify(state.selected) !== selectedBefore) return;
-    }
-    if(h.type === 'imageSelect'){
-      state.activeHandle = null;
-      state.selected = {type:'image', index:h.index};
-      renderProps(); requestRender();
-      return;
-    }
-    if(h.type === 'splitImageMid'){
-      splitImageAt(h.index, null);
-      return;
-    }
-    if(h.type === 'splitImageAt'){
-      const layout = computeLayout(true);
-      const b = layout.imageBounds.find(v => v.index === h.index);
-      const local = state.orientation === 'vertical' ? (w.y - b.y) : (w.x - b.x);
-      splitImageAt(h.index, local);
-      return;
-    }
+    if(h.type === 'activeDone'){ state.activeHandle = null; renderProps(); requestRender(); return; }
+    if(h.type === 'activeDrag'){ startActiveDrag(w); return; }
+    if(h.type === 'seamSelect'){ state.activeHandle = null; state.selected = {type:'seam', index:h.index}; renderProps(); requestRender(); return; }
     if(h.type === 'annotationSelect'){
-      state.selected = {type:'annotation', index:h.index};
-      renderProps(); requestRender();
-      const a = state.annotations[h.index];
-      drag = {type:'annotationMove', index:h.index, start:w, ann:{...a}};
+      state.selected = {type:'annotation', index:h.index}; renderProps(); requestRender();
+      if(state.toolArmed === 'select'){ const a = state.annotations[h.index]; drag = {type:'annotationMove', index:h.index, start:w, ann:{...a}}; }
       return;
     }
     if(h.type === 'annotationResize'){
-      state.selected = {type:'annotation', index:h.index};
-      renderProps(); requestRender();
-      const a = state.annotations[h.index];
-      drag = {type:'annotationResize', index:h.index, start:w, ann:{...a}};
-      return;
+      if(state.toolArmed !== 'select') return;
+      state.selected = {type:'annotation', index:h.index}; renderProps(); requestRender();
+      const a = state.annotations[h.index]; drag = {type:'annotationResize', index:h.index, start:w, ann:{...a}}; return;
     }
-    if(h.type === 'dividerSelect'){
-      state.activeHandle = null;
-      state.selected = {type:'divider', index:h.index};
-      renderProps(); requestRender();
-      return;
-    }
-    if(h.type === 'dividerToggle'){
-      pushHistory();
-      const s = state.seams[h.index];
-      s.divider = s.divider?.enabled ? null : {enabled:true, style:'solid', thickness:2, color:'#111827', background:'#ffffff', marginBefore:8, marginAfter:8};
-      state.selected = {type:'divider', index:h.index};
-      renderProps(); requestRender();
-      return;
-    }
-    if(h.type === 'canvasCrop'){
-      state.selected = {type:'canvasCrop'};
-      state.activeHandle = {kind:'canvasCrop', edge:h.edge};
-      renderProps(); requestRender();
-      return;
-    }
-    if(h.type === 'imageCrop'){
-      state.selected = {type:'image', index:h.index};
-      state.activeHandle = {kind:'imageCrop', index:h.index, edge:h.edge};
-      renderProps(); requestRender();
-      return;
-    }
-    if(['seamBefore','seamAfter','seamCenter'].includes(h.type)){
-      const s = state.seams[h.index];
-      state.selected = {type:'seam', index:h.index};
-      if(s.locked){ renderProps(); requestRender(); toast('拼接线已锁定，先点“编辑/解锁”'); return; }
-      state.activeHandle = {kind:h.type, index:h.index};
-      renderProps(); requestRender();
-      return;
-    }
+    if(h.type === 'splitDraftCommit'){ insertSeamAtDraft(); return; }
+    if(h.type === 'splitDraftDrag'){ drag = {type:'splitDraft', start:w, pos: state.splitDraft?.pos || 0}; return; }
+    if(h.type === 'canvasCrop'){ state.selected = {type:'canvasCrop'}; state.activeHandle = {kind:'canvasCrop', edge:h.edge}; renderProps(); requestRender(); return; }
+    if(h.type === 'imageCrop'){ state.selected = {type:'image', index:h.index}; state.activeHandle = {kind:'imageCrop', index:h.index, edge:h.edge}; renderProps(); requestRender(); return; }
+    if(['seamBefore','seamAfter','seamCenter'].includes(h.type)){ state.selected = {type:'seam', index:h.index}; state.activeHandle = {kind:'seamCenter', index:h.index}; renderProps(); requestRender(); return; }
+    if(state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select'){ addAnnotationAt(state.toolArmed, w); return; }
   }
-
 
   function startActiveDrag(w){
     const h = state.activeHandle;
@@ -994,9 +1012,9 @@
     }
     if(['seamBefore','seamAfter','seamCenter'].includes(h.kind)){
       const s = state.seams[h.index];
-      if(!s || s.locked){ toast('拼接线已锁定，先解锁'); return; }
+      if(!s) return;
       state.selected = {type:'seam', index:h.index};
-      drag = { type:h.kind, index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop };
+      drag = { type:'seamCenter', index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop };
       return;
     }
   }
@@ -1012,6 +1030,12 @@
     if(drag.type === 'pan'){
       state.pan.x = drag.pan.x + (p.x - drag.startX);
       state.pan.y = drag.pan.y + (p.y - drag.startY);
+      requestRender(); return;
+    }
+    if(drag.type === 'splitDraft'){
+      const layout = computeLayout(true);
+      if(state.orientation === 'vertical') state.splitDraft.pos = clamp(Math.round(drag.pos + (w.y - drag.start.y)), 1, Math.max(1, layout.fullHeight-1));
+      else state.splitDraft.pos = clamp(Math.round(drag.pos + (w.x - drag.start.x)), 1, Math.max(1, layout.fullWidth-1));
       requestRender(); return;
     }
     if(drag.type === 'canvasCrop'){
@@ -1047,7 +1071,7 @@
       if(a.type === 'text'){ a.fontSize = Math.max(12, Math.round((drag.ann.fontSize || 28) + (w.y - drag.start.y)/4)); }
       renderProps(); requestRender(); return;
     }
-    if(['seamBefore','seamAfter','seamCenter'].includes(drag.type)){
+    if(drag.type === 'seamCenter'){
       const s = state.seams[drag.index];
       const vertical = state.orientation === 'vertical';
       const d = vertical ? Math.round(w.y - drag.start.y) : Math.round(w.x - drag.start.x);
@@ -1055,19 +1079,17 @@
       const b = state.images[drag.index+1];
       const maxBefore = vertical ? a.height - a.crop.top - a.crop.bottom - 1 : a.width - a.crop.left - a.crop.right - 1;
       const maxAfter = vertical ? b.height - b.crop.top - b.crop.bottom - 1 : b.width - b.crop.left - b.crop.right - 1;
-      if(drag.type === 'seamBefore') s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
-      if(drag.type === 'seamAfter') s.afterCrop = clamp(drag.after + d, 0, maxAfter);
-      if(drag.type === 'seamCenter'){
-        s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
-        s.afterCrop = clamp(drag.after + d, 0, maxAfter);
-      }
+      s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
+      s.afterCrop = clamp(drag.after + d, 0, maxAfter);
       renderProps(); requestRender(); return;
     }
   }
 
   function onPointerUp(e){
+    const finished = drag;
     drag = null;
     stage.classList.remove('dragging');
+    if(finished && finished.type === 'splitDraft') renderProps();
   }
 
   function getPointer(e){
@@ -1097,15 +1119,10 @@
 
   function renderProps(){
     updateToolbarButtons();
-    if(!state.images.length){
-      props.innerHTML = `
-        <div class="prop-card"><h3>开始</h3><p class="hint">点击“打开图片”、拖入图片，或直接 Ctrl+V 粘贴截图。导入多张图片后会自动生成拼接线。</p></div>
-        <div class="prop-card"><h3>模式说明</h3><p class="hint"><b>拼接线</b>：调两张图接缝；<br><b>整体裁剪</b>：裁最终拼图；<br><b>单图裁剪</b>：每张原图四边单独裁；<br><b>分隔线</b>：在接缝处加横线。</p></div>`;
-      return;
-    }
+    if(!state.images.length){ props.innerHTML = ''; return; }
     const mode = state.mode;
     let html = '';
-    html += imageListCard();
+    if(mode !== 'tools' && mode !== 'divider') html += imageListCard();
     if(mode === 'seam') html += seamProps();
     if(mode === 'canvasCrop') html += canvasCropProps();
     if(mode === 'imageCrop') html += imageCropProps();
@@ -1116,7 +1133,7 @@
   }
 
   function imageListCard(){
-    return `<div class="prop-card"><h3>图片列表</h3><div class="image-list">${state.images.map((im,i)=>`
+    return `<div class="prop-card"><div class="image-list">${state.images.map((im,i)=>`
       <div class="image-item ${state.selected?.type==='image'&&state.selected.index===i?'selected':''}" data-select-image="${i}">
         <img class="thumb" src="${im.dataUrl}" alt="">
         <div><div class="image-name">${escapeHtml(im.name)}</div><div class="image-meta">${im.width}×${im.height}px</div></div>
@@ -1131,32 +1148,23 @@
   function seamProps(){
     const idx = state.selected?.type==='seam' ? state.selected.index : 0;
     const s = state.seams[idx];
-    if(!s) return `<div class="prop-card"><h3>拼接线</h3><p class="hint">至少导入两张图片才会出现拼接线。</p></div>`;
-    return `<div class="prop-card"><h3>拼接线 ${idx+1}</h3>
-      <p class="hint">默认锁定，点击“编辑/解锁”后，黄色箭头才能拖动。双击拼接线或点“自动识别”可尝试找重叠。所有调节本质上都是裁掉上/下图的一部分，不是移动分割线本身。</p>
+    if(!s) return `<div class="prop-card"></div>`;
+    return `<div class="prop-card">
+      <div class="row"><label>上图/左图</label><input type="number" data-num="seam.beforeCrop" value="${s.beforeCrop}" min="0"></div>
+      <div class="row"><label>下图/右图</label><input type="number" data-num="seam.afterCrop" value="${s.afterCrop}" min="0"></div>
       <div class="mini-grid">
-        <button class="mini-btn ${!s.locked?'active':''}" id="toggleSeamLock">${s.locked?'编辑 / 解锁':'完成 / 锁定'}</button>
         <button class="mini-btn" id="autoSeamBtn">自动识别</button>
-      </div>
-      <div class="row"><label>${state.orientation==='vertical'?'上图底部':'左图右侧'}</label><input type="number" data-num="seam.beforeCrop" value="${s.beforeCrop}" min="0"></div>
-      <div class="row"><label>${state.orientation==='vertical'?'下图顶部':'右图左侧'}</label><input type="number" data-num="seam.afterCrop" value="${s.afterCrop}" min="0"></div>
-      <div class="mini-grid">
-        <button class="mini-btn" data-select-prev-seam>上一条</button>
-        <button class="mini-btn" data-select-next-seam>下一条</button>
         <button class="mini-btn" id="resetSeamBtn">重置</button>
-        <button class="mini-btn warn" id="deleteSeamBtn">删除裁剪值</button>
       </div>
-    </div>
-    <div class="prop-card"><h3>快捷键</h3><p class="hint"><span class="kbd">↑↓←→</span> 微调 1px；<br><span class="kbd">Shift</span> + 方向键微调 10px；<br><span class="kbd">Delete</span> 重置当前拼接线裁剪值。</p></div>`;
+    </div>`;
   }
 
   function canvasCropProps(){
     const c = state.canvasCrop;
-    return `<div class="prop-card"><h3>整体裁剪</h3><p class="hint">裁的是最终拼好的整张图，不影响每张原图自己的裁剪值。</p>
-      ${cropInputs('canvas', c)}
+    return `<div class="prop-card">${cropInputs('canvas', c)}
       <div class="mini-grid">
         <button class="mini-btn" id="resetCanvasCrop">重置</button>
-        <button class="mini-btn" id="autoWhiteCanvas">一键去白边</button>
+        <button class="mini-btn" id="autoWhiteCanvas">去白边</button>
       </div>
     </div>`;
   }
@@ -1165,48 +1173,46 @@
     let idx = state.selected?.type==='image' ? state.selected.index : 0;
     idx = clamp(idx, 0, state.images.length-1);
     const im = state.images[idx];
-    return `<div class="prop-card"><h3>单图裁剪：${idx+1}</h3><p class="hint">这里裁的是每张原始图片自己的上、下、左、右边界，不是移动图片。</p>
-      ${cropInputs('image', im.crop)}
+    return `<div class="prop-card">${cropInputs('image', im.crop)}
       <div class="mini-grid">
         <button class="mini-btn" id="resetImageCrop">重置当前</button>
         <button class="mini-btn" id="copyCropNext">复制到下一张</button>
         <button class="mini-btn" id="applyCropAll">应用到全部</button>
-        <button class="mini-btn" id="autoWhiteImage">当前去白边</button>
+        <button class="mini-btn" id="autoWhiteImage">去白边</button>
       </div>
     </div>`;
   }
 
   function dividerProps(){
-    const imageHint = `<div class="prop-card"><h3>插入分割线 / 拆分图片</h3><p class="hint">现在支持单张长图直接插入分割线。你可以在画布中切到“分隔线”模式后，直接点击图片希望拆开的地方；也可以用下面按钮按当前图片中点拆开。拆开后会自动生成一条拼接线，便于去掉重复页眉页脚。</p>
-      <div class="mini-grid"><button class="mini-btn" id="splitCurrentImage">拆分当前图片</button><button class="mini-btn" id="splitCurrentImageMiddle">按中点拆分</button></div></div>`;
-    if(!state.seams.length) return imageHint;
-    const idx = state.selected?.type==='divider' ? state.selected.index : 0;
-    const s = state.seams[idx];
-    const d = s?.divider || {enabled:false, style:'solid', thickness:2, color:'#111827', background:'#ffffff', marginBefore:8, marginAfter:8};
-    return imageHint + `<div class="prop-card"><h3>分隔线 ${idx+1}</h3><p class="hint">现有拼接接缝上可以加装饰性分隔线。黄色 + / − 只负责插入或删除分隔线；真正的接缝调整仍然通过拼接线模式去裁掉上图/下图内容。</p>
-      <div class="mini-grid"><button class="mini-btn ${d.enabled?'active':''}" id="toggleDivider">${d.enabled?'删除分隔线':'插入分隔线'}</button><button class="mini-btn" data-select-next-seam>下一条</button></div>
-      <div class="row"><label>样式</label><select data-divider="style"><option value="solid" ${d.style==='solid'?'selected':''}>实线</option><option value="dashed" ${d.style==='dashed'?'selected':''}>虚线</option><option value="dotted" ${d.style==='dotted'?'selected':''}>点线</option></select></div>
-      <div class="row"><label>粗细</label><input type="number" min="1" max="80" data-divider="thickness" value="${d.thickness}"></div>
-      <div class="row"><label>颜色</label><input type="color" data-divider="color" value="${d.color}"></div>
-      <div class="row"><label>上/左留白</label><input type="number" min="0" max="500" data-divider="marginBefore" value="${d.marginBefore}"></div>
-      <div class="row"><label>下/右留白</label><input type="number" min="0" max="500" data-divider="marginAfter" value="${d.marginAfter}"></div>
+    const pos = Math.round(state.splitDraft?.pos || 0);
+    return `<div class="prop-card">
+      <div class="row"><label>位置</label><input type="number" id="splitDraftPos" value="${pos}" min="1"></div>
+      <div class="mini-grid">
+        <button class="mini-btn" id="commitSplitDraft">插入接缝</button>
+        <button class="mini-btn" id="centerSplitDraft">居中</button>
+      </div>
     </div>`;
   }
 
   function toolsProps(){
     const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
     const a = idx >= 0 ? state.annotations[idx] : null;
-    return `<div class="prop-card"><h3>工具模式</h3><p class="hint">已经实现基础工具：文字、遮挡块、矩形框、箭头。添加后可在画布中拖动对象，拖右下角蓝色小方块缩放；文字可在左侧直接修改内容。</p>
-      <div class="mini-grid"><button class="mini-btn" id="addTextTool">添加文字</button><button class="mini-btn" id="addRedactTool">添加遮挡</button><button class="mini-btn" id="addBoxTool">添加矩形框</button><button class="mini-btn" id="addArrowTool">添加箭头</button></div>
-    </div>` + (a ? `<div class="prop-card"><h3>当前对象：${a.type}</h3>
+    const iconBtn = (key, icon, title) => `<button class="tool-icon-btn ${state.toolArmed===key?'active':''}" data-tool="${key}" title="${title}"><span class="ti">${icon}</span><span class="tt">${title}</span></button>`;
+    return `<div class="prop-card"><div class="tool-icon-grid">
+      ${iconBtn('select','⌖','选择')}
+      ${iconBtn('text','T','文字')}
+      ${iconBtn('redact','◼','遮挡')}
+      ${iconBtn('box','▭','矩形')}
+      ${iconBtn('arrow','↗','箭头')}
+    </div></div>` + (a ? `<div class="prop-card">
       <div class="row"><label>X</label><input type="number" data-ann="x" value="${Math.round(a.x||0)}"></div>
       <div class="row"><label>Y</label><input type="number" data-ann="y" value="${Math.round(a.y||0)}"></div>
-      ${a.type!=='text' ? `<div class="row"><label>宽度</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"></div><div class="row"><label>高度</label><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : `<div class="row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div><div class="row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}" ></div>`}
+      ${a.type!=='text' ? `<div class="row"><label>宽度</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"></div><div class="row"><label>高度</label><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : `<div class="row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div><div class="row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}"></div>`}
       <div class="row"><label>颜色</label><input type="color" data-ann="color" value="${a.color||'#111827'}"></div>
       ${a.type==='text' ? `<div class="row"><label>背景</label><select data-ann="bg"><option value="transparent" ${(a.bg||'transparent')==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${a.bg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${a.bg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${a.bg==='#ffeb3b'?'selected':''}>黄底</option></select></div>` : ''}
       ${(a.type==='box' || a.type==='arrow') ? `<div class="row"><label>线宽</label><input type="number" data-ann="lineWidth" value="${Math.round(a.lineWidth||4)}"></div>` : ''}
-      <div class="mini-grid"><button class="mini-btn warn" id="deleteAnnotationBtn">删除当前对象</button></div>
-    </div>` : `<div class="prop-card"><h3>当前对象</h3><p class="hint">还没有选中工具对象。请点击上面的“添加”按钮，或在画布中选中已存在的对象。</p></div>`);
+      <div class="mini-grid"><button class="mini-btn warn" id="deleteAnnotationBtn">删除对象</button></div>
+    </div>` : '');
   }
 
   function cropInputs(prefix, c){
@@ -1220,7 +1226,7 @@
     $$('[data-select-image]', props).forEach(el => el.addEventListener('click', e=>{
       if(e.target.closest('button')) return;
       state.selected = {type:'image', index:+el.dataset.selectImage};
-      if(state.mode !== 'divider') state.mode = 'imageCrop';
+      if(state.mode !== 'tools') state.mode = 'imageCrop';
       updateModeButtons(); renderProps(); requestRender();
     }));
     $$('[data-move-up]', props).forEach(btn => btn.addEventListener('click', e=>{ e.stopPropagation(); moveImage(+btn.dataset.moveUp, -1); }));
@@ -1248,18 +1254,8 @@
       renderProps(); requestRender();
     }));
 
-    $('#toggleSeamLock')?.addEventListener('click', () => {
-      const idx = state.selected?.type==='seam' ? state.selected.index : 0;
-      if(!state.seams[idx]) return;
-      state.seams[idx].locked = !state.seams[idx].locked;
-      renderProps(); requestRender();
-    });
     $('#autoSeamBtn')?.addEventListener('click', () => autoCurrentSeam());
     $('#resetSeamBtn')?.addEventListener('click', () => { const idx = selectedSeamIndex(); if(idx<0)return; pushHistory(); state.seams[idx].beforeCrop=0; state.seams[idx].afterCrop=0; renderProps(); requestRender(); });
-    $('#deleteSeamBtn')?.addEventListener('click', () => { const idx = selectedSeamIndex(); if(idx<0)return; pushHistory(); state.seams[idx].beforeCrop=0; state.seams[idx].afterCrop=0; state.seams[idx].divider=null; renderProps(); requestRender(); });
-
-    $$('[data-select-prev-seam]', props).forEach(btn => btn.addEventListener('click', () => selectSeamByDelta(-1)));
-    $$('[data-select-next-seam]', props).forEach(btn => btn.addEventListener('click', () => selectSeamByDelta(1)));
 
     $('#resetCanvasCrop')?.addEventListener('click', () => { pushHistory(); state.canvasCrop={top:0,right:0,bottom:0,left:0}; renderProps(); requestRender(); });
     $('#autoWhiteCanvas')?.addEventListener('click', () => { autoWhiteCanvas(); });
@@ -1268,23 +1264,11 @@
     $('#applyCropAll')?.addEventListener('click', () => { const idx=selectedImageIndex(); pushHistory(); const c={...state.images[idx].crop}; state.images.forEach(im=>im.crop={...c}); renderProps(); requestRender(); });
     $('#autoWhiteImage')?.addEventListener('click', () => { autoWhiteImage(selectedImageIndex()); });
 
-    $('#toggleDivider')?.addEventListener('click', () => toggleDivider(selectedDividerIndex()));
-    $$('[data-divider]', props).forEach(inp => inp.addEventListener('change', () => {
-      const idx = selectedDividerIndex(); if(idx<0)return;
-      pushHistory(); ensureDivider(idx);
-      const d = state.seams[idx].divider;
-      const key = inp.dataset.divider;
-      d[key] = inp.type === 'number' ? Math.max(0, Math.round(+inp.value || 0)) : inp.value;
-      renderProps(); requestRender();
-    }));
+    $('#splitDraftPos')?.addEventListener('change', (e) => { ensureSplitDraft(); state.splitDraft.pos = Math.max(1, Math.round(+e.target.value || 1)); requestRender(); });
+    $('#commitSplitDraft')?.addEventListener('click', () => insertSeamAtDraft());
+    $('#centerSplitDraft')?.addEventListener('click', () => { const layout = computeLayout(true); ensureSplitDraft(); state.splitDraft.pos = Math.round((state.orientation==='vertical' ? layout.fullHeight : layout.fullWidth)/2); renderProps(); requestRender(); });
 
-    $('#splitCurrentImage')?.addEventListener('click', () => { const idx = state.selected?.type==='image' ? state.selected.index : 0; splitImageAt(clamp(idx,0,state.images.length-1), null); });
-    $('#splitCurrentImageMiddle')?.addEventListener('click', () => { const idx = state.selected?.type==='image' ? state.selected.index : 0; splitImageAt(clamp(idx,0,state.images.length-1), null); });
-
-    $('#addTextTool')?.addEventListener('click', () => addAnnotation('text'));
-    $('#addRedactTool')?.addEventListener('click', () => addAnnotation('redact'));
-    $('#addBoxTool')?.addEventListener('click', () => addAnnotation('box'));
-    $('#addArrowTool')?.addEventListener('click', () => addAnnotation('arrow'));
+    $$('[data-tool]', props).forEach(btn => btn.addEventListener('click', () => { state.toolArmed = btn.dataset.tool; renderProps(); requestRender(); }));
     $('#deleteAnnotationBtn')?.addEventListener('click', () => deleteSelectedAnnotation());
     $$('[data-ann]', props).forEach(inp => inp.addEventListener(inp.type==='text' ? 'input' : 'change', () => {
       const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
@@ -1358,12 +1342,10 @@
     state.activeHandle = null;
     state.preview = false;
     if(m === 'canvasCrop') state.selected = {type:'canvasCrop'};
-    if(m === 'seam' && state.seams.length && state.selected?.type !== 'seam') state.selected = {type:'seam', index:0};
-    if(m === 'imageCrop' && state.images.length && state.selected?.type !== 'image') state.selected = {type:'image', index:0};
-    if(m === 'divider'){
-      if(state.seams.length) state.selected = state.selected?.type==='divider' ? state.selected : {type:'divider', index:0};
-      else if(state.images.length) state.selected = {type:'image', index: clamp(state.selected?.index || 0, 0, state.images.length-1)};
-    }
+    if(m === 'seam' && state.seams.length) state.selected = state.selected?.type === 'seam' ? state.selected : {type:'seam', index:0};
+    if(m === 'imageCrop' && state.images.length) state.selected = state.selected?.type === 'image' ? state.selected : {type:'image', index:0};
+    if(m === 'divider') ensureSplitDraft();
+    if(m === 'tools') state.toolArmed = state.toolArmed || 'select';
     updateModeButtons(); renderProps(); requestRender();
   }
 
@@ -1531,6 +1513,7 @@
     else if(e.key === '2') setMode('canvasCrop');
     else if(e.key === '3') setMode('imageCrop');
     else if(e.key === '4') setMode('divider');
+    else if(e.key === '5') setMode('tools');
     else if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); }
     else if((e.ctrlKey||e.metaKey) && (e.key.toLowerCase()==='y' || (e.shiftKey && e.key.toLowerCase()==='z'))){ e.preventDefault(); redo(); }
     else if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); exportPng(); }
@@ -1553,7 +1536,7 @@
     const verticalKey = key === 'ArrowUp' || key === 'ArrowDown';
     if(state.mode === 'seam' && state.selected?.type === 'seam'){
       const s = state.seams[state.selected.index]; if(!s) return;
-      if(s.locked){ toast('拼接线已锁定，先解锁'); return; }
+      
       pushHistory();
       if((state.orientation === 'vertical' && verticalKey) || (state.orientation === 'horizontal' && !verticalKey)){
         if(key==='ArrowUp' || key==='ArrowLeft') s.beforeCrop = Math.max(0, s.beforeCrop + Math.abs(delta));
