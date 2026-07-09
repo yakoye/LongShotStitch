@@ -218,7 +218,8 @@
     canvasCrop: { top: 0, right: 0, bottom: 0, left: 0 },
     zoom: 1,
     pan: { x: 0, y: 0 },
-    preview: false
+    preview: false,
+    annotations: []
   };
 
   let history = [];
@@ -245,7 +246,8 @@
         id: im.id, name: im.name, dataUrl: im.dataUrl, width: im.width, height: im.height, crop: {...im.crop}
       })),
       seams: state.seams.map(s => ({...s, divider: s.divider ? {...s.divider} : null})),
-      canvasCrop: {...state.canvasCrop}
+      canvasCrop: {...state.canvasCrop},
+      annotations: state.annotations.map(a => ({...a}))
     });
   }
 
@@ -268,6 +270,7 @@
     state.selected = data.selected || null;
     state.canvasCrop = data.canvasCrop || {top:0,right:0,bottom:0,left:0};
     state.seams = data.seams || [];
+    state.annotations = data.annotations || [];
     const imgs = [];
     for(const raw of data.images || []){
       const img = await loadImage(raw.dataUrl);
@@ -532,6 +535,7 @@
       c.stroke();
       c.setLineDash([]);
     }
+    drawAnnotations(c, layout, exportMode);
     c.restore();
   }
 
@@ -640,6 +644,18 @@
 
   function drawDividerOverlay(c, layout){
     const vertical = state.orientation === 'vertical';
+    for(const b of layout.imageBounds){
+      c.save();
+      c.strokeStyle = 'rgba(246,183,0,.45)';
+      c.lineWidth = 1.5;
+      c.setLineDash([6,5]);
+      c.strokeRect(b.x,b.y,b.w,b.h);
+      c.restore();
+      hitAreas.push({type:'splitImageAt', index:b.index, x:b.x, y:b.y, w:b.w, h:b.h, cursor: vertical ? 'row-resize' : 'col-resize'});
+      if(b.w > 80 && b.h > 80){
+        drawPill(c, b.x + b.w/2, b.y + b.h/2, '+', {type:'splitImageMid', index:b.index, cursor:'pointer'}, true);
+      }
+    }
     for(const sv of layout.seams){
       const selected = state.selected?.type === 'divider' && state.selected.index === sv.index;
       c.save();
@@ -657,12 +673,132 @@
   }
 
   function drawToolsOverlay(c, layout){
-    c.save();
-    c.fillStyle = 'rgba(17,24,39,.72)';
-    c.font = '700 22px ui-sans-serif, system-ui, sans-serif';
-    c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText('工具模式：文字 / 遮挡 / 标注会在下一版加入', layout.fullWidth/2, Math.min(80, layout.fullHeight/2));
-    c.restore();
+    for(let i=0;i<state.annotations.length;i++){
+      const a = state.annotations[i];
+      const b = annotationBounds(a);
+      hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move'});
+      const selected = state.selected?.type === 'annotation' && state.selected.index === i;
+      if(selected){
+        c.save();
+        c.strokeStyle = '#2f80ed';
+        c.lineWidth = 2/state.zoom;
+        c.setLineDash([8/state.zoom, 6/state.zoom]);
+        c.strokeRect(b.x, b.y, b.w, b.h);
+        c.setLineDash([]);
+        const hs = 14 / state.zoom;
+        c.fillStyle = '#2f80ed';
+        c.fillRect(b.x+b.w-hs/2, b.y+b.h-hs/2, hs, hs);
+        hitAreas.push({type:'annotationResize', index:i, x:b.x+b.w-hs, y:b.y+b.h-hs, w:hs*2, h:hs*2, cursor:'nwse-resize'});
+        c.restore();
+      }
+    }
+  }
+
+
+  function drawAnnotations(c, layout, exportMode=false){
+    for(const a of state.annotations){
+      c.save();
+      c.translate(a.x || 0, a.y || 0);
+      if(a.type === 'text'){
+        c.font = `700 ${a.fontSize || 28}px ui-sans-serif, system-ui, sans-serif`;
+        c.textAlign = 'left'; c.textBaseline = 'top';
+        if(a.bg && a.bg !== 'transparent'){
+          const temp = document.createElement('canvas').getContext('2d');
+          temp.font = c.font;
+          const m = temp.measureText(a.text || 'Text');
+          const hh = (a.fontSize || 28) + 12;
+          c.fillStyle = a.bg;
+          c.fillRect(-8,-6,m.width+16,hh);
+        }
+        c.fillStyle = a.color || '#111827';
+        (String(a.text || 'Text').split('\n')).forEach((line,i)=> c.fillText(line,0,i*((a.fontSize||28)+6)));
+      } else if(a.type === 'redact'){
+        c.fillStyle = a.color || '#111827';
+        c.fillRect(0,0,a.w || 180,a.h || 64);
+      } else if(a.type === 'box'){
+        c.strokeStyle = a.color || '#ef4444';
+        c.lineWidth = a.lineWidth || 3;
+        c.strokeRect(0,0,a.w || 180,a.h || 90);
+      } else if(a.type === 'arrow'){
+        const w = a.w || 180, h = a.h || 90;
+        c.strokeStyle = a.color || '#ef4444';
+        c.fillStyle = a.color || '#ef4444';
+        c.lineWidth = a.lineWidth || 4;
+        c.beginPath(); c.moveTo(0,0); c.lineTo(w,h); c.stroke();
+        const ang = Math.atan2(h,w), len = 18;
+        c.beginPath(); c.moveTo(w,h); c.lineTo(w-len*Math.cos(ang-Math.PI/6), h-len*Math.sin(ang-Math.PI/6)); c.lineTo(w-len*Math.cos(ang+Math.PI/6), h-len*Math.sin(ang+Math.PI/6)); c.closePath(); c.fill();
+      }
+      c.restore();
+    }
+  }
+
+  function annotationBounds(a){
+    if(a.type === 'text'){
+      const temp = document.createElement('canvas').getContext('2d');
+      temp.font = `700 ${a.fontSize || 28}px ui-sans-serif, system-ui, sans-serif`;
+      const lines = String(a.text || 'Text').split('\n');
+      const width = Math.max(...lines.map(line => temp.measureText(line).width), 40) + ((a.bg && a.bg !== 'transparent') ? 16 : 0);
+      const height = Math.max(24, lines.length * ((a.fontSize || 28)+6));
+      return {x:a.x||0, y:a.y||0, w:width, h:height};
+    }
+    return {x:a.x||0, y:a.y||0, w:Math.max(24,a.w||180), h:Math.max(24,a.h||90)};
+  }
+
+  function addAnnotation(type){
+    if(!state.images.length) return;
+    pushHistory();
+    const layout = computeLayout(true);
+    const base = { id: uid('ann'), type, x: Math.max(20, layout.fullWidth/2 - 80), y: Math.max(20, layout.fullHeight/2 - 40), w: 180, h: 90, color: '#ef4444', bg: 'transparent', lineWidth: 4, fontSize: 28, text: '文本' };
+    if(type === 'redact') Object.assign(base, {color:'#111827', bg:'#111827', w:220, h:72});
+    if(type === 'box') Object.assign(base, {color:'#ef4444', w:220, h:110});
+    if(type === 'arrow') Object.assign(base, {color:'#ef4444', w:200, h:80});
+    if(type === 'text') Object.assign(base, {color:'#111827', bg:'transparent', text:'双击文字或左侧修改'});
+    state.annotations.push(base);
+    state.selected = {type:'annotation', index: state.annotations.length - 1};
+    renderProps(); requestRender();
+  }
+
+  function deleteSelectedAnnotation(){
+    const idx = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    if(idx < 0) return;
+    pushHistory();
+    state.annotations.splice(idx,1);
+    state.selected = state.annotations.length ? {type:'annotation', index: clamp(idx, 0, state.annotations.length-1)} : null;
+    renderProps(); requestRender();
+  }
+
+  function normalizeProjectCrops(){
+    const effective = state.images.map((im,i) => getEffectiveCrop(i));
+    state.images.forEach((im,i) => { im.crop = {...effective[i]}; });
+    state.seams.forEach(s => { s.beforeCrop = 0; s.afterCrop = 0; });
+  }
+
+  function splitImageAt(index, localPos=null){
+    const original = state.images[index];
+    if(!original) return;
+    pushHistory();
+    normalizeProjectCrops();
+    const im = state.images[index];
+    const visible = state.orientation === 'vertical' ? (im.height - im.crop.top - im.crop.bottom) : (im.width - im.crop.left - im.crop.right);
+    const pos = clamp(Math.round(localPos == null ? visible/2 : localPos), 1, Math.max(1, visible - 1));
+    const a = {...im, id: uid('img'), name: im.name + ' A', crop: {...im.crop}};
+    const b = {...im, id: uid('img'), name: im.name + ' B', crop: {...im.crop}};
+    if(state.orientation === 'vertical'){
+      const sourceSplit = im.crop.top + pos;
+      a.crop.bottom = im.height - sourceSplit;
+      b.crop.top = sourceSplit;
+    } else {
+      const sourceSplit = im.crop.left + pos;
+      a.crop.right = im.width - sourceSplit;
+      b.crop.left = sourceSplit;
+    }
+    state.images.splice(index,1,a,b);
+    syncSeams(true);
+    if(state.seams[index]) state.seams[index].locked = false;
+    state.selected = {type:'seam', index};
+    state.mode = 'seam';
+    updateModeButtons(); renderProps(); fitToView(false); requestRender();
+    toast('已插入分割线，并把当前图片分成两段');
   }
 
   function fitToView(animate=true){
@@ -709,6 +845,31 @@
     if(h.type === 'imageSelect'){
       state.selected = {type:'image', index:h.index};
       renderProps(); requestRender();
+      return;
+    }
+    if(h.type === 'splitImageMid'){
+      splitImageAt(h.index, null);
+      return;
+    }
+    if(h.type === 'splitImageAt'){
+      const layout = computeLayout(true);
+      const b = layout.imageBounds.find(v => v.index === h.index);
+      const local = state.orientation === 'vertical' ? (w.y - b.y) : (w.x - b.x);
+      splitImageAt(h.index, local);
+      return;
+    }
+    if(h.type === 'annotationSelect'){
+      state.selected = {type:'annotation', index:h.index};
+      renderProps(); requestRender();
+      const a = state.annotations[h.index];
+      drag = {type:'annotationMove', index:h.index, start:w, ann:{...a}};
+      return;
+    }
+    if(h.type === 'annotationResize'){
+      state.selected = {type:'annotation', index:h.index};
+      renderProps(); requestRender();
+      const a = state.annotations[h.index];
+      drag = {type:'annotationResize', index:h.index, start:w, ann:{...a}};
       return;
     }
     if(h.type === 'dividerSelect'){
@@ -776,6 +937,19 @@
       if(drag.edge === 'left') c.left = clamp(c.left + dx, 0, im.width - c.right - 1);
       if(drag.edge === 'right') c.right = clamp(c.right - dx, 0, im.width - c.left - 1);
       im.crop = c; renderProps(); requestRender(); return;
+    }
+    if(drag.type === 'annotationMove'){
+      const a = state.annotations[drag.index];
+      a.x = Math.round(drag.ann.x + (w.x - drag.start.x));
+      a.y = Math.round(drag.ann.y + (w.y - drag.start.y));
+      renderProps(); requestRender(); return;
+    }
+    if(drag.type === 'annotationResize'){
+      const a = state.annotations[drag.index];
+      a.w = Math.max(24, Math.round((drag.ann.w || 180) + (w.x - drag.start.x)));
+      a.h = Math.max(24, Math.round((drag.ann.h || 90) + (w.y - drag.start.y)));
+      if(a.type === 'text'){ a.fontSize = Math.max(12, Math.round((drag.ann.fontSize || 28) + (w.y - drag.start.y)/4)); }
+      renderProps(); requestRender(); return;
     }
     if(['seamBefore','seamAfter','seamCenter'].includes(drag.type)){
       const s = state.seams[drag.index];
@@ -863,7 +1037,7 @@
     const s = state.seams[idx];
     if(!s) return `<div class="prop-card"><h3>拼接线</h3><p class="hint">至少导入两张图片才会出现拼接线。</p></div>`;
     return `<div class="prop-card"><h3>拼接线 ${idx+1}</h3>
-      <p class="hint">默认锁定，点击“编辑/解锁”后，黄色箭头才能拖动。双击拼接线或点“自动识别”可尝试找重叠。</p>
+      <p class="hint">默认锁定，点击“编辑/解锁”后，黄色箭头才能拖动。双击拼接线或点“自动识别”可尝试找重叠。所有调节本质上都是裁掉上/下图的一部分，不是移动分割线本身。</p>
       <div class="mini-grid">
         <button class="mini-btn ${!s.locked?'active':''}" id="toggleSeamLock">${s.locked?'编辑 / 解锁':'完成 / 锁定'}</button>
         <button class="mini-btn" id="autoSeamBtn">自动识别</button>
@@ -907,11 +1081,13 @@
   }
 
   function dividerProps(){
+    const imageHint = `<div class="prop-card"><h3>插入分割线 / 拆分图片</h3><p class="hint">现在支持单张长图直接插入分割线。你可以在画布中切到“分隔线”模式后，直接点击图片希望拆开的地方；也可以用下面按钮按当前图片中点拆开。拆开后会自动生成一条拼接线，便于去掉重复页眉页脚。</p>
+      <div class="mini-grid"><button class="mini-btn" id="splitCurrentImage">拆分当前图片</button><button class="mini-btn" id="splitCurrentImageMiddle">按中点拆分</button></div></div>`;
+    if(!state.seams.length) return imageHint;
     const idx = state.selected?.type==='divider' ? state.selected.index : 0;
     const s = state.seams[idx];
-    if(!s) return `<div class="prop-card"><h3>分隔线</h3><p class="hint">至少导入两张图片后，才能在接缝处插入分隔线。</p></div>`;
-    const d = s.divider || {enabled:false, style:'solid', thickness:2, color:'#111827', background:'#ffffff', marginBefore:8, marginAfter:8};
-    return `<div class="prop-card"><h3>分隔线 ${idx+1}</h3><p class="hint">点击画布接缝处的黄色 + 可以插入或删除分隔线。</p>
+    const d = s?.divider || {enabled:false, style:'solid', thickness:2, color:'#111827', background:'#ffffff', marginBefore:8, marginAfter:8};
+    return imageHint + `<div class="prop-card"><h3>分隔线 ${idx+1}</h3><p class="hint">现有拼接接缝上可以加装饰性分隔线。黄色 + / − 只负责插入或删除分隔线；真正的接缝调整仍然通过拼接线模式去裁掉上图/下图内容。</p>
       <div class="mini-grid"><button class="mini-btn ${d.enabled?'active':''}" id="toggleDivider">${d.enabled?'删除分隔线':'插入分隔线'}</button><button class="mini-btn" data-select-next-seam>下一条</button></div>
       <div class="row"><label>样式</label><select data-divider="style"><option value="solid" ${d.style==='solid'?'selected':''}>实线</option><option value="dashed" ${d.style==='dashed'?'selected':''}>虚线</option><option value="dotted" ${d.style==='dotted'?'selected':''}>点线</option></select></div>
       <div class="row"><label>粗细</label><input type="number" min="1" max="80" data-divider="thickness" value="${d.thickness}"></div>
@@ -922,7 +1098,19 @@
   }
 
   function toolsProps(){
-    return `<div class="prop-card"><h3>工具模式</h3><p class="hint">这一版先把 Picsew 核心拼接/裁剪/分隔线做出来。遮挡、文字、箭头、马赛克、画笔、水印会在下一版继续加。</p></div>`;
+    const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+    const a = idx >= 0 ? state.annotations[idx] : null;
+    return `<div class="prop-card"><h3>工具模式</h3><p class="hint">已经实现基础工具：文字、遮挡块、矩形框、箭头。添加后可在画布中拖动对象，拖右下角蓝色小方块缩放；文字可在左侧直接修改内容。</p>
+      <div class="mini-grid"><button class="mini-btn" id="addTextTool">添加文字</button><button class="mini-btn" id="addRedactTool">添加遮挡</button><button class="mini-btn" id="addBoxTool">添加矩形框</button><button class="mini-btn" id="addArrowTool">添加箭头</button></div>
+    </div>` + (a ? `<div class="prop-card"><h3>当前对象：${a.type}</h3>
+      <div class="row"><label>X</label><input type="number" data-ann="x" value="${Math.round(a.x||0)}"></div>
+      <div class="row"><label>Y</label><input type="number" data-ann="y" value="${Math.round(a.y||0)}"></div>
+      ${a.type!=='text' ? `<div class="row"><label>宽度</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"></div><div class="row"><label>高度</label><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : `<div class="row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div><div class="row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}" ></div>`}
+      <div class="row"><label>颜色</label><input type="color" data-ann="color" value="${a.color||'#111827'}"></div>
+      ${a.type==='text' ? `<div class="row"><label>背景</label><select data-ann="bg"><option value="transparent" ${(a.bg||'transparent')==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${a.bg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${a.bg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${a.bg==='#ffeb3b'?'selected':''}>黄底</option></select></div>` : ''}
+      ${(a.type==='box' || a.type==='arrow') ? `<div class="row"><label>线宽</label><input type="number" data-ann="lineWidth" value="${Math.round(a.lineWidth||4)}"></div>` : ''}
+      <div class="mini-grid"><button class="mini-btn warn" id="deleteAnnotationBtn">删除当前对象</button></div>
+    </div>` : `<div class="prop-card"><h3>当前对象</h3><p class="hint">还没有选中工具对象。请点击上面的“添加”按钮，或在画布中选中已存在的对象。</p></div>`);
   }
 
   function cropInputs(prefix, c){
@@ -936,7 +1124,7 @@
     $$('[data-select-image]', props).forEach(el => el.addEventListener('click', e=>{
       if(e.target.closest('button')) return;
       state.selected = {type:'image', index:+el.dataset.selectImage};
-      if(state.mode !== 'imageCrop') state.mode = 'imageCrop';
+      if(state.mode !== 'divider') state.mode = 'imageCrop';
       updateModeButtons(); renderProps(); requestRender();
     }));
     $$('[data-move-up]', props).forEach(btn => btn.addEventListener('click', e=>{ e.stopPropagation(); moveImage(+btn.dataset.moveUp, -1); }));
@@ -991,6 +1179,24 @@
       const d = state.seams[idx].divider;
       const key = inp.dataset.divider;
       d[key] = inp.type === 'number' ? Math.max(0, Math.round(+inp.value || 0)) : inp.value;
+      renderProps(); requestRender();
+    }));
+
+    $('#splitCurrentImage')?.addEventListener('click', () => { const idx = state.selected?.type==='image' ? state.selected.index : 0; splitImageAt(clamp(idx,0,state.images.length-1), null); });
+    $('#splitCurrentImageMiddle')?.addEventListener('click', () => { const idx = state.selected?.type==='image' ? state.selected.index : 0; splitImageAt(clamp(idx,0,state.images.length-1), null); });
+
+    $('#addTextTool')?.addEventListener('click', () => addAnnotation('text'));
+    $('#addRedactTool')?.addEventListener('click', () => addAnnotation('redact'));
+    $('#addBoxTool')?.addEventListener('click', () => addAnnotation('box'));
+    $('#addArrowTool')?.addEventListener('click', () => addAnnotation('arrow'));
+    $('#deleteAnnotationBtn')?.addEventListener('click', () => deleteSelectedAnnotation());
+    $$('[data-ann]', props).forEach(inp => inp.addEventListener(inp.type==='text' ? 'input' : 'change', () => {
+      const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+      if(idx < 0) return;
+      pushHistory();
+      const a = state.annotations[idx];
+      const key = inp.dataset.ann;
+      if(inp.type === 'number') a[key] = Math.round(+inp.value || 0); else a[key] = inp.value;
       renderProps(); requestRender();
     }));
   }
@@ -1057,7 +1263,10 @@
     if(m === 'canvasCrop') state.selected = {type:'canvasCrop'};
     if(m === 'seam' && state.seams.length && state.selected?.type !== 'seam') state.selected = {type:'seam', index:0};
     if(m === 'imageCrop' && state.images.length && state.selected?.type !== 'image') state.selected = {type:'image', index:0};
-    if(m === 'divider' && state.seams.length && state.selected?.type !== 'divider') state.selected = {type:'divider', index:0};
+    if(m === 'divider'){
+      if(state.seams.length) state.selected = state.selected?.type==='divider' ? state.selected : {type:'divider', index:0};
+      else if(state.images.length) state.selected = {type:'image', index: clamp(state.selected?.index || 0, 0, state.images.length-1)};
+    }
     updateModeButtons(); renderProps(); requestRender();
   }
 
@@ -1215,7 +1424,7 @@
     if(!state.images.length) return;
     if(!confirm('确定清空当前图片和编辑参数吗？')) return;
     pushHistory();
-    state.images=[]; state.seams=[]; state.selected=null; state.canvasCrop={top:0,right:0,bottom:0,left:0};
+    state.images=[]; state.seams=[]; state.annotations=[]; state.selected=null; state.canvasCrop={top:0,right:0,bottom:0,left:0};
     renderProps(); requestRender();
   }
 
@@ -1234,6 +1443,7 @@
       if(e.key === 'Delete' || e.key === 'Backspace'){
         if(state.selected?.type === 'seam'){ pushHistory(); const s=state.seams[state.selected.index]; if(s){s.beforeCrop=0;s.afterCrop=0;} }
         if(state.selected?.type === 'divider'){ toggleDivider(state.selected.index); return; }
+        if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }
         renderProps(); requestRender(); return;
       }
       const amount = e.shiftKey ? 10 : (e.ctrlKey || e.metaKey ? 50 : 1);
@@ -1244,25 +1454,35 @@
 
   function nudge(delta, key){
     const verticalKey = key === 'ArrowUp' || key === 'ArrowDown';
-    pushHistory();
     if(state.mode === 'seam' && state.selected?.type === 'seam'){
       const s = state.seams[state.selected.index]; if(!s) return;
       if(s.locked){ toast('拼接线已锁定，先解锁'); return; }
+      pushHistory();
       if((state.orientation === 'vertical' && verticalKey) || (state.orientation === 'horizontal' && !verticalKey)){
-        s.afterCrop = Math.max(0, s.afterCrop + delta);
+        if(key==='ArrowUp' || key==='ArrowLeft') s.beforeCrop = Math.max(0, s.beforeCrop + Math.abs(delta));
+        if(key==='ArrowDown' || key==='ArrowRight') s.afterCrop = Math.max(0, s.afterCrop + Math.abs(delta));
       }
     } else if(state.mode === 'canvasCrop'){
+      pushHistory();
       if(key==='ArrowUp') state.canvasCrop.top = Math.max(0,state.canvasCrop.top+amountSign(delta));
       if(key==='ArrowDown') state.canvasCrop.bottom = Math.max(0,state.canvasCrop.bottom+Math.abs(delta));
       if(key==='ArrowLeft') state.canvasCrop.left = Math.max(0,state.canvasCrop.left+amountSign(delta));
       if(key==='ArrowRight') state.canvasCrop.right = Math.max(0,state.canvasCrop.right+Math.abs(delta));
     } else if(state.mode === 'imageCrop' && state.selected?.type === 'image'){
+      pushHistory();
       const c = state.images[state.selected.index].crop;
       const amt = Math.abs(delta);
       if(key==='ArrowUp') c.top = Math.max(0,c.top+amt);
       if(key==='ArrowDown') c.bottom = Math.max(0,c.bottom+amt);
       if(key==='ArrowLeft') c.left = Math.max(0,c.left+amt);
       if(key==='ArrowRight') c.right = Math.max(0,c.right+amt);
+    } else if(state.mode === 'tools' && state.selected?.type === 'annotation'){
+      pushHistory();
+      const a = state.annotations[state.selected.index];
+      if(key==='ArrowUp') a.y = Math.max(0,(a.y||0)-Math.abs(delta));
+      if(key==='ArrowDown') a.y = Math.max(0,(a.y||0)+Math.abs(delta));
+      if(key==='ArrowLeft') a.x = Math.max(0,(a.x||0)-Math.abs(delta));
+      if(key==='ArrowRight') a.x = Math.max(0,(a.x||0)+Math.abs(delta));
     }
     renderProps(); requestRender();
   }
