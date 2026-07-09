@@ -684,12 +684,19 @@
       c.stroke();
       c.restore();
       if(active){
-        const beforeArea = layout.imageBounds.find(b => b.index === sv.index);
-        const afterArea = layout.imageBounds.find(b => b.index === sv.index + 1);
-        if(beforeArea) hitAreas.push({...beforeArea, type:'activeDragBefore', index:sv.index, cursor: vertical ? 'ns-resize' : 'ew-resize'});
-        if(afterArea) hitAreas.push({...afterArea, type:'activeDragAfter', index:sv.index, cursor: vertical ? 'ns-resize' : 'ew-resize'});
-        if(vertical) drawActiveGuide(c, {x1:0,x2:layout.fullWidth,y:sv.y}, 'vertical', null, 'both');
-        else drawActiveGuide(c, {x:sv.x,y1:0,y2:layout.fullHeight}, 'horizontal', null, 'both');
+        // 当前接缝编辑时，用户面对的是一整张长图。
+        // 拖动区域不能只限制在接缝相邻的两个内部 segment 上；
+        // 接缝上方的整个页面区域都可以拖动来调上半部分，
+        // 接缝下方的整个页面区域都可以拖动来调下半部分。
+        if(vertical){
+          hitAreas.push({type:'activeDragBefore', index:sv.index, x:0, y:0, w:layout.fullWidth, h:Math.max(0, sv.y), cursor:'ns-resize'});
+          hitAreas.push({type:'activeDragAfter', index:sv.index, x:0, y:sv.y, w:layout.fullWidth, h:Math.max(0, layout.fullHeight - sv.y), cursor:'ns-resize'});
+          drawActiveGuide(c, {x1:0,x2:layout.fullWidth,y:sv.y}, 'vertical', null, 'both');
+        } else {
+          hitAreas.push({type:'activeDragBefore', index:sv.index, x:0, y:0, w:Math.max(0, sv.x), h:layout.fullHeight, cursor:'ew-resize'});
+          hitAreas.push({type:'activeDragAfter', index:sv.index, x:sv.x, y:0, w:Math.max(0, layout.fullWidth - sv.x), h:layout.fullHeight, cursor:'ew-resize'});
+          drawActiveGuide(c, {x:sv.x,y1:0,y2:layout.fullHeight}, 'horizontal', null, 'both');
+        }
       } else {
         if(vertical) drawSeamPill(c, layout.fullWidth/2, sv.y, true, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
         else drawSeamPill(c, sv.x, layout.fullHeight/2, false, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
