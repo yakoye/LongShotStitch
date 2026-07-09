@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.7 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.8 - 长图拼接裁剪工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -171,7 +171,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.7</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.8</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -1119,7 +1119,7 @@
 
   function groupPopover(){
     const s = state.toolSettings, g = s.group || 'select';
-    if(g === 'select') return `<div class="pop-title">选择 / 移动</div>${popSection('使用说明', `<p class="hint">点击已有标注可移动、缩放和编辑参数。方向键可微调，Delete 删除。选择其它工具后会保持该工具连续使用。</p>`)}`;
+    if(g === 'select') return `<div class="pop-title">选择 / 移动</div>`;
     if(g === 'shape') return `<div class="pop-title">几何图形</div>`+
       popSection('形状', `<div class="pop-chip-row">${chip('shapeKind','box',s.shapeKind!=='circle',svgIcon('rect'),'方框')}${chip('shapeKind','circle',s.shapeKind==='circle',svgIcon('circle'),'圆形')}${chip('shapeFill','toggle',!!s.shapeFill,'填充','填充 / 空心')}</div>`, true)+
       popSection('颜色', `<div class="pop-row"><label>边框</label>${colorInput('color',s.color)}</div><div class="pop-row"><label>填充</label>${colorInput('fillColor',s.fillColor)}</div>`, true)+
@@ -1141,7 +1141,7 @@
       popSection('类型', `<div class="pop-chip-row">${chip('mosaicKind','mosaic',s.mosaicKind!=='free','▦','矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}</div>`, true)+
       popSection('参数', `<div class="pop-row"><label>块大小</label>${numberInput('mosaicGrid',s.mosaicGrid||14,4,80)}</div>`, true);
     if(g === 'eraser') return `<div class="pop-title">橡皮擦</div>`+
-      popSection('使用说明', `<p class="hint">点击已有标注即可删除；只擦工具标注层，不破坏原图。</p><div class="pop-row"><label>大小</label>${numberInput('eraserSize',s.eraserSize||24,4,120)}</div>`, true);
+      popSection('大小', `<div class="pop-row"><label>大小</label>${numberInput('eraserSize',s.eraserSize||24,4,120)}</div>`, true);
     if(g === 'watermark') return `<div class="pop-title">水印</div>`+
       popSection('内容', `<div class="pop-row"><label>文字</label><input type="text" data-tool-setting="watermarkText" value="${escapeHtml(s.watermarkText||'水印')}"></div>`, true)+
       popSection('样式', `<div class="pop-row"><label>字号</label>${numberInput('watermarkSize',s.watermarkSize||34,8,180)}</div><div class="pop-row"><label>颜色</label>${colorInput('watermarkColor',s.watermarkColor||'#111827')}</div><div class="pop-row"><label>透明度</label>${numberInput('watermarkOpacity',s.watermarkOpacity||.22,0.05,1,0.05)}</div><div class="pop-row"><label>次数</label>${numberInput('watermarkRepeat',s.watermarkRepeat||1,1,80)}</div>`, true);
@@ -1911,13 +1911,7 @@
   }
 
   function toolsProps(){
-    return `<div class="prop-card tool-hint-card">
-      <h3>工具</h3>
-      <p class="hint">电脑端工具图标放在左侧工具区；手机端仍使用底部工具栏。图标只显示图形，鼠标悬停可看名称。</p>
-      <div class="divider-line"></div>
-      <p class="hint">选择工具后会保持当前工具，连续绘制不会自动回到选择/移动。属性区域可展开或隐藏。</p>
-    </div>
-    <div class="prop-card tool-panel-card" id="desktopToolPanel">
+    return `<div class="prop-card tool-panel-card minimal" id="desktopToolPanel">
       <div class="desktop-tools-slot" id="desktopToolDockSlot"></div>
     </div>`;
   }
