@@ -116,3 +116,11 @@
 - Text editing may use the stable property-panel flow when inline editing breaks movement or selection. The canvas must keep one clean dashed selection frame.
 - Tool subtypes are stateful and locked. Creating an object must use the user-selected subtype, not silently fall back to the default subtype.
 - Selecting an existing annotation should synchronize the tool UI to that object's type and style, without breaking the rule that empty-area creation uses the currently selected subtype.
+
+
+## LongShotStitch v1.18 补充约束
+
+- 文字内容在属性面板输入时必须支持连续输入，不允许因为输入事件重绘属性面板导致只能输入一个字符。
+- 默认文字字号应保持较小，适合在截图上做轻量标注。
+- 文字旋转时，文字内容、蓝色虚线框、旋转手柄必须使用同一个视觉中心，不能出现文字跑出选择框。
+- Backspace / Delete 不得直接删除标注对象；删除标注必须使用显式删除按钮，避免误删多个标注。
