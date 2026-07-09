@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShot Stitch & Trim v0.8 - 长图拼裁工具</title>
+  <title>LongShot Stitch & Trim v1.1 - 长图拼裁工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -123,7 +123,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShot Stitch<small>长图拼裁工具 v0.8</small></div>
+      <div>LongShot Stitch<small>长图拼裁工具 v1.1</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -417,53 +417,72 @@
     if(!images.length){
       return { width: 1, height: 1, fullWidth:1, fullHeight:1, items: [], seams: [], dividers: [], imageBounds: [] };
     }
+
     const dims = images.map((im, i) => {
       const c = getEffectiveCrop(i);
-      return { c, sw: Math.max(1, im.width - c.left - c.right), sh: Math.max(1, im.height - c.top - c.bottom) };
+      return {
+        c,
+        sw: Math.max(1, im.width - c.left - c.right),
+        sh: Math.max(1, im.height - c.top - c.bottom)
+      };
     });
-    const maxW = Math.max(...dims.map(d => d.sw));
-    const maxH = Math.max(...dims.map(d => d.sh));
+
+    // v1.1 单图裁剪规则：
+    // - 纵向拼接时，左右裁剪会让当前图可见宽度变小；其它图按该统一宽度等比例缩小，不裁剪。
+    // - 横向拼接时，上下裁剪会让当前图可见高度变小；其它图按该统一高度等比例缩小，不裁剪。
+    const targetW = Math.max(1, Math.min(...dims.map(d => d.sw)));
+    const targetH = Math.max(1, Math.min(...dims.map(d => d.sh)));
+
     let items = [], seamViews = [], divViews = [], imageBounds = [];
     let x = 0, y = 0;
+    let fullWidth = 1, fullHeight = 1;
+
     if(orientation === 'vertical'){
+      fullWidth = targetW;
       for(let i=0;i<images.length;i++){
         const d = dims[i];
-        const dx = Math.round((maxW - d.sw)/2);
-        items.push({ type:'image', index:i, img:images[i], sx:d.c.left, sy:d.c.top, sw:d.sw, sh:d.sh, dx, dy:y, dw:d.sw, dh:d.sh });
-        imageBounds.push({ index:i, x:dx, y, w:d.sw, h:d.sh });
-        y += d.sh;
+        const scale = targetW / d.sw;
+        const dw = targetW;
+        const dh = Math.max(1, d.sh * scale);
+        items.push({ type:'image', index:i, img:images[i], sx:d.c.left, sy:d.c.top, sw:d.sw, sh:d.sh, dx:0, dy:y, dw, dh, scale });
+        imageBounds.push({ index:i, x:0, y, w:dw, h:dh, scaleX:scale, scaleY:scale, sw:d.sw, sh:d.sh });
+        y += dh;
         if(i < images.length-1){
           const s = state.seams[i];
-          seamViews.push({ index:i, seam:s, x:0, y, w:maxW, h:0 });
+          seamViews.push({ index:i, seam:s, x:0, y, w:fullWidth, h:0 });
           const size = dividerSize(s);
           if(size){
             const dvr = s.divider;
-            divViews.push({ index:i, x:0, y, w:maxW, h:size, divider:dvr });
+            divViews.push({ index:i, x:0, y, w:fullWidth, h:size, divider:dvr });
             y += size;
           }
         }
       }
-      var fullWidth = maxW, fullHeight = y;
+      fullHeight = y;
     } else {
+      fullHeight = targetH;
       for(let i=0;i<images.length;i++){
         const d = dims[i];
-        const dy = Math.round((maxH - d.sh)/2);
-        items.push({ type:'image', index:i, img:images[i], sx:d.c.left, sy:d.c.top, sw:d.sw, sh:d.sh, dx:x, dy, dw:d.sw, dh:d.sh });
-        imageBounds.push({ index:i, x, y:dy, w:d.sw, h:d.sh });
-        x += d.sw;
+        const scale = targetH / d.sh;
+        const dw = Math.max(1, d.sw * scale);
+        const dh = targetH;
+        items.push({ type:'image', index:i, img:images[i], sx:d.c.left, sy:d.c.top, sw:d.sw, sh:d.sh, dx:x, dy:0, dw, dh, scale });
+        imageBounds.push({ index:i, x, y:0, w:dw, h:dh, scaleX:scale, scaleY:scale, sw:d.sw, sh:d.sh });
+        x += dw;
         if(i < images.length-1){
           const s = state.seams[i];
-          seamViews.push({ index:i, seam:s, x, y:0, w:0, h:maxH });
+          seamViews.push({ index:i, seam:s, x, y:0, w:0, h:fullHeight });
           const size = dividerSize(s);
           if(size){
             const dvr = s.divider;
-            divViews.push({ index:i, x, y:0, w:size, h:maxH, divider:dvr });
+            divViews.push({ index:i, x, y:0, w:size, h:fullHeight, divider:dvr });
             x += size;
           }
         }
       }
-      var fullWidth = x, fullHeight = maxH;
+      fullWidth = x;
     }
+
     const cc = state.canvasCrop;
     let crop = ignoreCanvasCrop ? {top:0,right:0,bottom:0,left:0} : {
       top: clamp(cc.top,0,fullHeight-1), left:clamp(cc.left,0,fullWidth-1),
@@ -615,6 +634,18 @@
     if(area) hitAreas.push({...area, x:x-w/2, y:y-h/2, w, h});
   }
 
+
+  function drawArrowPill(c, x, y, dir, area, active=false){
+    const symbol = {up:'↑', down:'↓', left:'←', right:'→'}[dir] || '•';
+    drawPill(c, x, y, symbol, area, active);
+    const z = Math.max(0.03, state.zoom || 1);
+    const off = 34 / z;
+    if(dir === 'up') drawDoubleChevron(c, x, y - off, 'up', .45);
+    else if(dir === 'down') drawDoubleChevron(c, x, y + off, 'down', .45);
+    else if(dir === 'left') drawDoubleChevron(c, x - off, y, 'left', .45);
+    else if(dir === 'right') drawDoubleChevron(c, x + off, y, 'right', .45);
+  }
+
   function drawActiveGuide(c, line, orientation, dragArea, arrowMode='both'){
     const verticalMove = orientation === 'vertical';
     c.save();
@@ -706,18 +737,22 @@
 
   function drawCanvasCropOverlay(c, layout){
     const cc = state.canvasCrop;
-    const x = cc.left, y = cc.top, w = layout.fullWidth - cc.left - cc.right, h = layout.fullHeight - cc.top - cc.bottom;
+    const x = cc.left, y = cc.top;
+    const w = Math.max(1, layout.fullWidth - cc.left - cc.right);
+    const h = Math.max(1, layout.fullHeight - cc.top - cc.bottom);
+
+    // 裁掉区域不可见：用画布背景直接盖掉，不做半透明显示。
     c.save();
-    // 整体裁剪时，被裁掉的区域不再半透明显示，而是直接用画布背景盖掉。
-    // 这样拖动裁剪时，用户看到的就是最终保留页面，而不是仍然能看到被裁掉的部分。
     c.fillStyle = '#eef2f7';
     c.fillRect(0,0,layout.fullWidth, y);
     c.fillRect(0,y, x, h);
     c.fillRect(x+w,y, layout.fullWidth-(x+w), h);
     c.fillRect(0,y+h, layout.fullWidth, layout.fullHeight-(y+h));
-    c.strokeStyle = '#ffbf00'; c.lineWidth = 3 / state.zoom; c.strokeRect(x,y,w,h);
-    c.strokeStyle = 'rgba(246,183,0,.55)'; c.lineWidth = 1.5 / state.zoom; c.strokeRect(0,0,layout.fullWidth,layout.fullHeight);
+    c.strokeStyle = '#ffbf00';
+    c.lineWidth = 3 / state.zoom;
+    c.strokeRect(x,y,w,h);
     c.restore();
+
     const midX = x + w/2, midY = y + h/2;
     const active = state.activeHandle?.kind === 'canvasCrop';
     if(active){
@@ -736,15 +771,15 @@
   }
 
   function drawImageCropOverlay(c, layout){
-    const vertical = state.orientation === 'vertical';
     for(const b of layout.imageBounds){
+      const active = state.activeHandle?.kind === 'imageCrop' && state.activeHandle.index === b.index;
       const selected = state.selected?.type === 'image' && state.selected.index === b.index;
       c.save();
-      c.strokeStyle = selected ? '#ffbf00' : 'rgba(246,183,0,.85)';
-      c.lineWidth = (selected ? 3 : 2) / state.zoom;
+      c.strokeStyle = active ? '#ffbf00' : (selected ? '#ffbf00' : 'rgba(246,183,0,.85)');
+      c.lineWidth = (active || selected ? 3 : 2) / state.zoom;
       c.strokeRect(b.x,b.y,b.w,b.h);
       c.restore();
-      const active = state.activeHandle?.kind === 'imageCrop' && state.activeHandle.index === b.index;
+
       if(active){
         const edge = state.activeHandle.edge;
         const area = {x:b.x, y:b.y, w:b.w, h:b.h};
@@ -753,6 +788,7 @@
         else if(edge === 'left') drawActiveGuide(c, {x:b.x,y1:b.y,y2:b.y+b.h}, 'horizontal', area, 'left');
         else if(edge === 'right') drawActiveGuide(c, {x:b.x+b.w,y1:b.y,y2:b.y+b.h}, 'horizontal', area, 'right');
       } else {
+        // 单图裁剪模式：所有图都显示四边箭头，不需要先选中。
         drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
         drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
         drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
@@ -997,7 +1033,7 @@
       if(state.mode === 'divider') state.selected = null;
       renderProps(); requestRender(); return;
     }
-    if(h.type === 'activeDrag'){ startActiveDrag(w); return; }
+    if(h.type === 'activeDrag'){ startActiveDrag(w, getPointer(e)); return; }
     if(h.type === 'activeDragBefore' || h.type === 'activeDragAfter'){
       const s = state.seams[h.index];
       if(!s) return;
@@ -1025,19 +1061,25 @@
     if(state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select'){ addAnnotationAt(state.toolArmed, w); return; }
   }
 
-  function startActiveDrag(w){
+  function startActiveDrag(w, sp){
     const h = state.activeHandle;
     if(!h) return;
     pushHistory();
     if(h.kind === 'canvasCrop'){
+      const layout = computeLayout(true);
       state.selected = {type:'canvasCrop'};
-      drag = { type:'canvasCrop', edge:h.edge, start:w, startCrop:{...state.canvasCrop} };
+      drag = { type:'canvasCrop', edge:h.edge, start:w, startScreen: sp || {x:0,y:0}, startCrop:{...state.canvasCrop}, pan:{...state.pan}, fullWidth:layout.fullWidth, fullHeight:layout.fullHeight };
       return;
     }
     if(h.kind === 'imageCrop'){
       const idx = h.index;
+      const layout = computeLayout(true);
+      const item = layout.items.find(v => v.index === idx);
+      const scaleX = item ? (item.dw / Math.max(1, item.sw)) : 1;
+      const scaleY = item ? (item.dh / Math.max(1, item.sh)) : 1;
       state.selected = {type:'image', index:idx};
-      drag = { type:'imageCrop', index:idx, edge:h.edge, start:w, startCrop:{...state.images[idx].crop} };
+      const frame = layout.imageBounds.find(v => v.index === idx) || {x:0,y:0,w:1,h:1};
+      drag = { type:'imageCrop', index:idx, edge:h.edge, start:w, startScreen: sp || {x:0,y:0}, startCrop:{...state.images[idx].crop}, scaleX, scaleY, pan:{...state.pan}, frame:{...frame} };
       return;
     }
     if(['seamBefore','seamAfter','seamCenter'].includes(h.kind)){
@@ -1069,24 +1111,68 @@
       requestRender(); return;
     }
     if(drag.type === 'canvasCrop'){
-      const dx = Math.round(w.x - drag.start.x), dy = Math.round(w.y - drag.start.y);
+      const dx = Math.round((p.x - drag.startScreen.x) / Math.max(0.0001, state.zoom));
+      const dy = Math.round((p.y - drag.startScreen.y) / Math.max(0.0001, state.zoom));
       const layout = computeLayout(true);
       const c = {...drag.startCrop};
       if(drag.edge === 'top') c.top = clamp(c.top - dy, 0, layout.fullHeight - c.bottom - 1);
       if(drag.edge === 'bottom') c.bottom = clamp(c.bottom + dy, 0, layout.fullHeight - c.top - 1);
       if(drag.edge === 'left') c.left = clamp(c.left - dx, 0, layout.fullWidth - c.right - 1);
       if(drag.edge === 'right') c.right = clamp(c.right + dx, 0, layout.fullWidth - c.left - 1);
-      state.canvasCrop = c; renderProps(); requestRender(); return;
+      state.canvasCrop = c;
+      // 固定裁剪窗口、移动整张拼图内容：补偿 viewport pan，使被编辑边在屏幕上保持不动。
+      const z = state.zoom;
+      if(drag.edge === 'left'){
+        const startEdge = drag.startCrop.left;
+        const screenEdge = startEdge * z + drag.pan.x;
+        state.pan.x = screenEdge - c.left * z;
+      } else if(drag.edge === 'right'){
+        const startEdge = drag.fullWidth - drag.startCrop.right;
+        const screenEdge = startEdge * z + drag.pan.x;
+        state.pan.x = screenEdge - (layout.fullWidth - c.right) * z;
+      } else if(drag.edge === 'top'){
+        const startEdge = drag.startCrop.top;
+        const screenEdge = startEdge * z + drag.pan.y;
+        state.pan.y = screenEdge - c.top * z;
+      } else if(drag.edge === 'bottom'){
+        const startEdge = drag.fullHeight - drag.startCrop.bottom;
+        const screenEdge = startEdge * z + drag.pan.y;
+        state.pan.y = screenEdge - (layout.fullHeight - c.bottom) * z;
+      }
+      renderProps(); requestRender(); return;
     }
     if(drag.type === 'imageCrop'){
       const im = state.images[drag.index];
-      const dx = Math.round(w.x - drag.start.x), dy = Math.round(w.y - drag.start.y);
+      const dxWorld = (p.x - drag.startScreen.x) / Math.max(0.0001, state.zoom);
+      const dyWorld = (p.y - drag.startScreen.y) / Math.max(0.0001, state.zoom);
+      const dx = Math.round(dxWorld / Math.max(0.0001, drag.scaleX || 1));
+      const dy = Math.round(dyWorld / Math.max(0.0001, drag.scaleY || 1));
       const c = {...drag.startCrop};
       if(drag.edge === 'top') c.top = clamp(c.top - dy, 0, im.height - c.bottom - 1);
       if(drag.edge === 'bottom') c.bottom = clamp(c.bottom + dy, 0, im.height - c.top - 1);
       if(drag.edge === 'left') c.left = clamp(c.left - dx, 0, im.width - c.right - 1);
       if(drag.edge === 'right') c.right = clamp(c.right + dx, 0, im.width - c.left - 1);
-      im.crop = c; renderProps(); requestRender(); return;
+      im.crop = c;
+      // 固定当前图裁剪窗口、移动当前图内容：补偿 pan，使当前编辑边在屏幕上保持不动。
+      const updated = computeLayout(true);
+      const nb = updated.imageBounds.find(v => v.index === drag.index);
+      if(nb && drag.frame){
+        const z = state.zoom;
+        if(drag.edge === 'left'){
+          const screenEdge = drag.frame.x * z + drag.pan.x;
+          state.pan.x = screenEdge - nb.x * z;
+        } else if(drag.edge === 'right'){
+          const screenEdge = (drag.frame.x + drag.frame.w) * z + drag.pan.x;
+          state.pan.x = screenEdge - (nb.x + nb.w) * z;
+        } else if(drag.edge === 'top'){
+          const screenEdge = drag.frame.y * z + drag.pan.y;
+          state.pan.y = screenEdge - nb.y * z;
+        } else if(drag.edge === 'bottom'){
+          const screenEdge = (drag.frame.y + drag.frame.h) * z + drag.pan.y;
+          state.pan.y = screenEdge - (nb.y + nb.h) * z;
+        }
+      }
+      renderProps(); requestRender(); return;
     }
     if(drag.type === 'annotationMove'){
       const a = state.annotations[drag.index];
