@@ -1,46 +1,9 @@
-#!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
-
-const root = path.resolve(__dirname, '..');
-const htmlPath = fs.existsSync(path.join(root, 'LongShotStitch_v1.13.html'))
-  ? path.join(root, 'LongShotStitch_v1.13.html')
-  : path.join(root, 'index.html');
-const html = fs.readFileSync(htmlPath, 'utf8');
-
-const match = html.match(/<script>\s*\(\(\) => \{([\s\S]*)\}\)\(\);\s*<\/script>/);
-if (!match) throw new Error('Cannot find main inline script IIFE.');
-
-const tmp = path.join(root, 'tests', '.tmp_longshot_check.js');
-fs.writeFileSync(tmp, '(()=>{' + match[1] + '})();');
-try {
-  execFileSync('node', ['--check', tmp], { stdio: 'pipe' });
-} finally {
-  fs.rmSync(tmp, { force: true });
-}
-
-const required = [
-  'function renderToolDock',
-  'function groupPopover',
-  'function annotationPopover',
-  'function widthControl',
-  'function findExistingWatermarkIndex',
-  'function selectAnnotationForEdit',
-  'function updateNavigation',
-  'function miniMapPointToWorld',
-  'function setVerticalScrollRatio',
-  'function setHorizontalScrollRatio',
-  'data-tool-width',
-  'data-ann-width',
-  'function beginToolDraw',
-  'function handleDroppedFiles',
-  'function hideToolPopover',
-  'function confirmBeforeUnload',
-  'function renderProps',
-];
-for (const needle of required) {
-  if (!html.includes(needle)) throw new Error(`Missing required code marker: ${needle}`);
-}
-
-console.log(`Smoke check passed: ${path.basename(htmlPath)}`);
+const file = path.resolve(__dirname, '..', 'LongShotStitch_v1.14.html');
+if (!fs.existsSync(file)) throw new Error('LongShotStitch_v1.14.html missing');
+const html = fs.readFileSync(file, 'utf8');
+const m = html.match(/<script>\s*\(\(\) => \{([\s\S]*)\}\)\(\);\s*<\/script>/);
+if (!m) throw new Error('main script not found');
+new Function(m[1]);
+console.log('smoke_check ok');

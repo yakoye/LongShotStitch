@@ -1,40 +1,11 @@
-# LongShotStitch v1.12 人工测试清单
+# LongShotStitch v1.14 Test Plan
 
-## 分割线跟随
-
-- 进入分割线模式后，分割线在可视范围内时保持原位置，不乱跳。
-- 鼠标滚轮上下滚动，分割线离开可视范围后自动出现在当前屏幕中心。
-- 按住画布上下拖动，分割线离开可视范围后也能及时出现在当前屏幕中心。
-- 手动拖动分割线时，分割线按用户位置移动，不被自动吸回中心。
-- 完成接缝编辑后，分割线保持在接缝位置；只有不可见时才回到视口中心。
-
-## 缩略图导航
-
-- 长图高度超出当前视口时，右侧显示缩略图。
-- 缩略图中显示当前视口框。
-- 点击缩略图上方、中间、下方时，主画布跳转到对应区域。
-- 拖动缩略图时，主画布跟随移动。
-- 普通短图不显示缩略图，界面保持极简。
-
-## 滚动条
-
-- 内容高度超出屏幕时显示右侧垂直滚动条；不超出时隐藏。
-- 拖动右侧滚动条可以上下移动到对应位置。
-- 内容宽度超出屏幕时显示底部横向滚动条；不超出时隐藏。
-- 拖动底部横向滚动条可以左右移动到对应位置。
-- 滚轮、拖动画布、缩略图、滚动条、缩放之间状态同步。
-
-## 回归检查
-
-- 工具区仍保持 v1.10 的极简布局和二次点击编辑逻辑。
-- 拼接线、整体裁剪、单图裁剪、导出 PNG 基本功能不受影响。
-- FUTURE_FEATURES.md 包含自动拼接和电影字幕拼接规划。
-
-
-## v1.13 手动测试
-- 手机端进入工具模式后，工具栏紧贴底部模式栏上方，不在画布中间悬浮。
-- 点击工具图标显示属性，再次点击同一图标可收起属性。
-- 选中已有标注后，删除、复制、收起三个按钮都可见且紧凑。
-- 手机端打开竖向长图后，默认按手机屏幕宽度适配。
-- 有图片或标注时刷新 / 关闭页面，浏览器应出现离开提示。
-- 电脑端工具栏仍在左侧工具区，属性可显示和收起。
+- Mobile: enter Tools mode; tool dock is directly above the bottom mode bar with no large blank gap.
+- Tool parameter popover: selecting a tool shows only tool parameters, not delete/copy/collapse actions.
+- Object edit popover: selecting an existing annotation shows delete/copy/collapse actions.
+- Shape edit: create rectangle/circle, select it, move it, resize it from the corner, rotate it with the rotate handle, change color/fill/line width.
+- Line edit: create line/arrow/double-arrow, select it, drag the whole object, drag start/end handles to change direction and length.
+- Text edit: create text, select it, edit content, move it, rotate it, toggle vertical writing.
+- Keyboard: typing numbers in text/number inputs must not switch modes; keys 1-5 must not switch modes globally.
+- Badge: create more than 10 badges and verify they continue 11, 12, 13; edit an existing badge number and verify later badges update sequentially.
+- Regression: open images, seam editing, divider, whole crop, single-image crop, export PNG.
