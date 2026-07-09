@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.9 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.10 - 长图拼接裁剪工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -190,7 +190,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.9</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.10</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -1024,6 +1024,17 @@
     state.toolArmed = activeToolFromSettings();
   }
 
+  function findExistingWatermarkIndex(){
+    return state.annotations.findIndex(a => a && a.type === 'watermark');
+  }
+
+  function selectAnnotationForEdit(index){
+    if(index < 0 || index >= state.annotations.length) return false;
+    state.selected = {type:'annotation', index};
+    renderProps(); requestRender();
+    return true;
+  }
+
   function groupForAnnotationType(type){
     if(['box','boxFill','circle','circleFill','redact'].includes(type)) return 'shape';
     if(['pen','highlight'].includes(type)) return 'pen';
@@ -1037,7 +1048,12 @@
 
   function setToolGroup(group){
     state.toolSettings.group = group;
-    if(group !== 'select') state.selected = null;
+    if(group === 'watermark'){
+      const idx = findExistingWatermarkIndex();
+      state.selected = idx >= 0 ? {type:'annotation', index:idx} : null;
+    } else if(group !== 'select') {
+      state.selected = null;
+    }
     applyActiveTool();
     renderProps(); requestRender();
   }
@@ -1152,12 +1168,13 @@
     return `<span class="color-strip">${colors.map(c=>swatchButton(key,c,(value||'').toLowerCase()===c.toLowerCase(),ann)).join('')}${ann?'':colorInput(key,value)}</span>`;
   }
   function widthLine(w){ return `<span class="line-preview" style="height:${Math.max(1,Math.min(18,+w||1))}px;width:${18 + Math.min(26,(+w||1)*2)}px"></span>`; }
-  function widthControl(key, value, min=1, max=80, ann=false){
-    const presets = [1,2,4,8,16,32].filter(v=>v>=min && v<=max);
+  function widthControl(key, value, min=1, max=80, ann=false, presets=null){
+    const basePresets = presets || [1,2,4,8];
+    const values = [...new Set(basePresets)].filter(v=>v>=min && v<=max);
     const attr = ann ? `data-ann="${key}"` : `data-tool-setting="${key}"`;
     const wheelAttr = ann ? `data-ann-width="${key}"` : `data-tool-width="${key}"`;
     const current = Math.round(+value || min);
-    return `<span class="width-control" ${wheelAttr} data-min="${min}" data-max="${max}" title="滚轮调粗细">${presets.map(v=>`<button class="line-chip ${current===v?'active':''}" ${attr} data-value="${v}" title="${v}">${widthLine(v)}</button>`).join('')}<input class="width-number" type="number" ${attr} value="${current}" min="${min}" max="${max}" step="1" title="数字设定"></span>`;
+    return `<span class="width-control" ${wheelAttr} data-min="${min}" data-max="${max}" title="滚轮调粗细">${values.map(v=>`<button class="line-chip ${current===v?'active':''}" ${attr} data-value="${v}" title="${v}">${widthLine(v)}</button>`).join('')}<input class="width-number" type="number" ${attr} value="${current}" min="${min}" max="${max}" step="1" title="数字设定"></span>`;
   }
   function opacityControl(key, value, ann=false){
     const attr = ann ? `data-ann="${key}"` : `data-tool-setting="${key}"`;
@@ -1212,7 +1229,7 @@
     if(g === 'mosaic') return compactPanel(
       compactRow(`${chip('mosaicKind','mosaic',s.mosaicKind!=='free','▦','矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}${widthControl('mosaicGrid',s.mosaicGrid||14,4,80)}`)
     );
-    if(g === 'eraser') return compactPanel(compactRow(`${widthControl('eraserSize',s.eraserSize||24,4,120)}`));
+    if(g === 'eraser') return compactPanel(compactRow(`${widthControl('eraserSize',s.eraserSize||24,4,120,false,[4,8,16,32])}`));
     if(g === 'watermark') return compactPanel(
       compactRow(`${textInput('watermarkText',s.watermarkText||'水印',false,'水印')}`)+
       compactRow(`${sizeButtons('watermarkSize',s.watermarkSize||34,8,180)}${colorPalette('watermarkColor',s.watermarkColor||'#111827')}${opacityControl('watermarkOpacity',s.watermarkOpacity||.22)}${repeatControl('watermarkRepeat',s.watermarkRepeat||1)}`)
@@ -1590,6 +1607,10 @@
 
   function beginToolDraw(type, pt){
     if(!type || type === 'select' || !state.images.length) return false;
+    if(type === 'watermark'){
+      const existing = findExistingWatermarkIndex();
+      if(existing >= 0) return selectAnnotationForEdit(existing);
+    }
     pushHistory();
     const a = makeAnnotation(type, pt);
     state.annotations.push(a);
@@ -1717,12 +1738,16 @@
       }
       return;
     }
-    if(!state.preview && state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select' && (!h || h.type === 'annotationSelect')){
-      beginToolDraw(state.toolArmed, w);
+    if(!state.preview && state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select'){
+      if(h && (h.type === 'annotationSelect' || h.type === 'annotationResize')){
+        handleHitDown(h, w, e);
+      } else if(!h){
+        beginToolDraw(state.toolArmed, w);
+      } else {
+        handleHitDown(h, w, e);
+      }
     } else if(h && !state.preview){
       handleHitDown(h, w, e);
-    } else if(!state.preview && state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select'){
-      beginToolDraw(state.toolArmed, w);
     } else {
       drag = { type:'pan', startX:p.x, startY:p.y, pan:{...state.pan} };
       stage.classList.add('dragging');
