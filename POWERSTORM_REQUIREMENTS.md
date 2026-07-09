@@ -98,3 +98,9 @@
 - 标注对象编辑应至少支持：移动、必要的缩放/端点拖动、颜色/粗细/字号修改。
 - 手机端工具栏位置必须单独检查，不能因为桌面端布局改动而产生中间悬浮或遮挡画布的问题。
 - 数字键不得作为工具模式切换快捷键，避免文字输入误触。
+
+## v1.15 development guardrails
+
+- Do not make text annotation editing depend only on a side or floating panel; direct canvas editing is required.
+- Selection frames and handles must represent the actual transformed object, including rotation.
+- Cropping and export must not leave annotations floating outside the visible image content.

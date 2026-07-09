@@ -1,16 +1,17 @@
 const fs = require('fs');
 const path = require('path');
-const file = path.resolve(__dirname, '..', 'LongShotStitch_v1.14.html');
+const file = path.resolve(__dirname, '..', 'LongShotStitch_v1.15.html');
 const html = fs.readFileSync(file, 'utf8');
 const required = [
-  'LongShotStitch v1.14',
-  'annotationLineStart',
-  'annotationLineEnd',
+  'LongShotStitch v1.15',
+  'inlineTextEditor',
+  'openInlineTextEditor',
+  'annotationFrame',
+  'rotatePointAround',
   'annotationRotate',
   'textVertical',
   'syncBadgeSequence',
-  'badgeNumber',
-  'bottom:3px'
+  'c.clip()'
 ];
 for (const token of required) {
   if (!html.includes(token)) throw new Error(`missing token: ${token}`);

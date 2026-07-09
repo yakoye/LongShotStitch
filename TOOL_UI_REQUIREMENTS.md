@@ -125,3 +125,10 @@
 - 工具模式不使用 `1 / 2 / 3 / 4 / 5` 作为模式快捷键，避免编辑文字或数字时误触。
 - 标号不限制在 1~10；新增标号后自动递增到 11、12、13……
 - 选中已有标号后可以编辑数字、移动位置、调整大小和颜色；修改一个标号数字时，后续同批标号按顺序联动递增。
+
+## v1.15 annotation editing rules
+
+- Text annotations must support direct in-canvas editing. Clicking an existing text annotation opens an inline editor at the annotation position; the property panel is not the only place to edit text.
+- The inline text editor follows zoom, pan, rotation, and vertical-text mode.
+- The selected-object dashed frame and rotation handle must rotate with the object. The frame must not remain axis-aligned while the object is rotated.
+- After adding annotations, later clipping/cropping/export should treat annotations as visible image content: annotation rendering is clipped to the visible stitched image/content region rather than floating outside it.
