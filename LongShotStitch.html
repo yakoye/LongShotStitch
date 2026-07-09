@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShot Stitch & Trim v0.6 - 长图拼裁工具</title>
+  <title>LongShot Stitch & Trim v0.8 - 长图拼裁工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -123,7 +123,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShot Stitch<small>长图拼裁工具 v0.6</small></div>
+      <div>LongShot Stitch<small>长图拼裁工具 v0.8</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -515,6 +515,7 @@
 
     const finalLayout = computeLayout(false);
     statusbar.textContent = `${state.orientation === 'vertical' ? '纵向' : '横向'} · ${state.images.length} 张图 · 输出 ${Math.round(finalLayout.width)}×${Math.round(finalLayout.height)} px · 缩放 ${Math.round(state.zoom*100)}%`;
+    if(state.activeHandle && !state.preview) requestRender();
   }
 
   function drawComposition(c, layout, exportMode=false, withUncroppedCanvas=false){
@@ -563,30 +564,30 @@
   }
 
   function drawDoubleChevron(c, x, y, dir, scale=1){
+    // Small breathing double-chevron hint. It is visual only; no hit area is added here.
+    const t = performance.now ? performance.now() : Date.now();
+    const pulse = 0.72 + 0.28 * (0.5 + 0.5 * Math.sin(t / 360));
     const color = '#f6b700';
-    const stroke = 4 / state.zoom * scale;
-    const span = 11 / state.zoom * scale;
-    const gap = 10 / state.zoom * scale;
+    const stroke = 3.2 / state.zoom * scale;
+    const span = 8 / state.zoom * scale * (0.92 + 0.08 * pulse);
+    const gap = 8 / state.zoom * scale;
     c.save();
+    c.globalAlpha = pulse;
     c.strokeStyle = color;
     c.lineWidth = stroke;
     c.lineCap = 'round';
+    c.lineJoin = 'round';
     const drawOne = (cx, cy) => {
       c.beginPath();
-      if(dir === 'down'){ c.moveTo(cx-span, cy-span*0.6); c.lineTo(cx, cy+span*0.6); c.lineTo(cx+span, cy-span*0.6); }
-      else if(dir === 'up'){ c.moveTo(cx-span, cy+span*0.6); c.lineTo(cx, cy-span*0.6); c.lineTo(cx+span, cy+span*0.6); }
-      else if(dir === 'left'){ c.moveTo(cx+span*0.6, cy-span); c.lineTo(cx-span*0.6, cy); c.lineTo(cx+span*0.6, cy+span); }
-      else if(dir === 'right'){ c.moveTo(cx-span*0.6, cy-span); c.lineTo(cx+span*0.6, cy); c.lineTo(cx-span*0.6, cy+span); }
+      if(dir === 'down'){ c.moveTo(cx-span, cy-span*0.55); c.lineTo(cx, cy+span*0.55); c.lineTo(cx+span, cy-span*0.55); }
+      else if(dir === 'up'){ c.moveTo(cx-span, cy+span*0.55); c.lineTo(cx, cy-span*0.55); c.lineTo(cx+span, cy+span*0.55); }
+      else if(dir === 'left'){ c.moveTo(cx+span*0.55, cy-span); c.lineTo(cx-span*0.55, cy); c.lineTo(cx+span*0.55, cy+span); }
+      else if(dir === 'right'){ c.moveTo(cx-span*0.55, cy-span); c.lineTo(cx+span*0.55, cy); c.lineTo(cx-span*0.55, cy+span); }
       c.stroke();
     };
     if(dir === 'down' || dir === 'up'){ drawOne(x,y-gap/2); drawOne(x,y+gap/2); }
     else { drawOne(x-gap/2,y); drawOne(x+gap/2,y); }
     c.restore();
-  }
-
-  function drawArrowPill(c, x, y, dir, area, active=false){
-    const arrow = dir === 'up' ? '↑' : dir === 'down' ? '↓' : dir === 'left' ? '←' : '→';
-    drawPill(c, x, y, arrow, area, active);
   }
 
   function drawSeamPill(c, x, y, vertical, area, active=false){
@@ -623,16 +624,20 @@
     else { c.moveTo(line.x, line.y1); c.lineTo(line.x, line.y2); }
     c.stroke();
 
-    // 激活后：只允许拖动截图/页面区域。箭头提示去掉，避免用户误以为要拖箭头或拖线。
+    // Only the page/screenshot area is draggable. Double chevrons are hints only.
     if(dragArea){
       hitAreas.push({...dragArea, type:'activeDrag', cursor: verticalMove ? 'ns-resize' : 'ew-resize'});
     }
 
     if(verticalMove){
       const cx = (line.x1+line.x2)/2;
+      if(arrowMode === 'both' || arrowMode === 'down') drawDoubleChevron(c, cx, line.y - 42 / state.zoom, 'down', .62);
+      if(arrowMode === 'both' || arrowMode === 'up') drawDoubleChevron(c, cx, line.y + 42 / state.zoom, 'up', .62);
       drawPill(c, cx, line.y, '✓', {type:'activeDone', cursor:'pointer'}, true);
     } else {
       const cy = (line.y1+line.y2)/2;
+      if(arrowMode === 'both' || arrowMode === 'left') drawDoubleChevron(c, line.x - 42 / state.zoom, cy, 'left', .62);
+      if(arrowMode === 'both' || arrowMode === 'right') drawDoubleChevron(c, line.x + 42 / state.zoom, cy, 'right', .62);
       drawPill(c, line.x, cy, '✓', {type:'activeDone', cursor:'pointer'}, true);
     }
     c.restore();
@@ -1352,7 +1357,10 @@
     if(m === 'canvasCrop') state.selected = {type:'canvasCrop'};
     if(m === 'seam' && state.seams.length) state.selected = state.selected?.type === 'seam' ? state.selected : {type:'seam', index:0};
     if(m === 'imageCrop' && state.images.length) state.selected = state.selected?.type === 'image' ? state.selected : {type:'image', index:0};
-    if(m === 'divider') ensureSplitDraft();
+    if(m === 'divider'){
+      ensureSplitDraft();
+      state.selected = null;
+    }
     if(m === 'tools') state.toolArmed = state.toolArmed || 'select';
     updateModeButtons(); renderProps(); requestRender();
   }
