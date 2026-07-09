@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShot Stitch & Trim v1.2 - 长图拼裁工具</title>
+  <title>LongShot Stitch & Trim v1.4 - 长图拼裁工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -123,7 +123,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShot Stitch<small>长图拼裁工具 v1.2</small></div>
+      <div>LongShot Stitch<small>长图拼裁工具 v1.4</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -873,11 +873,24 @@
     }
   }
 
+  function splitDraftIsVisible(layout, marginPx=24){
+    if(!state.splitDraft) return false;
+    const rect = stageWrap.getBoundingClientRect();
+    const pos = Math.round(state.splitDraft.pos || 0);
+    if(state.orientation === 'vertical'){
+      const sy = pos * state.zoom + state.pan.y;
+      return sy >= marginPx && sy <= rect.height - marginPx;
+    }
+    const sx = pos * state.zoom + state.pan.x;
+    return sx >= marginPx && sx <= rect.width - marginPx;
+  }
+
   function drawDividerOverlay(c, layout){
     ensureSplitDraft();
-    // 分割线预定位态：默认是“屏幕中心准星”。
-    // 用户没有手动拖线时，画布滚到哪里，分割线就跟随当前视口中心。
-    if(!state.splitDraftManual && !drag){
+    // v1.4 分割线预定位态：
+    // - 如果分割线还在当前可视范围内，保持不动，尊重用户刚刚调好的位置；
+    // - 如果分割线已经离开当前可视范围，自动跳到屏幕中心，避免长图放大后还要回头找线。
+    if(!drag && !splitDraftIsVisible(layout)){
       syncSplitDraftToViewportCenter();
     }
     const vertical = state.orientation === 'vertical';
@@ -924,66 +937,174 @@
 
 
   function drawAnnotations(c, layout, exportMode=false){
+    const drawArrowHead = (x1,y1,x2,y2,color,lineWidth=4) => {
+      const ang = Math.atan2(y2-y1, x2-x1);
+      const len = Math.max(12, (lineWidth || 4) * 4.2);
+      c.save();
+      c.fillStyle = color;
+      c.beginPath();
+      c.moveTo(x2,y2);
+      c.lineTo(x2-len*Math.cos(ang-Math.PI/6), y2-len*Math.sin(ang-Math.PI/6));
+      c.lineTo(x2-len*Math.cos(ang+Math.PI/6), y2-len*Math.sin(ang+Math.PI/6));
+      c.closePath();
+      c.fill();
+      c.restore();
+    };
+
     for(const a of state.annotations){
       c.save();
+      c.globalAlpha = clamp(a.opacity == null ? 1 : +a.opacity, 0.05, 1);
       c.translate(a.x || 0, a.y || 0);
-      if(a.type === 'text'){
-        c.font = `700 ${a.fontSize || 28}px ui-sans-serif, system-ui, sans-serif`;
+      const w = a.w == null ? 180 : a.w;
+      const h = a.h == null ? 90 : a.h;
+      const lw = Math.max(1, a.lineWidth || 3);
+      const color = a.color || '#ef4444';
+
+      if(a.type === 'text' || a.type === 'watermark'){
+        const fs = a.fontSize || (a.type === 'watermark' ? 34 : 28);
+        c.font = `700 ${fs}px ui-sans-serif, system-ui, sans-serif`;
         c.textAlign = 'left'; c.textBaseline = 'top';
+        const lines = String(a.text || (a.type === 'watermark' ? '水印' : 'Text')).split('\n');
         if(a.bg && a.bg !== 'transparent'){
           const temp = document.createElement('canvas').getContext('2d');
           temp.font = c.font;
-          const m = temp.measureText(a.text || 'Text');
-          const hh = (a.fontSize || 28) + 12;
+          const mw = Math.max(...lines.map(line => temp.measureText(line).width), 40);
+          const hh = lines.length * (fs + 6) + 12;
           c.fillStyle = a.bg;
-          c.fillRect(-8,-6,m.width+16,hh);
+          c.fillRect(-8,-6,mw+16,hh);
         }
-        c.fillStyle = a.color || '#111827';
-        (String(a.text || 'Text').split('\n')).forEach((line,i)=> c.fillText(line,0,i*((a.fontSize||28)+6)));
+        c.fillStyle = a.type === 'watermark' ? (a.color || '#111827') : (a.color || '#111827');
+        lines.forEach((line,i)=> c.fillText(line,0,i*(fs+6)));
+      } else if(a.type === 'mosaic'){
+        const cell = Math.max(6, a.gridSize || 14);
+        const x0 = Math.min(0,w), y0 = Math.min(0,h), ww = Math.abs(w), hh = Math.abs(h);
+        c.save();
+        c.beginPath(); c.rect(x0,y0,ww,hh); c.clip();
+        c.fillStyle = 'rgba(229,231,235,.88)';
+        c.fillRect(x0,y0,ww,hh);
+        for(let yy=y0; yy<y0+hh; yy+=cell){
+          for(let xx=x0; xx<x0+ww; xx+=cell){
+            const k = (Math.floor(xx/cell) + Math.floor(yy/cell)) % 4;
+            c.fillStyle = ['rgba(31,41,55,.42)','rgba(107,114,128,.42)','rgba(209,213,219,.72)','rgba(17,24,39,.30)'][k];
+            c.fillRect(xx, yy, cell+0.5, cell+0.5);
+          }
+        }
+        c.restore();
       } else if(a.type === 'redact'){
         c.fillStyle = a.color || '#111827';
-        c.fillRect(0,0,a.w || 180,a.h || 64);
-      } else if(a.type === 'box'){
-        c.strokeStyle = a.color || '#ef4444';
-        c.lineWidth = a.lineWidth || 3;
-        c.strokeRect(0,0,a.w || 180,a.h || 90);
-      } else if(a.type === 'arrow'){
-        const w = a.w || 180, h = a.h || 90;
-        c.strokeStyle = a.color || '#ef4444';
-        c.fillStyle = a.color || '#ef4444';
-        c.lineWidth = a.lineWidth || 4;
+        c.fillRect(0,0,w,h);
+      } else if(a.type === 'box' || a.type === 'boxFill'){
+        if(a.type === 'boxFill'){
+          c.fillStyle = a.fillColor || color;
+          c.fillRect(0,0,w,h);
+        }
+        c.strokeStyle = color;
+        c.lineWidth = lw;
+        c.strokeRect(0,0,w,h);
+      } else if(a.type === 'circle' || a.type === 'circleFill'){
+        const x0 = Math.min(0,w), y0 = Math.min(0,h), ww = Math.abs(w), hh = Math.abs(h);
+        c.beginPath();
+        c.ellipse(x0+ww/2, y0+hh/2, Math.max(1,ww/2), Math.max(1,hh/2), 0, 0, Math.PI*2);
+        if(a.type === 'circleFill'){
+          c.fillStyle = a.fillColor || color;
+          c.fill();
+        }
+        c.strokeStyle = color;
+        c.lineWidth = lw;
+        c.stroke();
+      } else if(a.type === 'line' || a.type === 'arrow' || a.type === 'doubleArrow'){
+        c.strokeStyle = color;
+        c.fillStyle = color;
+        c.lineWidth = lw;
+        c.lineCap = 'round';
+        c.lineJoin = 'round';
         c.beginPath(); c.moveTo(0,0); c.lineTo(w,h); c.stroke();
-        const ang = Math.atan2(h,w), len = 18;
-        c.beginPath(); c.moveTo(w,h); c.lineTo(w-len*Math.cos(ang-Math.PI/6), h-len*Math.sin(ang-Math.PI/6)); c.lineTo(w-len*Math.cos(ang+Math.PI/6), h-len*Math.sin(ang+Math.PI/6)); c.closePath(); c.fill();
+        if(a.type === 'arrow' || a.type === 'doubleArrow') drawArrowHead(0,0,w,h,color,lw);
+        if(a.type === 'doubleArrow') drawArrowHead(w,h,0,0,color,lw);
+      } else if(a.type === 'pen' || a.type === 'highlight'){
+        const pts = a.points || [];
+        if(pts.length){
+          c.strokeStyle = a.color || (a.type === 'highlight' ? '#facc15' : '#ef4444');
+          c.lineWidth = a.lineWidth || (a.type === 'highlight' ? 18 : 4);
+          c.lineCap = 'round'; c.lineJoin = 'round';
+          if(a.type === 'highlight') c.globalCompositeOperation = 'multiply';
+          c.beginPath();
+          c.moveTo(pts[0].x, pts[0].y);
+          for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x, pts[i].y);
+          c.stroke();
+        }
       }
       c.restore();
     }
   }
 
   function annotationBounds(a){
-    if(a.type === 'text'){
+    if(a.type === 'text' || a.type === 'watermark'){
       const temp = document.createElement('canvas').getContext('2d');
-      temp.font = `700 ${a.fontSize || 28}px ui-sans-serif, system-ui, sans-serif`;
-      const lines = String(a.text || 'Text').split('\n');
+      const fs = a.fontSize || (a.type === 'watermark' ? 34 : 28);
+      temp.font = `700 ${fs}px ui-sans-serif, system-ui, sans-serif`;
+      const lines = String(a.text || (a.type === 'watermark' ? '水印' : 'Text')).split('\n');
       const width = Math.max(...lines.map(line => temp.measureText(line).width), 40) + ((a.bg && a.bg !== 'transparent') ? 16 : 0);
-      const height = Math.max(24, lines.length * ((a.fontSize || 28)+6));
-      return {x:a.x||0, y:a.y||0, w:width, h:height};
+      const height = Math.max(24, lines.length * (fs+6));
+      return {x:(a.x||0)-8, y:(a.y||0)-6, w:width+16, h:height+12};
     }
-    return {x:a.x||0, y:a.y||0, w:Math.max(24,a.w||180), h:Math.max(24,a.h||90)};
+    if(a.type === 'pen' || a.type === 'highlight'){
+      const pts = a.points || [];
+      if(!pts.length) return {x:a.x||0, y:a.y||0, w:24, h:24};
+      const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      const pad = Math.max(8, (a.lineWidth || (a.type === 'highlight' ? 18 : 4)) / 2 + 4);
+      return {x:(a.x||0)+minX-pad, y:(a.y||0)+minY-pad, w:Math.max(24,maxX-minX+pad*2), h:Math.max(24,maxY-minY+pad*2)};
+    }
+    const w = a.w == null ? 180 : a.w;
+    const h = a.h == null ? 90 : a.h;
+    const pad = Math.max(6, (a.lineWidth || 3) + 4);
+    return {x:(a.x||0)+Math.min(0,w)-pad, y:(a.y||0)+Math.min(0,h)-pad, w:Math.max(24,Math.abs(w)+pad*2), h:Math.max(24,Math.abs(h)+pad*2)};
+  }
+
+  function makeAnnotation(type, pt){
+    const base = { id: uid('ann'), type, x: Math.round(pt.x), y: Math.round(pt.y), w: 180, h: 90, color: '#ef4444', fillColor:'#ffeb3b', bg: 'transparent', opacity: 1, lineWidth: 4, fontSize: 28, text: '文本' };
+    if(type === 'redact') Object.assign(base, {color:'#111827', fillColor:'#111827', w:220, h:72});
+    if(type === 'mosaic') Object.assign(base, {w:220, h:90, gridSize:14, opacity:1});
+    if(type === 'box') Object.assign(base, {color:'#ef4444', w:220, h:110, lineWidth:4});
+    if(type === 'boxFill') Object.assign(base, {color:'#ef4444', fillColor:'#fee2e2', opacity:.72, w:220, h:110, lineWidth:4});
+    if(type === 'circle') Object.assign(base, {color:'#ef4444', w:180, h:120, lineWidth:4});
+    if(type === 'circleFill') Object.assign(base, {color:'#ef4444', fillColor:'#fee2e2', opacity:.72, w:180, h:120, lineWidth:4});
+    if(type === 'line') Object.assign(base, {color:'#ef4444', w:200, h:80, lineWidth:4});
+    if(type === 'arrow') Object.assign(base, {color:'#ef4444', w:200, h:80, lineWidth:4});
+    if(type === 'doubleArrow') Object.assign(base, {color:'#ef4444', w:200, h:80, lineWidth:4});
+    if(type === 'text') Object.assign(base, {color:'#111827', bg:'transparent', text:'输入文字', fontSize:28, w:0, h:0});
+    if(type === 'watermark') Object.assign(base, {color:'#111827', bg:'transparent', text:'水印', fontSize:34, opacity:.22, w:0, h:0});
+    if(type === 'pen') Object.assign(base, {color:'#ef4444', lineWidth:4, points:[{x:0,y:0}], w:0, h:0});
+    if(type === 'highlight') Object.assign(base, {color:'#facc15', opacity:.45, lineWidth:18, points:[{x:0,y:0}], w:0, h:0});
+    return base;
   }
 
   function addAnnotation(type){
     if(!state.images.length) return;
-    pushHistory();
     const layout = computeLayout(true);
-    const base = { id: uid('ann'), type, x: Math.max(20, layout.fullWidth/2 - 80), y: Math.max(20, layout.fullHeight/2 - 40), w: 180, h: 90, color: '#ef4444', bg: 'transparent', lineWidth: 4, fontSize: 28, text: '文本' };
-    if(type === 'redact') Object.assign(base, {color:'#111827', bg:'#111827', w:220, h:72});
-    if(type === 'box') Object.assign(base, {color:'#ef4444', w:220, h:110});
-    if(type === 'arrow') Object.assign(base, {color:'#ef4444', w:200, h:80});
-    if(type === 'text') Object.assign(base, {color:'#111827', bg:'transparent', text:'双击文字或左侧修改'});
-    state.annotations.push(base);
-    state.selected = {type:'annotation', index: state.annotations.length - 1};
+    addAnnotationAt(type, { x: Math.max(20, layout.fullWidth/2 - 80), y: Math.max(20, layout.fullHeight/2 - 40) });
+  }
+
+  function beginToolDraw(type, pt){
+    if(!type || type === 'select' || !state.images.length) return false;
+    pushHistory();
+    const a = makeAnnotation(type, pt);
+    state.annotations.push(a);
+    const idx = state.annotations.length - 1;
+    state.selected = {type:'annotation', index:idx};
+    if(type === 'text' || type === 'watermark'){
+      state.toolArmed = 'select';
+      renderProps(); requestRender();
+      return true;
+    }
+    drag = { type:'toolCreate', index:idx, tool:type, start:{...pt}, ann:{...a} };
     renderProps(); requestRender();
+    return true;
+  }
+
+  function addAnnotationAt(type, pt){
+    return beginToolDraw(type, pt);
   }
 
   function deleteSelectedAnnotation(){
@@ -1001,19 +1122,7 @@
     state.seams.forEach(s => { s.beforeCrop = 0; s.afterCrop = 0; });
   }
 
-  function addAnnotationAt(type, pt){
-    if(!type || type==='select' || !state.images.length) return;
-    pushHistory();
-    const base = { id: uid('ann'), type, x: Math.round(pt.x), y: Math.round(pt.y), w: 180, h: 90, color: '#ef4444', bg: 'transparent', lineWidth: 4, fontSize: 28, text: '文本' };
-    if(type === 'redact') Object.assign(base, {color:'#111827', bg:'#111827', w:220, h:72});
-    if(type === 'box') Object.assign(base, {color:'#ef4444', w:220, h:110});
-    if(type === 'arrow') Object.assign(base, {color:'#ef4444', w:200, h:80});
-    if(type === 'text') Object.assign(base, {color:'#111827', bg:'transparent', text:'输入文字'});
-    state.annotations.push(base);
-    state.selected = {type:'annotation', index: state.annotations.length-1};
-    state.toolArmed = 'select';
-    renderProps(); requestRender();
-  }
+
 
   function splitImageAt(index, localPos=null){
     const original = state.images[index];
@@ -1098,10 +1207,12 @@
     const p = getPointer(e);
     const w = screenToWorld(p.x,p.y);
     const h = hitTest(w.x,w.y);
-    if(h && !state.preview){
+    if(!state.preview && state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select' && (!h || h.type === 'annotationSelect')){
+      beginToolDraw(state.toolArmed, w);
+    } else if(h && !state.preview){
       handleHitDown(h, w, e);
     } else if(!state.preview && state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select'){
-      addAnnotationAt(state.toolArmed, w);
+      beginToolDraw(state.toolArmed, w);
     } else {
       drag = { type:'pan', startX:p.x, startY:p.y, pan:{...state.pan} };
       stage.classList.add('dragging');
@@ -1259,6 +1370,19 @@
       }
       renderProps(); requestRender(); return;
     }
+    if(drag.type === 'toolCreate'){
+      const a = state.annotations[drag.index];
+      if(!a) return;
+      if(a.type === 'pen' || a.type === 'highlight'){
+        const last = (a.points || [])[a.points.length-1];
+        const next = {x: Math.round(w.x - (a.x||0)), y: Math.round(w.y - (a.y||0))};
+        if(!last || Math.hypot(next.x-last.x, next.y-last.y) >= 2) a.points.push(next);
+      } else {
+        a.w = Math.round(w.x - drag.start.x);
+        a.h = Math.round(w.y - drag.start.y);
+      }
+      requestRender(); return;
+    }
     if(drag.type === 'annotationMove'){
       const a = state.annotations[drag.index];
       a.x = Math.round(drag.ann.x + (w.x - drag.start.x));
@@ -1295,6 +1419,14 @@
     drag = null;
     stage.classList.remove('dragging');
     if(finished && finished.type === 'splitDraft') renderProps();
+    if(finished && finished.type === 'toolCreate'){
+      const a = state.annotations[finished.index];
+      if(a && a.type !== 'pen' && a.type !== 'highlight'){
+        if(Math.abs(a.w || 0) < 6 && Math.abs(a.h || 0) < 6){ a.w = finished.ann.w || 180; a.h = finished.ann.h || 90; }
+      }
+      state.toolArmed = 'select';
+      renderProps(); requestRender();
+    }
   }
 
   function getPointer(e){
@@ -1403,19 +1535,43 @@
     const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
     const a = idx >= 0 ? state.annotations[idx] : null;
     const iconBtn = (key, icon, title) => `<button class="tool-icon-btn ${state.toolArmed===key?'active':''}" data-tool="${key}" title="${title}"><span class="ti">${icon}</span><span class="tt">${title}</span></button>`;
+    const shapeTypes = ['redact','mosaic','box','boxFill','circle','circleFill','line','arrow','doubleArrow'];
+    const pathTypes = ['pen','highlight'];
+    const textTypes = ['text','watermark'];
+    const needsSize = a && shapeTypes.includes(a.type);
+    const needsLine = a && ['box','boxFill','circle','circleFill','line','arrow','doubleArrow','pen','highlight'].includes(a.type);
+    const needsFill = a && ['boxFill','circleFill'].includes(a.type);
+    const canOpacity = a && ['watermark','highlight','boxFill','circleFill','mosaic'].includes(a.type);
+    const toolName = a ? ({
+      text:'文字', watermark:'水印', mosaic:'马赛克', redact:'遮挡', pen:'自由笔', highlight:'荧光笔', box:'矩形', boxFill:'填充矩形', circle:'圆圈', circleFill:'填充圆圈', line:'直线', arrow:'箭头', doubleArrow:'双箭头'
+    }[a.type] || a.type) : '';
     return `<div class="prop-card"><div class="tool-icon-grid">
       ${iconBtn('select','⌖','选择')}
       ${iconBtn('text','T','文字')}
+      ${iconBtn('watermark','©','水印')}
+      ${iconBtn('mosaic','▦','马赛克')}
       ${iconBtn('redact','◼','遮挡')}
+      ${iconBtn('pen','✎','自由笔')}
+      ${iconBtn('highlight','▰','荧光笔')}
       ${iconBtn('box','▭','矩形')}
+      ${iconBtn('boxFill','▮','填充矩形')}
+      ${iconBtn('circle','○','圆圈')}
+      ${iconBtn('circleFill','●','填充圆圈')}
+      ${iconBtn('line','╱','直线')}
       ${iconBtn('arrow','↗','箭头')}
-    </div></div>` + (a ? `<div class="prop-card">
+      ${iconBtn('doubleArrow','↔','双箭头')}
+    </div><p class="hint" style="margin-top:10px">选择工具后，在图片上按住拖动创建；文字/水印点击放置。</p></div>` + (a ? `<div class="prop-card">
+      <h3>${toolName}</h3>
       <div class="row"><label>X</label><input type="number" data-ann="x" value="${Math.round(a.x||0)}"></div>
       <div class="row"><label>Y</label><input type="number" data-ann="y" value="${Math.round(a.y||0)}"></div>
-      ${a.type!=='text' ? `<div class="row"><label>宽度</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"></div><div class="row"><label>高度</label><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : `<div class="row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div><div class="row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}"></div>`}
-      <div class="row"><label>颜色</label><input type="color" data-ann="color" value="${a.color||'#111827'}"></div>
-      ${a.type==='text' ? `<div class="row"><label>背景</label><select data-ann="bg"><option value="transparent" ${(a.bg||'transparent')==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${a.bg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${a.bg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${a.bg==='#ffeb3b'?'selected':''}>黄底</option></select></div>` : ''}
-      ${(a.type==='box' || a.type==='arrow') ? `<div class="row"><label>线宽</label><input type="number" data-ann="lineWidth" value="${Math.round(a.lineWidth||4)}"></div>` : ''}
+      ${needsSize ? `<div class="row"><label>宽度</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"></div><div class="row"><label>高度</label><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : ''}
+      ${textTypes.includes(a.type) ? `<div class="row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div><div class="row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}"></div>` : ''}
+      <div class="row"><label>颜色</label><input type="color" data-ann="color" value="${a.color||'#ef4444'}"></div>
+      ${needsFill ? `<div class="row"><label>填充</label><input type="color" data-ann="fillColor" value="${a.fillColor||a.color||'#fee2e2'}"></div>` : ''}
+      ${textTypes.includes(a.type) ? `<div class="row"><label>背景</label><select data-ann="bg"><option value="transparent" ${(a.bg||'transparent')==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${a.bg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${a.bg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${a.bg==='#ffeb3b'?'selected':''}>黄底</option></select></div>` : ''}
+      ${needsLine ? `<div class="row"><label>线宽</label><input type="number" data-ann="lineWidth" value="${Math.round(a.lineWidth||4)}"></div>` : ''}
+      ${a.type==='mosaic' ? `<div class="row"><label>块大小</label><input type="number" data-ann="gridSize" value="${Math.round(a.gridSize||14)}"></div>` : ''}
+      ${canOpacity ? `<div class="row"><label>透明度</label><input type="number" step="0.05" min="0.05" max="1" data-ann="opacity" value="${a.opacity == null ? 1 : a.opacity}"></div>` : ''}
       <div class="mini-grid"><button class="mini-btn warn" id="deleteAnnotationBtn">删除对象</button></div>
     </div>` : '');
   }
@@ -1481,7 +1637,10 @@
       pushHistory();
       const a = state.annotations[idx];
       const key = inp.dataset.ann;
-      if(inp.type === 'number') a[key] = Math.round(+inp.value || 0); else a[key] = inp.value;
+      if(inp.type === 'number'){
+        if(key === 'opacity') a[key] = clamp(parseFloat(inp.value || '1'), 0.05, 1);
+        else a[key] = Math.round(+inp.value || 0);
+      } else a[key] = inp.value;
       renderProps(); requestRender();
     }));
   }
