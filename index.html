@@ -32,11 +32,11 @@
     button:disabled{opacity:.45;cursor:not-allowed}
     .app{height:100vh;display:grid;grid-template-rows:var(--topbar) 1fr;grid-template-columns:var(--sidebar) 1fr;background:var(--bg)}
     .topbar{grid-column:1/3;display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.92);backdrop-filter:blur(16px);z-index:5}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:760;margin-right:8px;white-space:nowrap}
+    .brand{display:flex;align-items:center;gap:8px;font-weight:760;margin-right:2px;white-space:nowrap}
     .brand-mark{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#ffe58a,#ffc12a);display:grid;place-items:center;box-shadow:0 5px 14px rgba(246,183,0,.25)}
     .brand small{display:block;color:var(--muted);font-weight:500;font-size:11px;margin-top:-2px}
-    .toolbar-group{display:flex;align-items:center;gap:6px;padding:0 8px;border-left:1px solid var(--line)}
-    .tool-btn,.file-label{height:36px;padding:0 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+    .toolbar-group{display:flex;align-items:center;gap:5px;padding:0 5px;border-left:1px solid var(--line)}
+    .tool-btn,.file-label{height:36px;padding:0 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel);display:inline-flex;align-items:center;gap:5px;white-space:nowrap;box-shadow:0 1px 2px rgba(15,23,42,.04)}
     .tool-btn:hover,.file-label:hover{border-color:#b9c2d1;background:#fbfdff}
     .primary{background:#111827;color:#fff;border-color:#111827}
     .primary:hover{background:#030712}
@@ -95,6 +95,10 @@
     .statusbar{position:absolute;left:14px;bottom:12px;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:12px;box-shadow:0 6px 18px rgba(15,23,42,.08);backdrop-filter:blur(14px)}
     .mobile-title{display:none}
     .mobile-bottom{display:none}
+    .mobile-only{display:none!important}
+    .mobile-more-menu{position:absolute;right:10px;top:50px;z-index:30;display:none;grid-template-columns:repeat(3,42px);gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
+    .mobile-more-menu.show{display:grid}
+    .mobile-more-menu .mini-btn{width:42px;height:36px;padding:0;font-size:14px}
     .toast{position:fixed;right:20px;bottom:20px;z-index:50;background:#111827;color:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);font-size:13px;opacity:0;transform:translateY(10px);pointer-events:none;transition:.22s}
     .toast.show{opacity:1;transform:translateY(0)}
     .preview-badge{position:absolute;top:12px;right:12px;border-radius:999px;background:#111827;color:#fff;padding:7px 12px;font-size:12px;font-weight:700;display:none;z-index:4}
@@ -194,10 +198,16 @@
       .app{display:block;height:100vh;overflow:hidden;background:#f3f5f8}
       .topbar{position:absolute;left:0;top:0;right:0;height:var(--topbar);padding:8px 10px;justify-content:space-between}
       .brand,.toolbar-group .text-label,.desktop-only,.toolbar-group:nth-of-type(2),.toolbar-group:nth-of-type(3){display:none!important}
+      .mobile-only{display:inline-flex!important}
       .toolbar-group{border-left:0;padding:0;gap:6px}
       .tool-btn,.file-label{height:38px;width:42px;padding:0;justify-content:center;border-radius:12px}
       .mobile-title{display:block;font-size:20px;font-weight:800;position:absolute;left:50%;transform:translateX(-50%)}
       .sidebar{display:none}
+      .app[data-mode="subtitle"] .sidebar,.app[data-mode="cut"] .sidebar{display:block;position:absolute;left:8px;right:8px;bottom:calc(var(--mobilebar) + 8px);z-index:14;border:1px solid rgba(203,213,225,.94);border-radius:13px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.18);overflow:hidden}
+      .app[data-mode="subtitle"] .mode-panel,.app[data-mode="cut"] .mode-panel{display:none}
+      .app[data-mode="subtitle"] .props,.app[data-mode="cut"] .props{padding:8px;max-height:190px;overflow:auto;background:transparent}
+      .app[data-mode="subtitle"] .prop-card,.app[data-mode="cut"] .prop-card{margin:0;padding:8px;border:0;box-shadow:none;background:transparent}
+      .app[data-mode="subtitle"] .row,.app[data-mode="cut"] .row{margin:5px 0}
       .stage-wrap{position:absolute;left:0;right:0;top:var(--topbar);bottom:var(--mobilebar);grid-row:auto;grid-column:auto}
       .mobile-bottom{display:grid;position:absolute;left:0;right:0;bottom:0;height:var(--mobilebar);background:rgba(255,255,255,.94);border-top:1px solid var(--line);grid-template-columns:repeat(7,1fr);z-index:6;backdrop-filter:blur(14px);padding-bottom:env(safe-area-inset-bottom)}
       .mobile-mode{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#111827;font-weight:750;font-size:11px}
@@ -206,6 +216,7 @@
       .statusbar{left:8px;right:8px;bottom:8px;text-align:center;font-size:11px;padding:5px 8px}
       .drop-hint{padding:22px;width:88%}
       .drop-hint h2{font-size:19px}
+      .inline-text-editor.mobile-text-mode{position:fixed!important;left:12px!important;right:12px!important;top:auto!important;bottom:calc(var(--mobilebar) + 12px)!important;width:auto!important;height:96px!important;z-index:80;border:2px solid #2f80ed;border-radius:12px;background:#fff!important;box-shadow:0 14px 34px rgba(15,23,42,.22);padding:10px 12px;font-size:18px!important;transform:none!important;writing-mode:horizontal-tb!important}
     }
   </style>
 </head>
@@ -249,8 +260,19 @@
       <button class="tool-btn" id="fitBtn" title="适合窗口"><span>⛶</span><span class="text-label">适合窗口</span></button>
       <button class="tool-btn" id="previewBtn" title="预览"><span>👁</span><span class="text-label">预览</span></button>
       <button class="tool-btn primary" id="exportBtn" title="导出 PNG"><span>⬆</span><span class="text-label">导出 PNG</span></button>
+      <button class="tool-btn mobile-only" id="mobileMoreBtn" title="更多">⋯</button>
     </div>
   </header>
+  <div class="mobile-more-menu" id="mobileMoreMenu">
+    <button class="mini-btn" data-mobile-action="auto">⚡</button>
+    <button class="mini-btn" data-mobile-action="vertical">↕</button>
+    <button class="mini-btn" data-mobile-action="horizontal">↔</button>
+    <button class="mini-btn" data-mobile-action="undo">↶</button>
+    <button class="mini-btn" data-mobile-action="redo">↷</button>
+    <button class="mini-btn" data-mobile-action="clear">×</button>
+    <button class="mini-btn" data-mobile-action="save">💾</button>
+    <button class="mini-btn" data-mobile-action="open">📂</button>
+  </div>
 
   <aside class="sidebar">
     <section class="mode-panel">
@@ -324,6 +346,7 @@
   const statusbar = $('#statusbar');
   const toastEl = $('#toast');
   const app = $('#app');
+  const mobileMoreMenu = $('#mobileMoreMenu');
   const toolDock = $('#toolDock');
   const toolPopover = $('#toolPopover');
   const inlineTextEditor = $('#inlineTextEditor');
@@ -351,10 +374,12 @@
     toolArmed: null,
     toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:14, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
     mobileToolPopoverOpen: false,
+    mobileMoreOpen: false,
     splitDraft: null,
     splitDraftManual: false,
     subtitleRegion: { heightRatio: 0.22, yRatio: 0.76 },
-    cutSettings: { mode: 'vertical', rows: 3, cols: 3 }
+    cutSettings: { mode: 'cols', rows: 3, cols: 3 },
+    cutLines: { imageId: null, rows: 3, cols: 3, x: [], y: [] }
   };
 
   let history = [];
@@ -390,7 +415,8 @@
       splitDraft: state.splitDraft ? {...state.splitDraft} : null,
       splitDraftManual: !!state.splitDraftManual,
       subtitleRegion: {...state.subtitleRegion},
-      cutSettings: {...state.cutSettings}
+      cutSettings: {...state.cutSettings},
+      cutLines: state.cutLines ? {imageId:state.cutLines.imageId, rows:state.cutLines.rows, cols:state.cutLines.cols, x:[...(state.cutLines.x||[])], y:[...(state.cutLines.y||[])]} : null
     });
   }
 
@@ -419,7 +445,8 @@
     state.splitDraft = data.splitDraft || null;
     state.splitDraftManual = !!data.splitDraftManual;
     state.subtitleRegion = data.subtitleRegion || {heightRatio:0.22,yRatio:0.76};
-    state.cutSettings = data.cutSettings || {mode:'vertical',rows:3,cols:3};
+    state.cutSettings = data.cutSettings || {mode:'cols',rows:3,cols:3};
+    state.cutLines = data.cutLines || {imageId:null,rows:3,cols:3,x:[],y:[]};
     state.activeHandle = null;
     const imgs = [];
     for(const raw of data.images || []){
@@ -1046,19 +1073,21 @@
     const idx = selectedImageIndex();
     const item = layout.items.find(v => v.index === idx);
     if(!item) return;
-    const {rows, cols} = cutGrid();
+    const lines = ensureCutLines(false);
     c.save();
     c.strokeStyle = '#ef4444';
-    c.lineWidth = 2 / state.zoom;
+    c.lineWidth = 3 / state.zoom;
     c.setLineDash([8 / state.zoom, 6 / state.zoom]);
     c.strokeRect(item.dx, item.dy, item.dw, item.dh);
-    for(let col=1; col<cols; col++){
-      const x = item.dx + item.dw * col / cols;
+    for(let i=0; i<lines.x.length; i++){
+      const x = item.dx + item.dw * lines.x[i];
       c.beginPath(); c.moveTo(x, item.dy); c.lineTo(x, item.dy + item.dh); c.stroke();
+      hitAreas.push({type:'cutLine', axis:'x', index:i, x:x - 12/state.zoom, y:item.dy, w:24/state.zoom, h:item.dh, cursor:'ew-resize'});
     }
-    for(let row=1; row<rows; row++){
-      const y = item.dy + item.dh * row / rows;
+    for(let i=0; i<lines.y.length; i++){
+      const y = item.dy + item.dh * lines.y[i];
       c.beginPath(); c.moveTo(item.dx, y); c.lineTo(item.dx + item.dw, y); c.stroke();
+      hitAreas.push({type:'cutLine', axis:'y', index:i, x:item.dx, y:y - 12/state.zoom, w:item.dw, h:24/state.zoom, cursor:'ns-resize'});
     }
     c.setLineDash([]);
     c.restore();
@@ -1260,6 +1289,7 @@
     }
     inlineTextIndex = -1;
     inlineTextEditor.style.display = 'none';
+    inlineTextEditor.classList.remove('mobile-text-mode');
   }
 
   function selectedTextAnnotation(){
@@ -1272,6 +1302,7 @@
     if(!inlineTextEditor || inlineTextIndex < 0) return;
     const a = state.annotations[inlineTextIndex];
     if(!a || a.type !== 'text' || state.mode !== 'tools' || state.preview){ closeInlineTextEditor(false); return; }
+    if(inlineTextEditor.classList.contains('mobile-text-mode')) return;
     const b = annotationRawBounds(a);
     const p = worldToScreen(b.x, b.y);
     const z = Math.max(0.0001, state.zoom);
@@ -1294,9 +1325,24 @@
     if(!a || a.type !== 'text') return;
     inlineTextIndex = index;
     inlineTextEditor.value = a.text || '';
+    inlineTextEditor.classList.remove('mobile-text-mode');
     positionInlineTextEditor();
     inlineTextEditor.focus();
     if(selectAll) inlineTextEditor.select();
+  }
+
+  function openMobileTextEditor(index, selectAll=false){
+    if(!inlineTextEditor) return;
+    const a = state.annotations[index];
+    if(!a || a.type !== 'text') return;
+    inlineTextIndex = index;
+    inlineTextEditor.value = a.text || '';
+    inlineTextEditor.classList.add('mobile-text-mode');
+    inlineTextEditor.style.display = 'block';
+    setTimeout(() => {
+      inlineTextEditor.focus();
+      if(selectAll) inlineTextEditor.select();
+    }, 30);
   }
 
 
@@ -1344,6 +1390,7 @@
     state.selected = {type:'annotation', index};
     const a = state.annotations[index];
     syncToolSettingsFromAnnotation(a);
+    if(isMobileLayout()) state.mobileToolPopoverOpen = true;
     closeInlineTextEditor(false);
     renderProps(); requestRender();
     return true;
@@ -1411,12 +1458,30 @@
   }
 
   function setToolGroup(group){
+    if(isMobileLayout()) return mobileToolGroupTap(group);
     const sameGroup = (state.toolSettings.group || 'select') === group;
     state.toolSettings.group = group;
     state.mobileToolPopoverOpen = sameGroup ? !state.mobileToolPopoverOpen : true;
     if(group === 'watermark'){
       const idx = findExistingWatermarkIndex();
       state.selected = idx >= 0 ? {type:'annotation', index:idx} : null;
+      closeInlineTextEditor(false);
+    } else if(group !== 'select') {
+      state.selected = null;
+      if(group !== 'text') closeInlineTextEditor(false);
+    }
+    applyActiveTool();
+    renderProps(); requestRender();
+  }
+
+  function mobileToolGroupTap(group){
+    const sameGroup = (state.toolSettings.group || 'select') === group;
+    state.toolSettings.group = group;
+    state.mobileToolPopoverOpen = sameGroup ? !state.mobileToolPopoverOpen : false;
+    if(group === 'watermark'){
+      const idx = findExistingWatermarkIndex();
+      state.selected = idx >= 0 ? {type:'annotation', index:idx} : null;
+      if(idx >= 0) state.mobileToolPopoverOpen = true;
       closeInlineTextEditor(false);
     } else if(group !== 'select') {
       state.selected = null;
@@ -2140,21 +2205,22 @@
 
   function makeAnnotation(type, pt){
     const s = state.toolSettings || {};
-    const base = { id: uid('ann'), type, x: Math.round(pt.x), y: Math.round(pt.y), w: 180, h: 90, color: s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', bg: 'transparent', opacity: s.opacity == null ? 1 : s.opacity, lineWidth: s.lineWidth || 4, fontSize: 14, text: '' };
+    const mobileStroke = isMobileLayout() ? 7 : 4;
+    const base = { id: uid('ann'), type, x: Math.round(pt.x), y: Math.round(pt.y), w: 180, h: 90, color: s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', bg: 'transparent', opacity: s.opacity == null ? 1 : s.opacity, lineWidth: s.lineWidth || mobileStroke, fontSize: 14, text: '' };
     if(type === 'redact') Object.assign(base, {color:'#111827', fillColor:'#111827', w:220, h:72});
     if(type === 'mosaic') Object.assign(base, {w:220, h:90, gridSize:s.mosaicGrid || 14, opacity:1});
     if(type === 'mosaicPen') Object.assign(base, {points:[{x:0,y:0}], w:0, h:0, gridSize:s.mosaicGrid || 14, lineWidth:Math.max(18,(s.mosaicGrid||14)*2), opacity:1});
-    if(type === 'box') Object.assign(base, {color:s.color || '#ef4444', w:220, h:110, lineWidth:s.lineWidth || 4});
-    if(type === 'boxFill') Object.assign(base, {color:s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', opacity:s.opacity == null ? .72 : s.opacity, w:220, h:110, lineWidth:s.lineWidth || 4});
-    if(type === 'circle') Object.assign(base, {color:s.color || '#ef4444', w:180, h:120, lineWidth:s.lineWidth || 4});
-    if(type === 'circleFill') Object.assign(base, {color:s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', opacity:s.opacity == null ? .72 : s.opacity, w:180, h:120, lineWidth:s.lineWidth || 4});
-    if(type === 'line') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
-    if(type === 'arrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
-    if(type === 'doubleArrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
+    if(type === 'box') Object.assign(base, {color:s.color || '#ef4444', w:220, h:110, lineWidth:s.lineWidth || mobileStroke});
+    if(type === 'boxFill') Object.assign(base, {color:s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', opacity:s.opacity == null ? .72 : s.opacity, w:220, h:110, lineWidth:s.lineWidth || mobileStroke});
+    if(type === 'circle') Object.assign(base, {color:s.color || '#ef4444', w:180, h:120, lineWidth:s.lineWidth || mobileStroke});
+    if(type === 'circleFill') Object.assign(base, {color:s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', opacity:s.opacity == null ? .72 : s.opacity, w:180, h:120, lineWidth:s.lineWidth || mobileStroke});
+    if(type === 'line') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || mobileStroke});
+    if(type === 'arrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || mobileStroke});
+    if(type === 'doubleArrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || mobileStroke});
     if(type === 'text') Object.assign(base, {color:s.textColor || '#111827', bg:s.textBg || 'transparent', outline:!!s.textOutline, vertical:!!s.textVertical, text:s.textValue || '', fontSize:s.textSize || 14, w:0, h:0});
     if(type === 'badge') Object.assign(base, {color:s.badgeColor || '#2f80ed', text:String(s.badgeNumber || 1), fontSize:s.badgeSize || 34, w:0, h:0});
     if(type === 'watermark') Object.assign(base, {color:s.watermarkColor || '#111827', bg:'transparent', text:s.watermarkText || '水印', fontSize:s.watermarkSize || 34, opacity:s.watermarkOpacity == null ? .22 : s.watermarkOpacity, repeatCount:s.watermarkRepeat || 1, w:0, h:0});
-    if(type === 'pen') Object.assign(base, {color:s.penColor || '#ef4444', lineWidth:s.penWidth || 4, points:[{x:0,y:0}], w:0, h:0});
+    if(type === 'pen') Object.assign(base, {color:s.penColor || '#ef4444', lineWidth:s.penWidth || mobileStroke, points:[{x:0,y:0}], w:0, h:0});
     if(type === 'highlight') Object.assign(base, {color:s.penColor || '#facc15', opacity:.45, lineWidth:s.highlightWidth || 18, points:[{x:0,y:0}], w:0, h:0});
     return base;
   }
@@ -2181,6 +2247,7 @@
       applyActiveTool();
       renderProps(); requestRender();
       closeInlineTextEditor(false);
+      if(type === 'text' && isMobileLayout()) openMobileTextEditor(idx, true);
       return true;
     }
     drag = { type:'toolCreate', index:idx, tool:type, start:{...pt}, ann:{...a} };
@@ -2360,6 +2427,10 @@
         return;
       }
       selectAnnotationForEdit(h.index);
+      if(isMobileLayout() && state.annotations[h.index]?.type === 'text'){
+        openMobileTextEditor(h.index, true);
+        return;
+      }
       { const a = state.annotations[h.index];
         drag = {type:'annotationMove', index:h.index, start:w, ann:cloneAnnotationForDrag(a)}; }
       return;
@@ -2379,6 +2450,12 @@
     }
     if(h.type === 'splitDraftCommit'){ insertSeamAtDraft(); return; }
     if(h.type === 'splitDraftDrag'){ state.splitDraftManual = true; drag = {type:'splitDraft', start:w, pos: state.splitDraft?.pos || 0}; return; }
+    if(h.type === 'cutLine'){
+      const lines = ensureCutLines(false);
+      pushHistory();
+      drag = {type:'cutLine', axis:h.axis, index:h.index, start:w, lines:{x:[...lines.x], y:[...lines.y]}};
+      return;
+    }
     if(h.type === 'canvasCrop'){ state.selected = {type:'canvasCrop'}; state.activeHandle = {kind:'canvasCrop', edge:h.edge}; renderProps(); requestRender(); return; }
     if(h.type === 'imageCrop'){ state.selected = {type:'image', index:h.index}; state.activeHandle = {kind:'imageCrop', index:h.index, edge:h.edge}; renderProps(); requestRender(); return; }
     if(['seamBefore','seamAfter','seamCenter'].includes(h.type)){ state.selected = {type:'seam', index:h.index}; state.activeHandle = {kind:'seamCenter', index:h.index}; renderProps(); requestRender(); return; }
@@ -2432,6 +2509,25 @@
       const layout = computeLayout(true);
       if(state.orientation === 'vertical') state.splitDraft.pos = clamp(Math.round(drag.pos + (w.y - drag.start.y)), 1, Math.max(1, layout.fullHeight-1));
       else state.splitDraft.pos = clamp(Math.round(drag.pos + (w.x - drag.start.x)), 1, Math.max(1, layout.fullWidth-1));
+      requestRender(); return;
+    }
+    if(drag.type === 'cutLine'){
+      const idx = selectedImageIndex();
+      const layout = computeLayout(true);
+      const item = layout.items.find(v => v.index === idx);
+      if(!item) return;
+      const lines = ensureCutLines(false);
+      if(drag.axis === 'x'){
+        const ratio = clamp((w.x - item.dx) / Math.max(1, item.dw), 0.01, 0.99);
+        const prev = drag.index > 0 ? lines.x[drag.index - 1] + 0.01 : 0.01;
+        const next = drag.index < lines.x.length - 1 ? lines.x[drag.index + 1] - 0.01 : 0.99;
+        lines.x[drag.index] = clamp(ratio, prev, next);
+      } else {
+        const ratio = clamp((w.y - item.dy) / Math.max(1, item.dh), 0.01, 0.99);
+        const prev = drag.index > 0 ? lines.y[drag.index - 1] + 0.01 : 0.01;
+        const next = drag.index < lines.y.length - 1 ? lines.y[drag.index + 1] - 0.01 : 0.99;
+        lines.y[drag.index] = clamp(ratio, prev, next);
+      }
       requestRender(); return;
     }
     if(drag.type === 'canvasCrop'){
@@ -2557,11 +2653,10 @@
       const b = state.images[drag.index+1];
       const maxBefore = vertical ? a.height - a.crop.top - a.crop.bottom - 1 : a.width - a.crop.left - a.crop.right - 1;
       const maxAfter = vertical ? b.height - b.crop.top - b.crop.bottom - 1 : b.width - b.crop.left - b.crop.right - 1;
-      if(drag.type === 'seamBefore') s.beforeCrop = clamp(drag.before + d, 0, maxBefore);
+      if(drag.type === 'seamBefore') s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
       if(drag.type === 'seamAfter') s.afterCrop = clamp(drag.after - d, 0, maxAfter);
       if(drag.type === 'seamCenter'){
-        s.beforeCrop = clamp(drag.before + d, 0, maxBefore);
-        s.afterCrop = clamp(drag.after - d, 0, maxAfter);
+        s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
       }
       renderProps(); requestRender(); return;
     }
@@ -2705,16 +2800,21 @@
 
   function cutProps(){
     const s = state.cutSettings;
+    ensureCutLines(false);
+    const showRows = s.mode === 'rows' || s.mode === 'grid';
+    const showCols = s.mode === 'cols' || s.mode === 'grid';
     return `<div class="prop-card">
+      <div class="row"><label>切</label><select id="cutModeSelect">
+        <option value="rows" ${s.mode==='rows'?'selected':''}>行</option>
+        <option value="cols" ${s.mode==='cols'?'selected':''}>列</option>
+        <option value="grid" ${s.mode==='grid'?'selected':''}>格</option>
+      </select></div>
+      ${showRows ? `<div class="row"><label>行</label><input type="number" data-cut="rows" min="1" max="12" value="${s.rows}"></div>` : ''}
+      ${showCols ? `<div class="row"><label>列</label><input type="number" data-cut="cols" min="1" max="12" value="${s.cols}"></div>` : ''}
       <div class="mini-grid">
-        <button class="mini-btn ${s.mode==='horizontal'?'active':''}" data-cut-mode="horizontal">横</button>
-        <button class="mini-btn ${s.mode==='vertical'?'active':''}" data-cut-mode="vertical">纵</button>
-        <button class="mini-btn ${s.mode==='grid'?'active':''}" data-cut-mode="grid">格</button>
         <button class="mini-btn" id="cutNineBtn">3×3</button>
+        <button class="mini-btn primary" id="finishCutBtn">完成</button>
       </div>
-      <div class="row"><label>行</label><input type="number" data-cut="rows" min="1" max="12" value="${s.rows}"></div>
-      <div class="row"><label>列</label><input type="number" data-cut="cols" min="1" max="12" value="${s.cols}"></div>
-      <button class="mini-btn primary" id="exportCutBtn">导出</button>
     </div>`;
   }
 
@@ -2779,18 +2879,18 @@
     }));
     $('#generateSubtitleBtn')?.addEventListener('click', () => generateSubtitleStitch());
 
-    $$('[data-cut-mode]', props).forEach(btn => btn.addEventListener('click', () => {
-      state.cutSettings.mode = btn.dataset.cutMode;
-      if(state.cutSettings.mode === 'horizontal') state.cutSettings.cols = 1;
-      if(state.cutSettings.mode === 'vertical') state.cutSettings.rows = 1;
+    $('#cutModeSelect')?.addEventListener('change', e => {
+      state.cutSettings.mode = e.target.value;
+      resetCutLines();
       renderProps(); requestRender();
-    }));
+    });
     $$('[data-cut]', props).forEach(inp => inp.addEventListener('change', () => {
       state.cutSettings[inp.dataset.cut] = clamp(Math.round(+inp.value || 1), 1, 12);
+      resetCutLines();
       renderProps(); requestRender();
     }));
-    $('#cutNineBtn')?.addEventListener('click', () => { state.cutSettings = {mode:'grid', rows:3, cols:3}; renderProps(); requestRender(); });
-    $('#exportCutBtn')?.addEventListener('click', () => exportCutImages());
+    $('#cutNineBtn')?.addEventListener('click', () => { state.cutSettings = {mode:'grid', rows:3, cols:3}; resetCutLines(); renderProps(); requestRender(); });
+    $('#finishCutBtn')?.addEventListener('click', () => completeCutEditing());
 
     $$('[data-tool]', props).forEach(btn => btn.addEventListener('click', () => { state.toolArmed = btn.dataset.tool; renderProps(); requestRender(); }));
     $('#deleteAnnotationBtn')?.addEventListener('click', () => deleteSelectedAnnotation());
@@ -2863,7 +2963,16 @@
     $('#horizontalBtn')?.classList.toggle('active', state.orientation === 'horizontal');
     $('#autoStitchBtn')?.classList.toggle('active', !!state.autoStitchEnabled);
     $('#previewBtn')?.classList.toggle('blue', state.preview);
+    renderMobileMoreMenu();
     updateUndoRedo();
+  }
+
+  function renderMobileMoreMenu(){
+    if(!mobileMoreMenu) return;
+    mobileMoreMenu.classList.toggle('show', !!state.mobileMoreOpen && isMobileLayout());
+    mobileMoreMenu.querySelector('[data-mobile-action="auto"]')?.classList.toggle('active', !!state.autoStitchEnabled);
+    mobileMoreMenu.querySelector('[data-mobile-action="vertical"]')?.classList.toggle('active', state.orientation === 'vertical');
+    mobileMoreMenu.querySelector('[data-mobile-action="horizontal"]')?.classList.toggle('active', state.orientation === 'horizontal');
   }
 
   function setMode(m){
@@ -2874,6 +2983,7 @@
     if(m === 'seam' && state.seams.length) state.selected = state.selected?.type === 'seam' ? state.selected : {type:'seam', index:0};
     if(m === 'imageCrop' && state.images.length) state.selected = state.selected?.type === 'image' ? state.selected : {type:'image', index:0};
     if((m === 'subtitle' || m === 'cut') && state.images.length && state.selected?.type !== 'image') state.selected = {type:'image', index:0};
+    if(m === 'cut') ensureCutLines(false);
     if(m === 'divider'){
       state.splitDraftManual = false;
       ensureSplitDraft();
@@ -2980,9 +3090,45 @@
 
   function cutGrid(){
     const s = state.cutSettings;
-    if(s.mode === 'horizontal') return {rows: clamp(s.rows, 1, 12), cols: 1};
-    if(s.mode === 'vertical') return {rows: 1, cols: clamp(s.cols, 1, 12)};
+    if(s.mode === 'rows') return {rows: clamp(s.rows, 1, 12), cols: 1};
+    if(s.mode === 'cols') return {rows: 1, cols: clamp(s.cols, 1, 12)};
     return {rows: clamp(s.rows, 1, 12), cols: clamp(s.cols, 1, 12)};
+  }
+
+  function evenCutRatios(count){
+    const n = clamp(Math.round(count || 1), 1, 12);
+    return Array.from({length: Math.max(0, n - 1)}, (_, i) => (i + 1) / n);
+  }
+
+  function ensureCutLines(reset=false){
+    const idx = selectedImageIndex();
+    const im = state.images[idx];
+    const {rows, cols} = cutGrid();
+    if(!im) return {imageId:null, rows, cols, x:[], y:[]};
+    const needsReset = reset || !state.cutLines || state.cutLines.imageId !== im.id || state.cutLines.rows !== rows || state.cutLines.cols !== cols;
+    if(needsReset){
+      state.cutLines = {imageId: im.id, rows, cols, x: evenCutRatios(cols), y: evenCutRatios(rows)};
+    }
+    state.cutLines.x = (state.cutLines.x || []).slice(0, Math.max(0, cols - 1)).sort((a,b)=>a-b);
+    state.cutLines.y = (state.cutLines.y || []).slice(0, Math.max(0, rows - 1)).sort((a,b)=>a-b);
+    while(state.cutLines.x.length < Math.max(0, cols - 1)) state.cutLines.x.push((state.cutLines.x.length + 1) / cols);
+    while(state.cutLines.y.length < Math.max(0, rows - 1)) state.cutLines.y.push((state.cutLines.y.length + 1) / rows);
+    return state.cutLines;
+  }
+
+  function resetCutLines(){
+    ensureCutLines(true);
+  }
+
+  function completeCutEditing(){
+    if(!state.images.length) return;
+    ensureCutLines(false);
+    state.mode = 'imageCrop';
+    state.selected = {type:'image', index:selectedImageIndex()};
+    state.activeHandle = null;
+    updateModeButtons();
+    renderProps();
+    requestRender();
   }
 
   function exportCutImages(){
@@ -2992,26 +3138,35 @@
     const c = getEffectiveCrop(idx);
     const sw = Math.max(1, im.width - c.left - c.right);
     const sh = Math.max(1, im.height - c.top - c.bottom);
-    const {rows, cols} = cutGrid();
+    const lines = ensureCutLines(false);
+    const xCuts = [0, ...lines.x, 1].sort((a,b)=>a-b);
+    const yCuts = [0, ...lines.y, 1].sort((a,b)=>a-b);
     const base = imageBaseName(im.name);
     let n = 1;
-    for(let row=0; row<rows; row++){
-      for(let col=0; col<cols; col++){
-        const sx = c.left + Math.round(col * sw / cols);
-        const sy = c.top + Math.round(row * sh / rows);
-        const sx2 = c.left + Math.round((col + 1) * sw / cols);
-        const sy2 = c.top + Math.round((row + 1) * sh / rows);
+    for(let row=0; row<yCuts.length-1; row++){
+      for(let col=0; col<xCuts.length-1; col++){
+        const sx = c.left + Math.round(xCuts[col] * sw);
+        const sy = c.top + Math.round(yCuts[row] * sh);
+        const sx2 = c.left + Math.round(xCuts[col + 1] * sw);
+        const sy2 = c.top + Math.round(yCuts[row + 1] * sh);
         const out = document.createElement('canvas');
         out.width = Math.max(1, sx2 - sx);
         out.height = Math.max(1, sy2 - sy);
         const oc = out.getContext('2d');
         oc.fillStyle = '#fff'; oc.fillRect(0,0,out.width,out.height);
         oc.drawImage(im.img, sx, sy, out.width, out.height, 0, 0, out.width, out.height);
-        downloadCanvasPng(out, `${base}_${String(n).padStart(2,'0')}.png`, n * 140);
+        const rowLabel = String(row + 1).padStart(2,'0');
+        const colLabel = String(col + 1).padStart(2,'0');
+        downloadCanvasPng(out, `${base}_${rowLabel}_${colLabel}.png`, n * 140);
         n++;
       }
     }
     toast(`已导出 ${n-1} 张`);
+  }
+
+  function exportCurrent(){
+    if(state.mode === 'cut') exportCutImages();
+    else exportPng();
   }
 
   function saveProject(){
@@ -3137,6 +3292,18 @@
     state.canvasCrop = {top:0,right:0,bottom:0,left:0};
     state.seams.forEach(s => { s.beforeCrop=0; s.afterCrop=0; });
     updateToolbarButtons(); renderProps(); fitToView(false); requestRender();
+  }
+
+  function toggleAutoStitch(){
+    state.autoStitchEnabled = !state.autoStitchEnabled;
+    if(state.autoStitchEnabled && state.images.length > 1){
+      pushHistory();
+      state.orientation = inferAutoOrientation(state.images);
+      syncSeams(true);
+      autoAllSeams();
+      fitToView(false);
+    }
+    updateToolbarButtons(); renderProps(); requestRender();
   }
 
   function clearAll(){
@@ -3279,7 +3446,7 @@
   $('#projectInput').addEventListener('change', e => { if(e.target.files[0]) openProject(e.target.files[0]); e.target.value=''; });
   $('#pasteBtn').addEventListener('click', addClipboardImages);
   $('#saveProjectBtn').addEventListener('click', saveProject);
-  $('#exportBtn').addEventListener('click', exportPng);
+  $('#exportBtn').addEventListener('click', exportCurrent);
   $('#fitBtn').addEventListener('click', () => fitToView());
   $('#previewBtn').addEventListener('click', () => { state.preview=!state.preview; requestRender(); updateToolbarButtons(); renderToolDock(); });
   $('#undoBtn').addEventListener('click', undo);
@@ -3287,17 +3454,22 @@
   $('#clearBtn').addEventListener('click', clearAll);
   $('#verticalBtn').addEventListener('click', () => setOrientation('vertical'));
   $('#horizontalBtn').addEventListener('click', () => setOrientation('horizontal'));
-  $('#autoStitchBtn')?.addEventListener('click', () => {
-    state.autoStitchEnabled = !state.autoStitchEnabled;
-    if(state.autoStitchEnabled && state.images.length > 1){
-      pushHistory();
-      state.orientation = inferAutoOrientation(state.images);
-      syncSeams(true);
-      autoAllSeams();
-      fitToView(false);
-    }
-    updateToolbarButtons(); renderProps(); requestRender();
-  });
+  $('#autoStitchBtn')?.addEventListener('click', toggleAutoStitch);
+  $('#mobileMoreBtn')?.addEventListener('click', e => { e.stopPropagation(); state.mobileMoreOpen = !state.mobileMoreOpen; renderMobileMoreMenu(); });
+  mobileMoreMenu?.querySelectorAll('[data-mobile-action]').forEach(btn => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const action = btn.dataset.mobileAction;
+    state.mobileMoreOpen = false;
+    if(action === 'auto') toggleAutoStitch();
+    if(action === 'vertical') setOrientation('vertical');
+    if(action === 'horizontal') setOrientation('horizontal');
+    if(action === 'undo') undo();
+    if(action === 'redo') redo();
+    if(action === 'clear') clearAll();
+    if(action === 'save') saveProject();
+    if(action === 'open') $('#projectInput').click();
+    renderMobileMoreMenu();
+  }));
   $$('.mode-btn,.mobile-mode').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
   window.addEventListener('resize', () => renderToolDock());
   miniMap.addEventListener('pointerdown', beginMiniMapNav);

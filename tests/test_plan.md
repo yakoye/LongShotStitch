@@ -11,9 +11,11 @@
 - Regression: open images, seam editing, divider, whole crop, single-image crop, export PNG.
 - Auto stitch: enable 自动, import multiple images, verify direction is inferred and seams remain editable.
 - Subtitle stitch: adjust 高 and 位, verify the blue subtitle region moves/resizes, generate a subtitle long image, crop/export it.
-- Cut mode: test 横, 纵, 格, 3×3, then export numbered PNG files such as source_01.png.
+- Cut mode: test 行, 列, 格, 3×3, drag cut lines, tap 完成 to enter single-image crop, then use the top export button.
+- Cut export names must use row/column labels such as source_01_01.png and source_01_02.png.
+- Seam drag: dragging the upper/left area changes only the upper/left image; dragging the lower/right area changes only the lower/right image.
 - Browser chrome: tab favicon shows ✂ for index.html and LongShotStitch.html.
-- Mobile 390x844: seven bottom modes fit, tool dock/popovers do not overlap the bottom mode bar.
+- Mobile 390x844: seven bottom modes fit; first tool tap does not open properties, second tap opens properties; ⋯ exposes desktop-only actions.
 
 
 ## v1.17 manual checks
