@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.15 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.16 - 长图拼接裁剪工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -86,7 +86,7 @@
       linear-gradient(180deg,#f5f7fb,#eef2f7);}
     .stage.dragging{cursor:grabbing}
     canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
-    .inline-text-editor{position:absolute;z-index:18;display:none;box-sizing:border-box;border:1.5px solid #2f80ed;border-radius:6px;background:rgba(255,255,255,.92);box-shadow:0 8px 24px rgba(15,23,42,.18);outline:none;padding:4px 6px;color:#111827;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:700;line-height:1.25;resize:none;overflow:hidden;pointer-events:auto;transform-origin:center center;white-space:pre-wrap}
+    .inline-text-editor{position:absolute;z-index:18;display:none;box-sizing:border-box;border:1.5px dashed #2f80ed;border-radius:4px;background:transparent;box-shadow:none;outline:none;padding:1px 2px;color:#111827;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:600;line-height:1.25;resize:none;overflow:hidden;pointer-events:auto;transform-origin:center center;white-space:pre-wrap;caret-color:#2563eb}.inline-text-editor:focus{background:rgba(255,255,255,.06)}.inline-text-editor::placeholder{color:#94a3b8;opacity:.9}
     .drop-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,82%);padding:28px;border:2px dashed #cbd5e1;border-radius:22px;background:rgba(255,255,255,.86);text-align:center;box-shadow:var(--shadow);pointer-events:auto;cursor:pointer}
     .drop-hint h2{margin:0 0 8px;font-size:23px}
     .drop-hint p{margin:6px 0;color:var(--muted);line-height:1.65}
@@ -281,7 +281,7 @@
       <div class="statusbar" id="statusbar">Ready</div>
       <div class="floating-toolkit" id="toolDock" aria-label="工具栏"></div>
       <div class="tool-popover" id="toolPopover"></div>
-      <textarea id="inlineTextEditor" class="inline-text-editor" spellcheck="false" aria-label="文字编辑"></textarea>
+      <textarea id="inlineTextEditor" class="inline-text-editor" spellcheck="false" aria-label="文字编辑" placeholder="输入文字"></textarea>
 
       <div class="mini-map" id="miniMap" title="点击跳转">
         <canvas id="miniMapCanvas"></canvas>
@@ -342,7 +342,7 @@
     annotations: [],
     activeHandle: null,
     toolArmed: null,
-    toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'输入文字', textColor:'#111827', textSize:28, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
+    toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:20, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
     mobileToolPopoverOpen: false,
     splitDraft: null,
     splitDraftManual: false
@@ -1169,7 +1169,14 @@
     if(!inlineTextEditor) return;
     if(commit && inlineTextIndex >= 0){
       const a = state.annotations[inlineTextIndex];
-      if(a && a.type === 'text') a.text = inlineTextEditor.value;
+      if(a && a.type === 'text'){
+        a.text = inlineTextEditor.value;
+        if(!String(a.text || '').trim()){
+          const removed = inlineTextIndex;
+          state.annotations.splice(removed, 1);
+          if(state.selected?.type === 'annotation') state.selected = null;
+        }
+      }
     }
     inlineTextIndex = -1;
     inlineTextEditor.style.display = 'none';
@@ -1185,18 +1192,18 @@
     if(!inlineTextEditor || inlineTextIndex < 0) return;
     const a = state.annotations[inlineTextIndex];
     if(!a || a.type !== 'text' || state.mode !== 'tools' || state.preview){ closeInlineTextEditor(false); return; }
-    const m = measureTextAnnotation(a);
-    const p = worldToScreen(a.x || 0, a.y || 0);
+    const b = annotationRawBounds(a);
+    const p = worldToScreen(b.x, b.y);
     const z = Math.max(0.0001, state.zoom);
     inlineTextEditor.style.display = 'block';
     inlineTextEditor.style.left = `${p.x}px`;
     inlineTextEditor.style.top = `${p.y}px`;
-    inlineTextEditor.style.width = `${Math.max(72, m.width * z)}px`;
-    inlineTextEditor.style.height = `${Math.max(28, m.height * z)}px`;
-    inlineTextEditor.style.fontSize = `${Math.max(10, (a.fontSize || 28) * z)}px`;
+    inlineTextEditor.style.width = `${Math.max(36, b.w * z)}px`;
+    inlineTextEditor.style.height = `${Math.max(18, b.h * z)}px`;
+    inlineTextEditor.style.fontSize = `${Math.max(8, (a.fontSize || 20) * z)}px`;
     inlineTextEditor.style.lineHeight = '1.25';
     inlineTextEditor.style.color = a.color || '#111827';
-    inlineTextEditor.style.background = (a.bg && a.bg !== 'transparent') ? a.bg : 'rgba(255,255,255,.86)';
+    inlineTextEditor.style.background = (a.bg && a.bg !== 'transparent') ? a.bg : 'transparent';
     inlineTextEditor.style.writingMode = a.vertical ? 'vertical-rl' : 'horizontal-tb';
     inlineTextEditor.style.transform = `rotate(${Math.round(a.rotation || 0)}deg)`;
   }
@@ -1456,7 +1463,7 @@
       compactRow(`${chip('arrowKind','line',s.arrowKind==='line',svgIcon('line'),'直线')}${chip('arrowKind','arrow',s.arrowKind!=='line'&&s.arrowKind!=='doubleArrow',svgIcon('arrow'),'单箭头')}${chip('arrowKind','doubleArrow',s.arrowKind==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}${colorPalette('color',s.color)}${widthControl('lineWidth',s.lineWidth||4,1,64)}`)
     );
     if(g === 'text') return compactPanel(
-      compactRow(`${textInput('textValue',s.textValue||'输入文字',false,'文字')}`)+
+      compactRow(`${textInput('textValue',s.textValue||'',false,'文字')}`)+
       compactRow(`${sizeButtons('textSize',s.textSize||28,8,160)}${colorPalette('textColor',s.textColor||'#111827')}${boolChip('textOutline',!!s.textOutline,'Å','描边')}${boolChip('textVertical',!!s.textVertical,'竖','竖排')}`)+
       compactRow(`${['transparent','#ffffff','#111827','#ffeb3b'].map(c=>swatchButton('textBg',c,(s.textBg||'transparent')===c,false,c==='transparent'?'透明背景':'背景')).join('')}`)
     );
@@ -1488,7 +1495,7 @@
       html += compactRow(`${annChip('type',isCircle?(isFill?'boxFill':'box'):(isFill?'box':'box'),!isCircle,svgIcon('rect'),'矩形')}${annChip('type',isCircle?(isFill?'circleFill':'circle'):(isFill?'circle':'circle'),isCircle,svgIcon('circle'),'圆形')}${annChip('type',isCircle?(isFill?'circle':'circleFill'):(isFill?'box':'boxFill'),isFill,'◩','填充 / 空心')}`);
     }
     if(['line','arrow','doubleArrow'].includes(a.type)) html += compactRow(`${annChip('type','line',a.type==='line',svgIcon('line'),'直线')}${annChip('type','arrow',a.type==='arrow',svgIcon('arrow'),'单箭头')}${annChip('type','doubleArrow',a.type==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}`);
-    if(textLike) html += compactRow(`${textInput('text',a.text||'',true,'文字')}${sizeButtons('fontSize',a.fontSize||28,8,180,true)}${a.type==='text' ? annChip('vertical','toggle',!!a.vertical,'竖','竖排') : ''}`);
+    if(textLike) html += compactRow(`${textInput('text',a.text||'',true,'文字')}${sizeButtons('fontSize',a.fontSize||20,8,180,true)}${a.type==='text' ? annChip('vertical','toggle',!!a.vertical,'竖','竖排') : ''}`);
     if(a.type === 'badge') html += compactRow(`<input class="tiny-number" type="number" data-ann="text" value="${Math.round(+a.text||1)}" min="1" max="9999" step="1" title="编号">${sizeButtons('fontSize',a.fontSize||34,14,120,true)}`);
     html += compactRow(`${colorPalette('color',a.color||'#ef4444',true)}${['boxFill','circleFill'].includes(a.type) ? colorPalette('fillColor',a.fillColor||'#fee2e2',true,['#fee2e2','#ffedd5','#fef9c3','#dcfce7','#dbeafe','#ffffff']) : ''}`);
     if(textLike) html += compactRow(`${annChip('outline','toggle',!!a.outline,'Å','描边')}${['transparent','#ffffff','#111827','#ffeb3b'].map(c=>swatchButton('bg',c,(a.bg||'transparent')===c,true,c==='transparent'?'透明背景':'背景')).join('')}`);
@@ -1691,6 +1698,9 @@
       const b = annotationBounds(a);
       hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move'});
       const selected = state.selected?.type === 'annotation' && state.selected.index === i;
+      if(selected && a.type === 'text' && inlineTextIndex === i){
+        continue;
+      }
       if(selected){
         c.save();
         c.strokeStyle = '#2f80ed';
@@ -1751,9 +1761,9 @@
 
   function measureTextAnnotation(a){
     const temp = document.createElement('canvas').getContext('2d');
-    const fs = a.fontSize || (a.type === 'watermark' ? 34 : 28);
-    temp.font = `700 ${fs}px ui-sans-serif, system-ui, sans-serif`;
-    const raw = String(a.text || (a.type === 'watermark' ? '水印' : 'Text'));
+    const fs = a.fontSize || (a.type === 'watermark' ? 34 : 20);
+    temp.font = `600 ${fs}px ui-sans-serif, system-ui, sans-serif`;
+    const raw = String(a.text || (a.type === 'watermark' ? '水印' : '输入文字'));
     const lines = a.vertical ? [...raw.replace(/\n/g,'')].filter(Boolean) : raw.split('\n');
     const step = a.vertical ? fs + 4 : fs + 6;
     const width = (a.vertical ? fs : Math.max(...lines.map(line => temp.measureText(line).width), 40)) + ((a.bg && a.bg !== 'transparent') ? 16 : 0);
@@ -1832,7 +1842,7 @@
       if(a.type === 'text' || a.type === 'watermark'){
         const m = measureTextAnnotation(a);
         const fs = m.fs;
-        c.font = `700 ${fs}px ui-sans-serif, system-ui, sans-serif`;
+        c.font = `600 ${fs}px ui-sans-serif, system-ui, sans-serif`;
         c.textAlign = 'left'; c.textBaseline = 'top';
         const lines = m.lines;
         const drawTextBlock = (ox=0, oy=0) => {
@@ -1997,7 +2007,7 @@
 
   function makeAnnotation(type, pt){
     const s = state.toolSettings || {};
-    const base = { id: uid('ann'), type, x: Math.round(pt.x), y: Math.round(pt.y), w: 180, h: 90, color: s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', bg: 'transparent', opacity: s.opacity == null ? 1 : s.opacity, lineWidth: s.lineWidth || 4, fontSize: 28, text: '文本' };
+    const base = { id: uid('ann'), type, x: Math.round(pt.x), y: Math.round(pt.y), w: 180, h: 90, color: s.color || '#ef4444', fillColor:s.fillColor || '#fee2e2', bg: 'transparent', opacity: s.opacity == null ? 1 : s.opacity, lineWidth: s.lineWidth || 4, fontSize: 20, text: '' };
     if(type === 'redact') Object.assign(base, {color:'#111827', fillColor:'#111827', w:220, h:72});
     if(type === 'mosaic') Object.assign(base, {w:220, h:90, gridSize:s.mosaicGrid || 14, opacity:1});
     if(type === 'mosaicPen') Object.assign(base, {points:[{x:0,y:0}], w:0, h:0, gridSize:s.mosaicGrid || 14, lineWidth:Math.max(18,(s.mosaicGrid||14)*2), opacity:1});
@@ -2008,7 +2018,7 @@
     if(type === 'line') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
     if(type === 'arrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
     if(type === 'doubleArrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
-    if(type === 'text') Object.assign(base, {color:s.textColor || '#111827', bg:s.textBg || 'transparent', outline:!!s.textOutline, vertical:!!s.textVertical, text:s.textValue || '输入文字', fontSize:s.textSize || 28, w:0, h:0});
+    if(type === 'text') Object.assign(base, {color:s.textColor || '#111827', bg:s.textBg || 'transparent', outline:!!s.textOutline, vertical:!!s.textVertical, text:s.textValue || '', fontSize:s.textSize || 20, w:0, h:0});
     if(type === 'badge') Object.assign(base, {color:s.badgeColor || '#2f80ed', text:String(s.badgeNumber || 1), fontSize:s.badgeSize || 34, w:0, h:0});
     if(type === 'watermark') Object.assign(base, {color:s.watermarkColor || '#111827', bg:'transparent', text:s.watermarkText || '水印', fontSize:s.watermarkSize || 34, opacity:s.watermarkOpacity == null ? .22 : s.watermarkOpacity, repeatCount:s.watermarkRepeat || 1, w:0, h:0});
     if(type === 'pen') Object.assign(base, {color:s.penColor || '#ef4444', lineWidth:s.penWidth || 4, points:[{x:0,y:0}], w:0, h:0});
@@ -2037,7 +2047,7 @@
       if(type === 'badge') state.toolSettings.badgeNumber = clamp(Math.round(+state.toolSettings.badgeNumber || 1) + 1, 1, 9999);
       applyActiveTool();
       renderProps(); requestRender();
-      if(type === 'text') openInlineTextEditor(idx, true);
+      if(type === 'text') openInlineTextEditor(idx, false);
       else closeInlineTextEditor(false);
       return true;
     }

@@ -1,10 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const file = path.resolve(__dirname, '..', 'LongShotStitch_v1.15.html');
+const file = path.resolve(__dirname, '..', 'LongShotStitch_v1.16.html');
 const html = fs.readFileSync(file, 'utf8');
 const required = [
-  'LongShotStitch v1.15',
+  'LongShotStitch v1.16',
   'inlineTextEditor',
+  'placeholder="输入文字"',
   'openInlineTextEditor',
   'annotationFrame',
   'rotatePointAround',

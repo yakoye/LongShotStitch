@@ -132,3 +132,11 @@
 - The inline text editor follows zoom, pan, rotation, and vertical-text mode.
 - The selected-object dashed frame and rotation handle must rotate with the object. The frame must not remain axis-aligned while the object is rotated.
 - After adding annotations, later clipping/cropping/export should treat annotations as visible image content: annotation rendering is clipped to the visible stitched image/content region rather than floating outside it.
+
+## v1.16 文字画布内编辑规则
+
+- 文字工具在画布内直接编辑时，只保留一个统一的虚线编辑框。
+- 画布内文字编辑框不得再使用独立的实色背景、阴影或和选中框错位的第二层边框。
+- 新建文字默认进入空白编辑状态，使用 placeholder 提示，不自动选中“输入文字”。
+- 文字默认字号收敛为较小尺寸，避免刚创建时遮挡正文内容。
+- 文字编辑框的位置、大小、旋转必须与文字对象自己的选区保持一致。

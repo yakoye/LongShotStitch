@@ -104,3 +104,8 @@
 - Do not make text annotation editing depend only on a side or floating panel; direct canvas editing is required.
 - Selection frames and handles must represent the actual transformed object, including rotation.
 - Cropping and export must not leave annotations floating outside the visible image content.
+
+## v1.16 公开界面约束补充
+
+- 画布内直接编辑控件必须和标注对象视觉统一，避免背景框、虚线框、选中框多层错位。
+- 新建文字不应使用大号默认实心提示遮挡图片正文。
