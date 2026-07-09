@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.11 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.12 - 长图拼接裁剪工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -181,8 +181,10 @@
 
     @media (max-width: 760px){
       .desktop-tools-slot{display:none}
-      .floating-toolkit{bottom:calc(var(--mobilebar) + 10px);left:8px;right:8px;transform:none;justify-content:flex-start}
-      .tool-popover{max-height:calc(100% - var(--topbar) - var(--mobilebar) - 28px)}
+      .floating-toolkit{bottom:8px;left:8px;right:8px;transform:none;justify-content:flex-start;max-width:none;box-shadow:0 10px 28px rgba(15,23,42,.18)}
+      .tool-popover{max-height:min(42vh,300px);max-width:calc(100% - 16px);box-shadow:0 14px 34px rgba(15,23,42,.24)}
+      .app[data-mode="tools"] .statusbar{display:none}
+      .tool-popover.mobile-collapsed{display:none!important}
     }
 
     @media (max-width: 760px){
@@ -210,7 +212,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.11</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.12</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -338,6 +340,7 @@
     activeHandle: null,
     toolArmed: null,
     toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'输入文字', textColor:'#111827', textSize:28, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
+    mobileToolPopoverOpen: false,
     splitDraft: null,
     splitDraftManual: false
   };
@@ -1213,7 +1216,13 @@
   }
 
   function setToolGroup(group){
+    const sameGroup = (state.toolSettings.group || 'select') === group;
     state.toolSettings.group = group;
+    if(isMobileLayout()){
+      state.mobileToolPopoverOpen = sameGroup ? !state.mobileToolPopoverOpen : true;
+    } else {
+      state.mobileToolPopoverOpen = true;
+    }
     if(group === 'watermark'){
       const idx = findExistingWatermarkIndex();
       state.selected = idx >= 0 ? {type:'annotation', index:idx} : null;
@@ -1225,6 +1234,7 @@
   }
 
   function isDesktopLayout(){ return window.matchMedia('(min-width: 761px)').matches; }
+  function isMobileLayout(){ return !isDesktopLayout(); }
 
   function attachToolUi(){
     if(!toolDock || !toolPopover) return;
@@ -1294,7 +1304,7 @@
     let left = clamp(ax - pw/2, 8, Math.max(8, sw - pw - 8));
     let below = ayBottom + 8;
     let above = ayTop - ph - 8;
-    let top = (below + ph <= sh - 8) ? below : Math.max(8, above);
+    let top = isMobileLayout() ? Math.max(8, above) : ((below + ph <= sh - 8) ? below : Math.max(8, above));
     if(top + ph > sh - 8) top = Math.max(8, sh - ph - 8);
     toolPopover.style.left = `${left}px`;
     toolPopover.style.top = `${top}px`;
@@ -1303,7 +1313,13 @@
 
   function renderToolPopover(){
     if(!toolPopover) return;
-    if(state.mode !== 'tools' || state.preview || !state.images.length){ toolPopover.classList.remove('show'); return; }
+    if(state.mode !== 'tools' || state.preview || !state.images.length){ toolPopover.classList.remove('show'); toolPopover.classList.remove('mobile-collapsed'); return; }
+    if(isMobileLayout() && !state.mobileToolPopoverOpen){
+      toolPopover.classList.add('mobile-collapsed');
+      toolPopover.classList.remove('show');
+      return;
+    }
+    toolPopover.classList.remove('mobile-collapsed');
     const a = state.selected?.type === 'annotation' ? state.annotations[state.selected.index] : null;
     const html = a ? annotationPopover(a) : groupPopover();
     if(!html){ toolPopover.innerHTML = ''; toolPopover.classList.remove('show'); return; }
@@ -2369,6 +2385,7 @@
   }
 
   function updateModeButtons(){
+    app.dataset.mode = state.mode;
     $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === state.mode));
     $$('.mobile-mode').forEach(b => b.classList.toggle('active', b.dataset.mode === state.mode));
   }
@@ -2393,7 +2410,14 @@
       syncSplitDraftToViewportCenter();
       state.selected = null;
     }
-    if(m === 'tools'){ state.toolSettings.group = state.toolSettings.group || 'select'; applyActiveTool(); }
+    if(m === 'tools'){
+      state.toolSettings.group = state.toolSettings.group || 'select';
+      if(isMobileLayout()) state.mobileToolPopoverOpen = false;
+      else state.mobileToolPopoverOpen = true;
+      applyActiveTool();
+    } else {
+      state.mobileToolPopoverOpen = false;
+    }
     updateModeButtons(); renderProps(); requestRender();
   }
 

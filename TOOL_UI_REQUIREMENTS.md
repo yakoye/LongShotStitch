@@ -98,3 +98,10 @@
 
 - 当前为几何、箭头、标号、马赛克、铅笔等工具时，点击已有对象均优先进入编辑。
 - 当前工具保持不变；编辑已有对象不应强制切回选择 / 移动。
+
+## v1.12 Mobile Tool Interaction
+
+- Desktop keeps the left-side tool area under the Tools mode.
+- Mobile uses a bottom-attached icon dock directly above the bottom mode bar.
+- Mobile property panels are not always-on; tapping the active tool icon hides or shows the panel.
+- Mobile property panels must remain compact and scroll internally.

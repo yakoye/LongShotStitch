@@ -4,8 +4,8 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const htmlPath = fs.existsSync(path.join(root, 'LongShotStitch_v1.11.html'))
-  ? path.join(root, 'LongShotStitch_v1.11.html')
+const htmlPath = fs.existsSync(path.join(root, 'LongShotStitch_v1.12.html'))
+  ? path.join(root, 'LongShotStitch_v1.12.html')
   : path.join(root, 'index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 

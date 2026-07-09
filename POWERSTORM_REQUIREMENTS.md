@@ -75,3 +75,10 @@
 - 右侧缩略图属于导航控件，不得影响图片内容、拼接线、裁剪和导出结果。
 - 右侧垂直滚动条只在内容高度超出视口时显示；底部横向滚动条只在内容宽度超出视口时显示。
 - 后续自动拼接、电影字幕拼接必须先写入规划文档，不得混入导航修复版本中破坏稳定功能。
+
+## v1.12 Mobile Tool Dock Rule
+
+- Mobile-only changes must not alter desktop tool panel behavior.
+- On mobile, the tool icon dock stays attached just above the bottom mode bar.
+- On mobile, the tool property popover is collapsible: tapping a tool icon toggles its property panel; switching to another tool opens that tool's panel.
+- On mobile, tool property popovers must have a bounded height and scroll internally so they do not cover the whole canvas.

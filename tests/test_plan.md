@@ -1,4 +1,4 @@
-# LongShotStitch v1.11 人工测试清单
+# LongShotStitch v1.12 人工测试清单
 
 ## 分割线跟随
 
