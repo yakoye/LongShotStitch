@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShot Stitch & Trim v1.4 - 长图拼裁工具</title>
+  <title>LongShot Stitch & Trim v1.5 - 长图拼裁工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -54,6 +54,7 @@
     .mode-label span{display:block;color:var(--muted);font-size:11px;font-weight:500;margin-top:2px}
     .props{min-height:0;overflow:auto;padding:12px;background:linear-gradient(#fff,#f8fafc)}
     .prop-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:12px;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+    .tool-active-card{position:sticky;top:0;z-index:2;max-height:min(420px,calc(100vh - var(--topbar) - 116px));overflow:auto;box-shadow:0 12px 26px rgba(15,23,42,.10)}
     .prop-card h3{margin:0 0 10px;font-size:14px}
     .hint{font-size:12px;color:var(--muted);line-height:1.6;margin:0}
     .row{display:flex;gap:8px;align-items:center;margin:8px 0}
@@ -123,7 +124,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShot Stitch<small>长图拼裁工具 v1.4</small></div>
+      <div>LongShot Stitch<small>长图拼裁工具 v1.5</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -1221,11 +1222,21 @@
 
   function handleHitDown(h, w, e){
     if(h.type === 'activeDone'){
+      const finishedActive = state.activeHandle ? {...state.activeHandle} : null;
+      if(state.mode === 'divider' && finishedActive?.kind === 'seamCenter'){
+        // 完成接缝编辑后，分割线应停在当前接缝原位置。
+        // 之后由 drawDividerOverlay 判断：仍在可视范围就保持；离开可视范围才自动回到屏幕中心。
+        const layout = computeLayout(true);
+        const sv = layout.seams.find(v => v.index === finishedActive.index);
+        if(sv){
+          if(!state.splitDraft) state.splitDraft = {pos:1};
+          state.splitDraft.pos = Math.round(state.orientation === 'vertical' ? sv.y : sv.x);
+          state.splitDraftManual = true;
+        }
+      }
       state.activeHandle = null;
       if(state.mode === 'divider'){
         state.selected = null;
-        state.splitDraftManual = false;
-        syncSplitDraftToViewportCenter();
       }
       renderProps(); requestRender(); return;
     }
@@ -1545,7 +1556,7 @@
     const toolName = a ? ({
       text:'文字', watermark:'水印', mosaic:'马赛克', redact:'遮挡', pen:'自由笔', highlight:'荧光笔', box:'矩形', boxFill:'填充矩形', circle:'圆圈', circleFill:'填充圆圈', line:'直线', arrow:'箭头', doubleArrow:'双箭头'
     }[a.type] || a.type) : '';
-    return `<div class="prop-card"><div class="tool-icon-grid">
+    const toolPanel = `<div class="prop-card"><div class="tool-icon-grid">
       ${iconBtn('select','⌖','选择')}
       ${iconBtn('text','T','文字')}
       ${iconBtn('watermark','©','水印')}
@@ -1560,7 +1571,8 @@
       ${iconBtn('line','╱','直线')}
       ${iconBtn('arrow','↗','箭头')}
       ${iconBtn('doubleArrow','↔','双箭头')}
-    </div><p class="hint" style="margin-top:10px">选择工具后，在图片上按住拖动创建；文字/水印点击放置。</p></div>` + (a ? `<div class="prop-card">
+    </div><p class="hint" style="margin-top:10px">选择工具后，在图片上按住拖动创建；文字/水印点击放置。</p></div>`;
+    const activePanel = a ? `<div class="prop-card tool-active-card">
       <h3>${toolName}</h3>
       <div class="row"><label>X</label><input type="number" data-ann="x" value="${Math.round(a.x||0)}"></div>
       <div class="row"><label>Y</label><input type="number" data-ann="y" value="${Math.round(a.y||0)}"></div>
@@ -1573,7 +1585,9 @@
       ${a.type==='mosaic' ? `<div class="row"><label>块大小</label><input type="number" data-ann="gridSize" value="${Math.round(a.gridSize||14)}"></div>` : ''}
       ${canOpacity ? `<div class="row"><label>透明度</label><input type="number" step="0.05" min="0.05" max="1" data-ann="opacity" value="${a.opacity == null ? 1 : a.opacity}"></div>` : ''}
       <div class="mini-grid"><button class="mini-btn warn" id="deleteAnnotationBtn">删除对象</button></div>
-    </div>` : '');
+    </div>` : '';
+    // 工具属性必须优先显示，并且在侧栏内 sticky，避免被下方工具列表或页面高度遮住。
+    return activePanel + toolPanel;
   }
 
   function cropInputs(prefix, c){
