@@ -622,10 +622,6 @@
 
   function drawActiveGuide(c, line, orientation, dragArea, arrowMode='both'){
     const verticalMove = orientation === 'vertical';
-    const hit = (cx, cy) => {
-      const size = 86 / Math.max(state.zoom, .08);
-      hitAreas.push({type:'activeDrag', x:cx-size/2, y:cy-size/2, w:size, h:size, cursor: verticalMove ? 'ns-resize' : 'ew-resize'});
-    };
     c.save();
     c.strokeStyle = '#ffbf00';
     c.lineWidth = 2;
@@ -633,15 +629,22 @@
     if(verticalMove){ c.moveTo(line.x1, line.y); c.lineTo(line.x2, line.y); }
     else { c.moveTo(line.x, line.y1); c.lineTo(line.x, line.y2); }
     c.stroke();
+
+    // Important: after an arrow is activated, dragging happens on the screenshot/page area,
+    // not on the arrow icon itself. The chevrons are only visual hints.
+    if(dragArea){
+      hitAreas.push({...dragArea, type:'activeDrag', cursor: verticalMove ? 'ns-resize' : 'ew-resize'});
+    }
+
     if(verticalMove){
       const cx = (line.x1+line.x2)/2;
-      if(arrowMode === 'both' || arrowMode === 'down') { drawDoubleChevron(c, cx, line.y - 70, 'down'); hit(cx, line.y - 70); }
-      if(arrowMode === 'both' || arrowMode === 'up') { drawDoubleChevron(c, cx, line.y + 70, 'up'); hit(cx, line.y + 70); }
+      if(arrowMode === 'both' || arrowMode === 'down') drawDoubleChevron(c, cx, line.y - 70, 'down');
+      if(arrowMode === 'both' || arrowMode === 'up') drawDoubleChevron(c, cx, line.y + 70, 'up');
       drawPill(c, cx, line.y, '✓', {type:'activeDone', cursor:'pointer'}, true);
     } else {
       const cy = (line.y1+line.y2)/2;
-      if(arrowMode === 'both' || arrowMode === 'left') { drawDoubleChevron(c, line.x - 70, cy, 'left'); hit(line.x - 70, cy); }
-      if(arrowMode === 'both' || arrowMode === 'right') { drawDoubleChevron(c, line.x + 70, cy, 'right'); hit(line.x + 70, cy); }
+      if(arrowMode === 'both' || arrowMode === 'left') drawDoubleChevron(c, line.x - 70, cy, 'left');
+      if(arrowMode === 'both' || arrowMode === 'right') drawDoubleChevron(c, line.x + 70, cy, 'right');
       drawPill(c, line.x, cy, '✓', {type:'activeDone', cursor:'pointer'}, true);
     }
     c.restore();
@@ -679,9 +682,12 @@
       c.restore();
       const active = state.activeHandle?.kind === 'seamCenter' && state.activeHandle.index === sv.index;
       if(active){
-        const area = vertical ? {x:0, y:Math.max(0, sv.y-120), w:layout.fullWidth, h:240} : {x:Math.max(0, sv.x-120), y:0, w:240, h:layout.fullHeight};
-        if(vertical) drawActiveGuide(c, {x1:0,x2:layout.fullWidth,y:sv.y}, 'vertical', area, 'both');
-        else drawActiveGuide(c, {x:sv.x,y1:0,y2:layout.fullHeight}, 'horizontal', area, 'both');
+        const beforeArea = layout.imageBounds.find(b => b.index === sv.index);
+        const afterArea = layout.imageBounds.find(b => b.index === sv.index + 1);
+        if(beforeArea) hitAreas.push({...beforeArea, type:'activeDragBefore', index:sv.index, cursor: vertical ? 'ns-resize' : 'ew-resize'});
+        if(afterArea) hitAreas.push({...afterArea, type:'activeDragAfter', index:sv.index, cursor: vertical ? 'ns-resize' : 'ew-resize'});
+        if(vertical) drawActiveGuide(c, {x1:0,x2:layout.fullWidth,y:sv.y}, 'vertical', null, 'both');
+        else drawActiveGuide(c, {x:sv.x,y1:0,y2:layout.fullHeight}, 'horizontal', null, 'both');
       } else {
         if(vertical) drawSeamPill(c, layout.fullWidth/2, sv.y, true, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
         else drawSeamPill(c, sv.x, layout.fullHeight/2, false, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
@@ -976,6 +982,14 @@
   function handleHitDown(h, w, e){
     if(h.type === 'activeDone'){ state.activeHandle = null; renderProps(); requestRender(); return; }
     if(h.type === 'activeDrag'){ startActiveDrag(w); return; }
+    if(h.type === 'activeDragBefore' || h.type === 'activeDragAfter'){
+      const s = state.seams[h.index];
+      if(!s) return;
+      pushHistory();
+      state.selected = {type:'seam', index:h.index};
+      drag = { type: h.type === 'activeDragBefore' ? 'seamBefore' : 'seamAfter', index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop };
+      return;
+    }
     if(h.type === 'seamSelect'){ state.activeHandle = null; state.selected = {type:'seam', index:h.index}; renderProps(); requestRender(); return; }
     if(h.type === 'annotationSelect'){
       state.selected = {type:'annotation', index:h.index}; renderProps(); requestRender();
@@ -1071,7 +1085,7 @@
       if(a.type === 'text'){ a.fontSize = Math.max(12, Math.round((drag.ann.fontSize || 28) + (w.y - drag.start.y)/4)); }
       renderProps(); requestRender(); return;
     }
-    if(drag.type === 'seamCenter'){
+    if(['seamBefore','seamAfter','seamCenter'].includes(drag.type)){
       const s = state.seams[drag.index];
       const vertical = state.orientation === 'vertical';
       const d = vertical ? Math.round(w.y - drag.start.y) : Math.round(w.x - drag.start.x);
@@ -1079,8 +1093,12 @@
       const b = state.images[drag.index+1];
       const maxBefore = vertical ? a.height - a.crop.top - a.crop.bottom - 1 : a.width - a.crop.left - a.crop.right - 1;
       const maxAfter = vertical ? b.height - b.crop.top - b.crop.bottom - 1 : b.width - b.crop.left - b.crop.right - 1;
-      s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
-      s.afterCrop = clamp(drag.after + d, 0, maxAfter);
+      if(drag.type === 'seamBefore') s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
+      if(drag.type === 'seamAfter') s.afterCrop = clamp(drag.after + d, 0, maxAfter);
+      if(drag.type === 'seamCenter'){
+        s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
+        s.afterCrop = clamp(drag.after + d, 0, maxAfter);
+      }
       renderProps(); requestRender(); return;
     }
   }
