@@ -109,3 +109,10 @@
 
 - 画布内直接编辑控件必须和标注对象视觉统一，避免背景框、虚线框、选中框多层错位。
 - 新建文字不应使用大号默认实心提示遮挡图片正文。
+
+
+## v1.17 development guardrails
+
+- Text editing may use the stable property-panel flow when inline editing breaks movement or selection. The canvas must keep one clean dashed selection frame.
+- Tool subtypes are stateful and locked. Creating an object must use the user-selected subtype, not silently fall back to the default subtype.
+- Selecting an existing annotation should synchronize the tool UI to that object's type and style, without breaking the rule that empty-area creation uses the currently selected subtype.

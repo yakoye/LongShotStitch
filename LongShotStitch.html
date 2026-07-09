@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.16 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.17 - 长图拼接裁剪工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -213,7 +213,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.13</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.17</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -342,7 +342,7 @@
     annotations: [],
     activeHandle: null,
     toolArmed: null,
-    toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:20, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
+    toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:18, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
     mobileToolPopoverOpen: false,
     splitDraft: null,
     splitDraftManual: false
@@ -1209,17 +1209,10 @@
   }
 
   function openInlineTextEditor(index, selectAll=false){
-    if(!inlineTextEditor || index < 0 || index >= state.annotations.length) return;
-    const a = state.annotations[index];
-    if(!a || a.type !== 'text') return;
-    inlineTextIndex = index;
-    inlineTextEditor.value = a.text || '';
-    positionInlineTextEditor();
-    setTimeout(()=>{
-      if(inlineTextIndex !== index) return;
-      inlineTextEditor.focus({preventScroll:true});
-      if(selectAll) inlineTextEditor.select();
-    }, 0);
+    // v1.17：文字回到稳定的属性面板编辑方式。
+    // 画布上只显示统一蓝色虚线选中框，不再弹出内联输入框，避免无法拖动和焦点冲突。
+    inlineTextIndex = -1;
+    if(inlineTextEditor) inlineTextEditor.style.display = 'none';
   }
 
 
@@ -1265,11 +1258,61 @@
   function selectAnnotationForEdit(index){
     if(index < 0 || index >= state.annotations.length) return false;
     state.selected = {type:'annotation', index};
-    renderProps(); requestRender();
     const a = state.annotations[index];
-    if(a?.type === 'text') openInlineTextEditor(index, false);
-    else closeInlineTextEditor(false);
+    syncToolSettingsFromAnnotation(a);
+    closeInlineTextEditor(false);
+    renderProps(); requestRender();
     return true;
+  }
+
+  function syncToolSettingsFromAnnotation(a){
+    if(!a) return;
+    const s = state.toolSettings;
+    if(['box','boxFill','circle','circleFill'].includes(a.type)){
+      s.group = 'shape';
+      s.shapeKind = a.type.startsWith('circle') ? 'circle' : 'box';
+      s.shapeFill = a.type.endsWith('Fill');
+      if(a.color) s.color = a.color;
+      if(a.fillColor) s.fillColor = a.fillColor;
+      if(a.lineWidth) s.lineWidth = a.lineWidth;
+      if(a.opacity != null) s.opacity = a.opacity;
+    } else if(['line','arrow','doubleArrow'].includes(a.type)){
+      s.group = 'arrow';
+      s.arrowKind = a.type;
+      if(a.color) s.color = a.color;
+      if(a.lineWidth) s.lineWidth = a.lineWidth;
+    } else if(['pen','highlight'].includes(a.type)){
+      s.group = 'pen';
+      s.penKind = a.type === 'highlight' ? 'highlight' : 'pen';
+      if(a.color) s.penColor = a.color;
+      if(a.type === 'highlight') s.highlightWidth = a.lineWidth || s.highlightWidth;
+      else s.penWidth = a.lineWidth || s.penWidth;
+    } else if(a.type === 'text'){
+      s.group = 'text';
+      s.textValue = a.text || '';
+      s.textColor = a.color || s.textColor;
+      s.textSize = a.fontSize || s.textSize;
+      s.textBg = a.bg || 'transparent';
+      s.textOutline = !!a.outline;
+      s.textVertical = !!a.vertical;
+    } else if(a.type === 'badge'){
+      s.group = 'badge';
+      s.badgeNumber = Math.round(+a.text || s.badgeNumber || 1);
+      s.badgeColor = a.color || s.badgeColor;
+      s.badgeSize = a.fontSize || s.badgeSize;
+    } else if(['mosaic','mosaicPen'].includes(a.type)){
+      s.group = 'mosaic';
+      s.mosaicKind = a.type === 'mosaicPen' ? 'free' : 'mosaic';
+      s.mosaicGrid = a.gridSize || s.mosaicGrid;
+    } else if(a.type === 'watermark'){
+      s.group = 'watermark';
+      s.watermarkText = a.text || s.watermarkText;
+      s.watermarkSize = a.fontSize || s.watermarkSize;
+      s.watermarkColor = a.color || s.watermarkColor;
+      s.watermarkOpacity = a.opacity == null ? s.watermarkOpacity : a.opacity;
+      s.watermarkRepeat = a.repeatCount || s.watermarkRepeat;
+    }
+    applyActiveTool();
   }
 
   function groupForAnnotationType(type){
@@ -1464,7 +1507,7 @@
     );
     if(g === 'text') return compactPanel(
       compactRow(`${textInput('textValue',s.textValue||'',false,'文字')}`)+
-      compactRow(`${sizeButtons('textSize',s.textSize||28,8,160)}${colorPalette('textColor',s.textColor||'#111827')}${boolChip('textOutline',!!s.textOutline,'Å','描边')}${boolChip('textVertical',!!s.textVertical,'竖','竖排')}`)+
+      compactRow(`${sizeButtons('textSize',s.textSize||18,8,160)}${colorPalette('textColor',s.textColor||'#111827')}${boolChip('textOutline',!!s.textOutline,'Å','描边')}${boolChip('textVertical',!!s.textVertical,'竖','竖排')}`)+
       compactRow(`${['transparent','#ffffff','#111827','#ffeb3b'].map(c=>swatchButton('textBg',c,(s.textBg||'transparent')===c,false,c==='transparent'?'透明背景':'背景')).join('')}`)
     );
     if(g === 'badge') return compactPanel(
@@ -1492,7 +1535,7 @@
     if(['box','boxFill','circle','circleFill'].includes(a.type)){
       const isCircle = a.type.startsWith('circle');
       const isFill = a.type.endsWith('Fill');
-      html += compactRow(`${annChip('type',isCircle?(isFill?'boxFill':'box'):(isFill?'box':'box'),!isCircle,svgIcon('rect'),'矩形')}${annChip('type',isCircle?(isFill?'circleFill':'circle'):(isFill?'circle':'circle'),isCircle,svgIcon('circle'),'圆形')}${annChip('type',isCircle?(isFill?'circle':'circleFill'):(isFill?'box':'boxFill'),isFill,'◩','填充 / 空心')}`);
+      html += compactRow(`${annChip('type',isFill?'boxFill':'box',!isCircle,svgIcon('rect'),'矩形')}${annChip('type',isFill?'circleFill':'circle',isCircle,svgIcon('circle'),'圆形')}${annChip('type',isCircle?(isFill?'circle':'circleFill'):(isFill?'box':'boxFill'),isFill,'◩','填充 / 空心')}`);
     }
     if(['line','arrow','doubleArrow'].includes(a.type)) html += compactRow(`${annChip('type','line',a.type==='line',svgIcon('line'),'直线')}${annChip('type','arrow',a.type==='arrow',svgIcon('arrow'),'单箭头')}${annChip('type','doubleArrow',a.type==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}`);
     if(textLike) html += compactRow(`${textInput('text',a.text||'',true,'文字')}${sizeButtons('fontSize',a.fontSize||20,8,180,true)}${a.type==='text' ? annChip('vertical','toggle',!!a.vertical,'竖','竖排') : ''}`);
@@ -1652,10 +1695,7 @@
       a[key] = val;
       if(a.type === 'badge' && key === 'text') syncBadgeSequence(state.selected.index, oldBadgeValue, Math.round(+val || 1));
     }
-    if(a.type === 'text' && key === 'text' && inlineTextIndex === idx && inlineTextEditor){
-      inlineTextEditor.value = String(a.text || '');
-      positionInlineTextEditor();
-    }
+    syncToolSettingsFromAnnotation(a);
     renderToolPopover(); requestRender();
   }
 
@@ -1698,9 +1738,6 @@
       const b = annotationBounds(a);
       hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move'});
       const selected = state.selected?.type === 'annotation' && state.selected.index === i;
-      if(selected && a.type === 'text' && inlineTextIndex === i){
-        continue;
-      }
       if(selected){
         c.save();
         c.strokeStyle = '#2f80ed';
@@ -1761,7 +1798,7 @@
 
   function measureTextAnnotation(a){
     const temp = document.createElement('canvas').getContext('2d');
-    const fs = a.fontSize || (a.type === 'watermark' ? 34 : 20);
+    const fs = a.fontSize || (a.type === 'watermark' ? 34 : 18);
     temp.font = `600 ${fs}px ui-sans-serif, system-ui, sans-serif`;
     const raw = String(a.text || (a.type === 'watermark' ? '水印' : '输入文字'));
     const lines = a.vertical ? [...raw.replace(/\n/g,'')].filter(Boolean) : raw.split('\n');
@@ -2018,7 +2055,7 @@
     if(type === 'line') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
     if(type === 'arrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
     if(type === 'doubleArrow') Object.assign(base, {color:s.color || '#ef4444', w:200, h:80, lineWidth:s.lineWidth || 4});
-    if(type === 'text') Object.assign(base, {color:s.textColor || '#111827', bg:s.textBg || 'transparent', outline:!!s.textOutline, vertical:!!s.textVertical, text:s.textValue || '', fontSize:s.textSize || 20, w:0, h:0});
+    if(type === 'text') Object.assign(base, {color:s.textColor || '#111827', bg:s.textBg || 'transparent', outline:!!s.textOutline, vertical:!!s.textVertical, text:s.textValue || '', fontSize:s.textSize || 18, w:0, h:0});
     if(type === 'badge') Object.assign(base, {color:s.badgeColor || '#2f80ed', text:String(s.badgeNumber || 1), fontSize:s.badgeSize || 34, w:0, h:0});
     if(type === 'watermark') Object.assign(base, {color:s.watermarkColor || '#111827', bg:'transparent', text:s.watermarkText || '水印', fontSize:s.watermarkSize || 34, opacity:s.watermarkOpacity == null ? .22 : s.watermarkOpacity, repeatCount:s.watermarkRepeat || 1, w:0, h:0});
     if(type === 'pen') Object.assign(base, {color:s.penColor || '#ef4444', lineWidth:s.penWidth || 4, points:[{x:0,y:0}], w:0, h:0});
@@ -2047,8 +2084,7 @@
       if(type === 'badge') state.toolSettings.badgeNumber = clamp(Math.round(+state.toolSettings.badgeNumber || 1) + 1, 1, 9999);
       applyActiveTool();
       renderProps(); requestRender();
-      if(type === 'text') openInlineTextEditor(idx, false);
-      else closeInlineTextEditor(false);
+      closeInlineTextEditor(false);
       return true;
     }
     drag = { type:'toolCreate', index:idx, tool:type, start:{...pt}, ann:{...a} };
@@ -2227,22 +2263,21 @@
         deleteSelectedAnnotation();
         return;
       }
-      state.selected = {type:'annotation', index:h.index}; renderProps(); requestRender();
+      selectAnnotationForEdit(h.index);
       { const a = state.annotations[h.index];
-        if(a?.type === 'text') openInlineTextEditor(h.index, false); else closeInlineTextEditor(false);
         drag = {type:'annotationMove', index:h.index, start:w, ann:cloneAnnotationForDrag(a)}; }
       return;
     }
     if(h.type === 'annotationResize'){
-      state.selected = {type:'annotation', index:h.index}; renderProps(); requestRender();
+      selectAnnotationForEdit(h.index);
       const a = state.annotations[h.index]; drag = {type:'annotationResize', index:h.index, start:w, ann:cloneAnnotationForDrag(a)}; return;
     }
     if(h.type === 'annotationLineStart' || h.type === 'annotationLineEnd'){
-      state.selected = {type:'annotation', index:h.index}; renderProps(); requestRender();
+      selectAnnotationForEdit(h.index);
       const a = state.annotations[h.index]; drag = {type:h.type, index:h.index, start:w, ann:cloneAnnotationForDrag(a)}; return;
     }
     if(h.type === 'annotationRotate'){
-      state.selected = {type:'annotation', index:h.index}; renderProps(); requestRender();
+      selectAnnotationForEdit(h.index);
       const a = state.annotations[h.index]; const center = annotationFrame(a).center;
       drag = {type:'annotationRotate', index:h.index, center, startAngle:Math.atan2(w.y-center.y,w.x-center.x), rotation:+(a.rotation||0)}; return;
     }
