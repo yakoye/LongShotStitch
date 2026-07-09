@@ -9,6 +9,11 @@
 - Keyboard: typing numbers in text/number inputs must not switch modes; keys 1-5 must not switch modes globally.
 - Badge: create more than 10 badges and verify they continue 11, 12, 13; edit an existing badge number and verify later badges update sequentially.
 - Regression: open images, seam editing, divider, whole crop, single-image crop, export PNG.
+- Auto stitch: enable 自动, import multiple images, verify direction is inferred and seams remain editable.
+- Subtitle stitch: adjust 高 and 位, verify the blue subtitle region moves/resizes, generate a subtitle long image, crop/export it.
+- Cut mode: test 横, 纵, 格, 3×3, then export numbered PNG files such as source_01.png.
+- Browser chrome: tab favicon shows ✂ for index.html and LongShotStitch.html.
+- Mobile 390x844: seven bottom modes fit, tool dock/popovers do not overlap the bottom mode bar.
 
 
 ## v1.17 manual checks
