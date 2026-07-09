@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShot Stitch & Trim - 长图拼裁工具</title>
+  <title>LongShot Stitch & Trim v0.6 - 长图拼裁工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -123,7 +123,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShot Stitch<small>长图拼裁工具</small></div>
+      <div>LongShot Stitch<small>长图拼裁工具 v0.6</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -585,19 +585,12 @@
   }
 
   function drawArrowPill(c, x, y, dir, area, active=false){
-    drawPill(c, x, y, ' ', area, active);
-    drawDoubleChevron(c, x, y, dir, .8);
+    const arrow = dir === 'up' ? '↑' : dir === 'down' ? '↓' : dir === 'left' ? '←' : '→';
+    drawPill(c, x, y, arrow, area, active);
   }
 
   function drawSeamPill(c, x, y, vertical, area, active=false){
-    drawPill(c, x, y, ' ', area, active);
-    if(vertical){
-      drawDoubleChevron(c, x, y - 7, 'down', .48);
-      drawDoubleChevron(c, x, y + 7, 'up', .48);
-    } else {
-      drawDoubleChevron(c, x - 7, y, 'right', .48);
-      drawDoubleChevron(c, x + 7, y, 'left', .48);
-    }
+    drawPill(c, x, y, vertical ? '↕' : '↔', area, active);
   }
 
 
@@ -630,21 +623,16 @@
     else { c.moveTo(line.x, line.y1); c.lineTo(line.x, line.y2); }
     c.stroke();
 
-    // Important: after an arrow is activated, dragging happens on the screenshot/page area,
-    // not on the arrow icon itself. The chevrons are only visual hints.
+    // 激活后：只允许拖动截图/页面区域。箭头提示去掉，避免用户误以为要拖箭头或拖线。
     if(dragArea){
       hitAreas.push({...dragArea, type:'activeDrag', cursor: verticalMove ? 'ns-resize' : 'ew-resize'});
     }
 
     if(verticalMove){
       const cx = (line.x1+line.x2)/2;
-      if(arrowMode === 'both' || arrowMode === 'down') drawDoubleChevron(c, cx, line.y - 70, 'down');
-      if(arrowMode === 'both' || arrowMode === 'up') drawDoubleChevron(c, cx, line.y + 70, 'up');
       drawPill(c, cx, line.y, '✓', {type:'activeDone', cursor:'pointer'}, true);
     } else {
       const cy = (line.y1+line.y2)/2;
-      if(arrowMode === 'both' || arrowMode === 'left') drawDoubleChevron(c, line.x - 70, cy, 'left');
-      if(arrowMode === 'both' || arrowMode === 'right') drawDoubleChevron(c, line.x + 70, cy, 'right');
       drawPill(c, line.x, cy, '✓', {type:'activeDone', cursor:'pointer'}, true);
     }
     c.restore();
@@ -1056,20 +1044,20 @@
       const dx = Math.round(w.x - drag.start.x), dy = Math.round(w.y - drag.start.y);
       const layout = computeLayout(true);
       const c = {...drag.startCrop};
-      if(drag.edge === 'top') c.top = clamp(c.top + dy, 0, layout.fullHeight - c.bottom - 1);
-      if(drag.edge === 'bottom') c.bottom = clamp(c.bottom - dy, 0, layout.fullHeight - c.top - 1);
-      if(drag.edge === 'left') c.left = clamp(c.left + dx, 0, layout.fullWidth - c.right - 1);
-      if(drag.edge === 'right') c.right = clamp(c.right - dx, 0, layout.fullWidth - c.left - 1);
+      if(drag.edge === 'top') c.top = clamp(c.top - dy, 0, layout.fullHeight - c.bottom - 1);
+      if(drag.edge === 'bottom') c.bottom = clamp(c.bottom + dy, 0, layout.fullHeight - c.top - 1);
+      if(drag.edge === 'left') c.left = clamp(c.left - dx, 0, layout.fullWidth - c.right - 1);
+      if(drag.edge === 'right') c.right = clamp(c.right + dx, 0, layout.fullWidth - c.left - 1);
       state.canvasCrop = c; renderProps(); requestRender(); return;
     }
     if(drag.type === 'imageCrop'){
       const im = state.images[drag.index];
       const dx = Math.round(w.x - drag.start.x), dy = Math.round(w.y - drag.start.y);
       const c = {...drag.startCrop};
-      if(drag.edge === 'top') c.top = clamp(c.top + dy, 0, im.height - c.bottom - 1);
-      if(drag.edge === 'bottom') c.bottom = clamp(c.bottom - dy, 0, im.height - c.top - 1);
-      if(drag.edge === 'left') c.left = clamp(c.left + dx, 0, im.width - c.right - 1);
-      if(drag.edge === 'right') c.right = clamp(c.right - dx, 0, im.width - c.left - 1);
+      if(drag.edge === 'top') c.top = clamp(c.top - dy, 0, im.height - c.bottom - 1);
+      if(drag.edge === 'bottom') c.bottom = clamp(c.bottom + dy, 0, im.height - c.top - 1);
+      if(drag.edge === 'left') c.left = clamp(c.left - dx, 0, im.width - c.right - 1);
+      if(drag.edge === 'right') c.right = clamp(c.right + dx, 0, im.width - c.left - 1);
       im.crop = c; renderProps(); requestRender(); return;
     }
     if(drag.type === 'annotationMove'){
@@ -1093,11 +1081,11 @@
       const b = state.images[drag.index+1];
       const maxBefore = vertical ? a.height - a.crop.top - a.crop.bottom - 1 : a.width - a.crop.left - a.crop.right - 1;
       const maxAfter = vertical ? b.height - b.crop.top - b.crop.bottom - 1 : b.width - b.crop.left - b.crop.right - 1;
-      if(drag.type === 'seamBefore') s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
-      if(drag.type === 'seamAfter') s.afterCrop = clamp(drag.after + d, 0, maxAfter);
+      if(drag.type === 'seamBefore') s.beforeCrop = clamp(drag.before + d, 0, maxBefore);
+      if(drag.type === 'seamAfter') s.afterCrop = clamp(drag.after - d, 0, maxAfter);
       if(drag.type === 'seamCenter'){
-        s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
-        s.afterCrop = clamp(drag.after + d, 0, maxAfter);
+        s.beforeCrop = clamp(drag.before + d, 0, maxBefore);
+        s.afterCrop = clamp(drag.after - d, 0, maxAfter);
       }
       renderProps(); requestRender(); return;
     }
