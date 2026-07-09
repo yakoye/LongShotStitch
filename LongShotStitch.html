@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShot Stitch & Trim v1.1 - 长图拼裁工具</title>
+  <title>LongShot Stitch & Trim v1.2 - 长图拼裁工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -123,7 +123,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShot Stitch<small>长图拼裁工具 v1.1</small></div>
+      <div>LongShot Stitch<small>长图拼裁工具 v1.2</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -227,7 +227,8 @@
     annotations: [],
     activeHandle: null,
     toolArmed: null,
-    splitDraft: null
+    splitDraft: null,
+    splitDraftManual: false
   };
 
   let history = [];
@@ -257,7 +258,8 @@
       canvasCrop: {...state.canvasCrop},
       annotations: state.annotations.map(a => ({...a})),
       toolArmed: state.toolArmed,
-      splitDraft: state.splitDraft ? {...state.splitDraft} : null
+      splitDraft: state.splitDraft ? {...state.splitDraft} : null,
+      splitDraftManual: !!state.splitDraftManual
     });
   }
 
@@ -283,6 +285,7 @@
     state.annotations = data.annotations || [];
     state.toolArmed = data.toolArmed || null;
     state.splitDraft = data.splitDraft || null;
+    state.splitDraftManual = !!data.splitDraftManual;
     state.activeHandle = null;
     const imgs = [];
     for(const raw of data.images || []){
@@ -427,7 +430,7 @@
       };
     });
 
-    // v1.1 单图裁剪规则：
+    // v1.1/v1.2 单图裁剪规则：
     // - 纵向拼接时，左右裁剪会让当前图可见宽度变小；其它图按该统一宽度等比例缩小，不裁剪。
     // - 横向拼接时，上下裁剪会让当前图可见高度变小；其它图按该统一高度等比例缩小，不裁剪。
     const targetW = Math.max(1, Math.min(...dims.map(d => d.sw)));
@@ -573,13 +576,28 @@
   }
 
 
+  function viewportCenterWorld(){
+    const rect = stageWrap.getBoundingClientRect();
+    return screenToWorld(rect.width / 2, rect.height / 2);
+  }
+
   function ensureSplitDraft(){
     const layout = computeLayout(true);
     if(!state.splitDraft){
-      state.splitDraft = { pos: state.orientation === 'vertical' ? Math.round(layout.fullHeight/2) : Math.round(layout.fullWidth/2) };
+      const center = viewportCenterWorld();
+      state.splitDraft = { pos: state.orientation === 'vertical' ? Math.round(center.y) : Math.round(center.x) };
     }
     const max = state.orientation === 'vertical' ? layout.fullHeight : layout.fullWidth;
     state.splitDraft.pos = clamp(Math.round(state.splitDraft.pos || 0), 1, Math.max(1, max-1));
+  }
+
+  function syncSplitDraftToViewportCenter(){
+    const layout = computeLayout(true);
+    const center = viewportCenterWorld();
+    const max = state.orientation === 'vertical' ? layout.fullHeight : layout.fullWidth;
+    const raw = state.orientation === 'vertical' ? center.y : center.x;
+    if(!state.splitDraft) state.splitDraft = {pos: 1};
+    state.splitDraft.pos = clamp(Math.round(raw), 1, Math.max(1, max-1));
   }
 
   function drawDoubleChevron(c, x, y, dir, scale=1){
@@ -771,34 +789,55 @@
   }
 
   function drawImageCropOverlay(c, layout){
-    for(const b of layout.imageBounds){
-      const active = state.activeHandle?.kind === 'imageCrop' && state.activeHandle.index === b.index;
-      const selected = state.selected?.type === 'image' && state.selected.index === b.index;
-      c.save();
-      c.strokeStyle = active ? '#ffbf00' : (selected ? '#ffbf00' : 'rgba(246,183,0,.85)');
-      c.lineWidth = (active || selected ? 3 : 2) / state.zoom;
-      c.strokeRect(b.x,b.y,b.w,b.h);
-      c.restore();
+    const activeHandle = state.activeHandle?.kind === 'imageCrop' ? state.activeHandle : null;
 
-      if(active){
-        const edge = state.activeHandle.edge;
+    if(activeHandle){
+      // 单图裁剪编辑态：只显示当前图片的编辑态。
+      // 其它图片只保留很淡的边界，不显示箭头、不添加 hit area，避免箭头叠加和误拦截。
+      const activeBounds = layout.imageBounds.find(b => b.index === activeHandle.index);
+      for(const b of layout.imageBounds){
+        c.save();
+        c.strokeStyle = b.index === activeHandle.index ? '#ffbf00' : 'rgba(246,183,0,.18)';
+        c.lineWidth = (b.index === activeHandle.index ? 3 : 1.5) / state.zoom;
+        c.strokeRect(b.x,b.y,b.w,b.h);
+        c.restore();
+      }
+      if(activeBounds){
+        const b = activeBounds;
+        const edge = activeHandle.edge;
+        // 当前图片整个可见区域都能拖动，不再只限制在线的某一侧。
         const area = {x:b.x, y:b.y, w:b.w, h:b.h};
         if(edge === 'top') drawActiveGuide(c, {x1:b.x,x2:b.x+b.w,y:b.y}, 'vertical', area, 'up');
         else if(edge === 'bottom') drawActiveGuide(c, {x1:b.x,x2:b.x+b.w,y:b.y+b.h}, 'vertical', area, 'down');
         else if(edge === 'left') drawActiveGuide(c, {x:b.x,y1:b.y,y2:b.y+b.h}, 'horizontal', area, 'left');
         else if(edge === 'right') drawActiveGuide(c, {x:b.x+b.w,y1:b.y,y2:b.y+b.h}, 'horizontal', area, 'right');
-      } else {
-        // 单图裁剪模式：所有图都显示四边箭头，不需要先选中。
-        drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
-        drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
-        drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
-        drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
       }
+      return;
+    }
+
+    for(const b of layout.imageBounds){
+      const selected = state.selected?.type === 'image' && state.selected.index === b.index;
+      c.save();
+      c.strokeStyle = selected ? '#ffbf00' : 'rgba(246,183,0,.85)';
+      c.lineWidth = (selected ? 3 : 2) / state.zoom;
+      c.strokeRect(b.x,b.y,b.w,b.h);
+      c.restore();
+
+      // 单图裁剪默认态：所有图都显示四边箭头，不需要先选中。
+      drawArrowPill(c, b.x+b.w/2, b.y, 'up', {type:'imageCrop', index:b.index, edge:'top', cursor:'pointer'}, true);
+      drawArrowPill(c, b.x+b.w/2, b.y+b.h, 'down', {type:'imageCrop', index:b.index, edge:'bottom', cursor:'pointer'}, true);
+      drawArrowPill(c, b.x, b.y+b.h/2, 'left', {type:'imageCrop', index:b.index, edge:'left', cursor:'pointer'}, true);
+      drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
     }
   }
 
   function drawDividerOverlay(c, layout){
     ensureSplitDraft();
+    // 分割线预定位态：默认是“屏幕中心准星”。
+    // 用户没有手动拖线时，画布滚到哪里，分割线就跟随当前视口中心。
+    if(!state.splitDraftManual && !drag){
+      syncSplitDraftToViewportCenter();
+    }
     const vertical = state.orientation === 'vertical';
     const pos = state.splitDraft.pos;
     c.save();
@@ -1030,7 +1069,11 @@
   function handleHitDown(h, w, e){
     if(h.type === 'activeDone'){
       state.activeHandle = null;
-      if(state.mode === 'divider') state.selected = null;
+      if(state.mode === 'divider'){
+        state.selected = null;
+        state.splitDraftManual = false;
+        syncSplitDraftToViewportCenter();
+      }
       renderProps(); requestRender(); return;
     }
     if(h.type === 'activeDrag'){ startActiveDrag(w, getPointer(e)); return; }
@@ -1054,7 +1097,7 @@
       const a = state.annotations[h.index]; drag = {type:'annotationResize', index:h.index, start:w, ann:{...a}}; return;
     }
     if(h.type === 'splitDraftCommit'){ insertSeamAtDraft(); return; }
-    if(h.type === 'splitDraftDrag'){ drag = {type:'splitDraft', start:w, pos: state.splitDraft?.pos || 0}; return; }
+    if(h.type === 'splitDraftDrag'){ state.splitDraftManual = true; drag = {type:'splitDraft', start:w, pos: state.splitDraft?.pos || 0}; return; }
     if(h.type === 'canvasCrop'){ state.selected = {type:'canvasCrop'}; state.activeHandle = {kind:'canvasCrop', edge:h.edge}; renderProps(); requestRender(); return; }
     if(h.type === 'imageCrop'){ state.selected = {type:'image', index:h.index}; state.activeHandle = {kind:'imageCrop', index:h.index, edge:h.edge}; renderProps(); requestRender(); return; }
     if(['seamBefore','seamAfter','seamCenter'].includes(h.type)){ state.selected = {type:'seam', index:h.index}; state.activeHandle = {kind:'seamCenter', index:h.index}; renderProps(); requestRender(); return; }
@@ -1384,9 +1427,9 @@
     $('#applyCropAll')?.addEventListener('click', () => { const idx=selectedImageIndex(); pushHistory(); const c={...state.images[idx].crop}; state.images.forEach(im=>im.crop={...c}); renderProps(); requestRender(); });
     $('#autoWhiteImage')?.addEventListener('click', () => { autoWhiteImage(selectedImageIndex()); });
 
-    $('#splitDraftPos')?.addEventListener('change', (e) => { ensureSplitDraft(); state.splitDraft.pos = Math.max(1, Math.round(+e.target.value || 1)); requestRender(); });
+    $('#splitDraftPos')?.addEventListener('change', (e) => { ensureSplitDraft(); state.splitDraftManual = true; state.splitDraft.pos = Math.max(1, Math.round(+e.target.value || 1)); requestRender(); });
     $('#commitSplitDraft')?.addEventListener('click', () => insertSeamAtDraft());
-    $('#centerSplitDraft')?.addEventListener('click', () => { const layout = computeLayout(true); ensureSplitDraft(); state.splitDraft.pos = Math.round((state.orientation==='vertical' ? layout.fullHeight : layout.fullWidth)/2); renderProps(); requestRender(); });
+    $('#centerSplitDraft')?.addEventListener('click', () => { state.splitDraftManual = false; syncSplitDraftToViewportCenter(); renderProps(); requestRender(); });
 
     $$('[data-tool]', props).forEach(btn => btn.addEventListener('click', () => { state.toolArmed = btn.dataset.tool; renderProps(); requestRender(); }));
     $('#deleteAnnotationBtn')?.addEventListener('click', () => deleteSelectedAnnotation());
@@ -1465,7 +1508,9 @@
     if(m === 'seam' && state.seams.length) state.selected = state.selected?.type === 'seam' ? state.selected : {type:'seam', index:0};
     if(m === 'imageCrop' && state.images.length) state.selected = state.selected?.type === 'image' ? state.selected : {type:'image', index:0};
     if(m === 'divider'){
+      state.splitDraftManual = false;
       ensureSplitDraft();
+      syncSplitDraftToViewportCenter();
       state.selected = null;
     }
     if(m === 'tools') state.toolArmed = state.toolArmed || 'select';
