@@ -219,7 +219,8 @@
     zoom: 1,
     pan: { x: 0, y: 0 },
     preview: false,
-    annotations: []
+    annotations: [],
+    activeHandle: null
   };
 
   let history = [];
@@ -271,6 +272,7 @@
     state.canvasCrop = data.canvasCrop || {top:0,right:0,bottom:0,left:0};
     state.seams = data.seams || [];
     state.annotations = data.annotations || [];
+    state.activeHandle = null;
     const imgs = [];
     for(const raw of data.images || []){
       const img = await loadImage(raw.dataUrl);
@@ -557,6 +559,34 @@
     if(area) hitAreas.push({...area, x:x-w/2, y:y-h/2, w, h});
   }
 
+
+  function drawActiveGuide(c, line, orientation, dragArea, doneArea){
+    const verticalMove = orientation === 'vertical';
+    c.save();
+    c.strokeStyle = '#ffbf00';
+    c.lineWidth = 2;
+    c.setLineDash([]);
+    c.beginPath();
+    if(verticalMove){ c.moveTo(line.x1, line.y); c.lineTo(line.x2, line.y); }
+    else { c.moveTo(line.x, line.y1); c.lineTo(line.x, line.y2); }
+    c.stroke();
+
+    if(dragArea) hitAreas.push({...dragArea, type:'activeDrag', cursor: verticalMove ? 'ns-resize' : 'ew-resize'});
+    c.fillStyle = '#ffcc33';
+    c.font = '800 38px ui-sans-serif, system-ui, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    if(verticalMove){
+      c.fillText('∨∨', (line.x1+line.x2)/2, line.y - 70);
+      c.fillText('∧∧', (line.x1+line.x2)/2, line.y + 70);
+      drawPill(c, (line.x1+line.x2)/2, line.y, '✓', {type:'activeDone', cursor:'pointer'}, true);
+    } else {
+      c.fillText('‹‹', line.x - 70, (line.y1+line.y2)/2);
+      c.fillText('››', line.x + 70, (line.y1+line.y2)/2);
+      drawPill(c, line.x, (line.y1+line.y2)/2, '✓', {type:'activeDone', cursor:'pointer'}, true);
+    }
+    c.restore();
+  }
+
   function roundRect(c,x,y,w,h,r){
     c.beginPath();
     c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
@@ -591,14 +621,22 @@
       c.restore();
       hitAreas.push(vertical ? {type:'seamSelect', index:sv.index, x:0, y:sv.y-12, w:layout.fullWidth, h:24} : {type:'seamSelect', index:sv.index, x:sv.x-12, y:0, w:24, h:layout.fullHeight});
       if(selected){
-        if(vertical){
-          drawPill(c, layout.fullWidth/2, sv.y, unlocked ? '↕' : '🔒', {type:'seamCenter', index:sv.index, cursor:'ns-resize'}, unlocked);
-          drawPill(c, layout.fullWidth/2, sv.y-52, '↑', {type:'seamBefore', index:sv.index, cursor:'ns-resize'}, unlocked);
-          drawPill(c, layout.fullWidth/2, sv.y+52, '↓', {type:'seamAfter', index:sv.index, cursor:'ns-resize'}, unlocked);
+        const active = state.activeHandle?.kind?.startsWith('seam') && state.activeHandle.index === sv.index;
+        if(active){
+          let area;
+          if(state.activeHandle.kind === 'seamBefore') area = layout.imageBounds.find(b => b.index === sv.index);
+          else if(state.activeHandle.kind === 'seamAfter') area = layout.imageBounds.find(b => b.index === sv.index + 1);
+          else area = vertical ? {x:0,y:0,w:layout.fullWidth,h:layout.fullHeight} : {x:0,y:0,w:layout.fullWidth,h:layout.fullHeight};
+          if(vertical) drawActiveGuide(c, {x1:0,x2:layout.fullWidth,y:sv.y}, 'vertical', area);
+          else drawActiveGuide(c, {x:sv.x,y1:0,y2:layout.fullHeight}, 'horizontal', area);
+        } else if(vertical){
+          drawPill(c, layout.fullWidth/2, sv.y, unlocked ? '↕' : '🔒', {type:'seamCenter', index:sv.index, cursor:'pointer'}, unlocked);
+          drawPill(c, layout.fullWidth/2, sv.y-52, '↑', {type:'seamBefore', index:sv.index, cursor:'pointer'}, unlocked);
+          drawPill(c, layout.fullWidth/2, sv.y+52, '↓', {type:'seamAfter', index:sv.index, cursor:'pointer'}, unlocked);
         } else {
-          drawPill(c, sv.x, layout.fullHeight/2, unlocked ? '↔' : '🔒', {type:'seamCenter', index:sv.index, cursor:'ew-resize'}, unlocked);
-          drawPill(c, sv.x-52, layout.fullHeight/2, '←', {type:'seamBefore', index:sv.index, cursor:'ew-resize'}, unlocked);
-          drawPill(c, sv.x+52, layout.fullHeight/2, '→', {type:'seamAfter', index:sv.index, cursor:'ew-resize'}, unlocked);
+          drawPill(c, sv.x, layout.fullHeight/2, unlocked ? '↔' : '🔒', {type:'seamCenter', index:sv.index, cursor:'pointer'}, unlocked);
+          drawPill(c, sv.x-52, layout.fullHeight/2, '←', {type:'seamBefore', index:sv.index, cursor:'pointer'}, unlocked);
+          drawPill(c, sv.x+52, layout.fullHeight/2, '→', {type:'seamAfter', index:sv.index, cursor:'pointer'}, unlocked);
         }
       }
     }
@@ -617,10 +655,20 @@
     c.strokeRect(x,y,w,h);
     c.restore();
     const midX = x + w/2, midY = y + h/2;
-    drawPill(c, midX, y, '↑', {type:'canvasCrop', edge:'top', x:x, y:y-24, w, h:48, cursor:'ns-resize'}, true);
-    drawPill(c, midX, y+h, '↓', {type:'canvasCrop', edge:'bottom', x:x, y:y+h-24, w, h:48, cursor:'ns-resize'}, true);
-    drawPill(c, x, midY, '←', {type:'canvasCrop', edge:'left', x:x-24, y:y, w:48, h, cursor:'ew-resize'}, true);
-    drawPill(c, x+w, midY, '→', {type:'canvasCrop', edge:'right', x:x+w-24, y:y, w:48, h, cursor:'ew-resize'}, true);
+    const active = state.activeHandle?.kind === 'canvasCrop';
+    if(active){
+      const edge = state.activeHandle.edge;
+      const area = {x, y, w, h};
+      if(edge === 'top') drawActiveGuide(c, {x1:x,x2:x+w,y}, 'vertical', area);
+      else if(edge === 'bottom') drawActiveGuide(c, {x1:x,x2:x+w,y:y+h}, 'vertical', area);
+      else if(edge === 'left') drawActiveGuide(c, {x,y1:y,y2:y+h}, 'horizontal', area);
+      else if(edge === 'right') drawActiveGuide(c, {x:x+w,y1:y,y2:y+h}, 'horizontal', area);
+    } else {
+      drawPill(c, midX, y, '↑', {type:'canvasCrop', edge:'top', x:x, y:y-24, w, h:48, cursor:'pointer'}, true);
+      drawPill(c, midX, y+h, '↓', {type:'canvasCrop', edge:'bottom', x:x, y:y+h-24, w, h:48, cursor:'pointer'}, true);
+      drawPill(c, x, midY, '←', {type:'canvasCrop', edge:'left', x:x-24, y:y, w:48, h, cursor:'pointer'}, true);
+      drawPill(c, x+w, midY, '→', {type:'canvasCrop', edge:'right', x:x+w-24, y:y, w:48, h, cursor:'pointer'}, true);
+    }
   }
 
   function drawImageCropOverlay(c, layout){
@@ -632,12 +680,21 @@
       c.strokeRect(b.x,b.y,b.w,b.h);
       c.restore();
       hitAreas.push({type:'imageSelect', index:b.index, x:b.x, y:b.y, w:b.w, h:b.h});
-      const active = selected;
       if(selected){
-        drawPill(c, b.x+b.w/2, b.y, '↑', {type:'imageCrop', index:b.index, edge:'top', x:b.x, y:b.y-26, w:b.w, h:52, cursor:'ns-resize'}, active);
-        drawPill(c, b.x+b.w/2, b.y+b.h, '↓', {type:'imageCrop', index:b.index, edge:'bottom', x:b.x, y:b.y+b.h-26, w:b.w, h:52, cursor:'ns-resize'}, active);
-        drawPill(c, b.x, b.y+b.h/2, '←', {type:'imageCrop', index:b.index, edge:'left', x:b.x-26, y:b.y, w:52, h:b.h, cursor:'ew-resize'}, active);
-        drawPill(c, b.x+b.w, b.y+b.h/2, '→', {type:'imageCrop', index:b.index, edge:'right', x:b.x+b.w-26, y:b.y, w:52, h:b.h, cursor:'ew-resize'}, active);
+        const active = state.activeHandle?.kind === 'imageCrop' && state.activeHandle.index === b.index;
+        if(active){
+          const edge = state.activeHandle.edge;
+          const area = {x:b.x, y:b.y, w:b.w, h:b.h};
+          if(edge === 'top') drawActiveGuide(c, {x1:b.x,x2:b.x+b.w,y:b.y}, 'vertical', area);
+          else if(edge === 'bottom') drawActiveGuide(c, {x1:b.x,x2:b.x+b.w,y:b.y+b.h}, 'vertical', area);
+          else if(edge === 'left') drawActiveGuide(c, {x:b.x,y1:b.y,y2:b.y+b.h}, 'horizontal', area);
+          else if(edge === 'right') drawActiveGuide(c, {x:b.x+b.w,y1:b.y,y2:b.y+b.h}, 'horizontal', area);
+        } else {
+          drawPill(c, b.x+b.w/2, b.y, '↑', {type:'imageCrop', index:b.index, edge:'top', x:b.x, y:b.y-26, w:b.w, h:52, cursor:'pointer'}, true);
+          drawPill(c, b.x+b.w/2, b.y+b.h, '↓', {type:'imageCrop', index:b.index, edge:'bottom', x:b.x, y:b.y+b.h-26, w:b.w, h:52, cursor:'pointer'}, true);
+          drawPill(c, b.x, b.y+b.h/2, '←', {type:'imageCrop', index:b.index, edge:'left', x:b.x-26, y:b.y, w:52, h:b.h, cursor:'pointer'}, true);
+          drawPill(c, b.x+b.w, b.y+b.h/2, '→', {type:'imageCrop', index:b.index, edge:'right', x:b.x+b.w-26, y:b.y, w:52, h:b.h, cursor:'pointer'}, true);
+        }
       }
     }
   }
@@ -837,12 +894,23 @@
 
   function handleHitDown(h, w, e){
     const selectedBefore = JSON.stringify(state.selected);
+    if(h.type === 'activeDone'){
+      state.activeHandle = null;
+      renderProps(); requestRender();
+      return;
+    }
+    if(h.type === 'activeDrag'){
+      startActiveDrag(w);
+      return;
+    }
     if(h.type === 'seamSelect'){
+      state.activeHandle = null;
       state.selected = {type:'seam', index:h.index};
       renderProps(); requestRender();
       if(JSON.stringify(state.selected) !== selectedBefore) return;
     }
     if(h.type === 'imageSelect'){
+      state.activeHandle = null;
       state.selected = {type:'image', index:h.index};
       renderProps(); requestRender();
       return;
@@ -873,6 +941,7 @@
       return;
     }
     if(h.type === 'dividerSelect'){
+      state.activeHandle = null;
       state.selected = {type:'divider', index:h.index};
       renderProps(); requestRender();
       return;
@@ -886,21 +955,48 @@
       return;
     }
     if(h.type === 'canvasCrop'){
-      pushHistory(); state.selected = {type:'canvasCrop'}; renderProps();
-      drag = { type:'canvasCrop', edge:h.edge, start:w, startCrop:{...state.canvasCrop} };
+      state.selected = {type:'canvasCrop'};
+      state.activeHandle = {kind:'canvasCrop', edge:h.edge};
+      renderProps(); requestRender();
       return;
     }
     if(h.type === 'imageCrop'){
-      pushHistory(); state.selected = {type:'image', index:h.index}; renderProps();
-      drag = { type:'imageCrop', index:h.index, edge:h.edge, start:w, startCrop:{...state.images[h.index].crop} };
+      state.selected = {type:'image', index:h.index};
+      state.activeHandle = {kind:'imageCrop', index:h.index, edge:h.edge};
+      renderProps(); requestRender();
       return;
     }
     if(['seamBefore','seamAfter','seamCenter'].includes(h.type)){
       const s = state.seams[h.index];
       state.selected = {type:'seam', index:h.index};
       if(s.locked){ renderProps(); requestRender(); toast('拼接线已锁定，先点“编辑/解锁”'); return; }
-      pushHistory(); renderProps();
-      drag = { type:h.type, index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop };
+      state.activeHandle = {kind:h.type, index:h.index};
+      renderProps(); requestRender();
+      return;
+    }
+  }
+
+
+  function startActiveDrag(w){
+    const h = state.activeHandle;
+    if(!h) return;
+    pushHistory();
+    if(h.kind === 'canvasCrop'){
+      state.selected = {type:'canvasCrop'};
+      drag = { type:'canvasCrop', edge:h.edge, start:w, startCrop:{...state.canvasCrop} };
+      return;
+    }
+    if(h.kind === 'imageCrop'){
+      const idx = h.index;
+      state.selected = {type:'image', index:idx};
+      drag = { type:'imageCrop', index:idx, edge:h.edge, start:w, startCrop:{...state.images[idx].crop} };
+      return;
+    }
+    if(['seamBefore','seamAfter','seamCenter'].includes(h.kind)){
+      const s = state.seams[h.index];
+      if(!s || s.locked){ toast('拼接线已锁定，先解锁'); return; }
+      state.selected = {type:'seam', index:h.index};
+      drag = { type:h.kind, index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop };
       return;
     }
   }
@@ -1259,6 +1355,7 @@
 
   function setMode(m){
     state.mode = m;
+    state.activeHandle = null;
     state.preview = false;
     if(m === 'canvasCrop') state.selected = {type:'canvasCrop'};
     if(m === 'seam' && state.seams.length && state.selected?.type !== 'seam') state.selected = {type:'seam', index:0};
