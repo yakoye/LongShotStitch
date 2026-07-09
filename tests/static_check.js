@@ -3,12 +3,12 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const htmlPath = path.join(root, 'LongShotStitch_v1.12.html');
-if (!fs.existsSync(htmlPath)) throw new Error('Missing LongShotStitch_v1.12.html');
+const htmlPath = path.join(root, 'LongShotStitch_v1.13.html');
+if (!fs.existsSync(htmlPath)) throw new Error('Missing LongShotStitch_v1.13.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
 const checks = [
-  ['title version', 'LongShotStitch v1.12'],
+  ['title version', 'LongShotStitch v1.13'],
   ['desktop tool slot', 'desktopToolDockSlot'],
   ['compact tool panel', 'pop-compact'],
   ['line width preview', 'line-preview'],
@@ -16,13 +16,13 @@ const checks = [
   ['mini map canvas', 'id="miniMapCanvas"'],
   ['vertical scrollbar', 'id="vScroll"'],
   ['horizontal scrollbar', 'id="hScroll"'],
-  ['mobile tool dock low position', '.floating-toolkit{bottom:8px;left:8px;right:8px'],
+  ['mobile tool dock bound above bottom bar', 'bottom:calc(var(--mobilebar) + 6px'],
   ['mobile popover toggle state', 'mobileToolPopoverOpen'],
   ['mobile status hidden in tools', '.app[data-mode=\"tools\"] .statusbar{display:none}'],
   ['navigation updater', 'function updateNavigation'],
   ['visible world rect', 'function visibleWorldRect'],
   ['split visible rule', 'const canAutoFollow = !drag || drag.type === \'pan\';'],
-  ['future features doc expected', 'LongShotStitch v1.12'],
+  ['future features doc expected', 'LongShotStitch v1.13'],
   ['ordinary width presets', 'const basePresets = presets || [1,2,4,8];'],
   ['eraser wide presets', "widthControl('eraserSize',s.eraserSize||24,4,120,false,[4,8,16,32])"],
 ];
@@ -45,4 +45,4 @@ for (const needle of forbidden) {
   if (html.includes(needle)) throw new Error(`Forbidden old marker still exists: ${needle}`);
 }
 
-console.log('Static check passed: LongShotStitch_v1.12.html');
+console.log('Static check passed: LongShotStitch_v1.13.html');

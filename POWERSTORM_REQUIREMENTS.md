@@ -82,3 +82,11 @@
 - On mobile, the tool icon dock stays attached just above the bottom mode bar.
 - On mobile, the tool property popover is collapsible: tapping a tool icon toggles its property panel; switching to another tool opens that tool's panel.
 - On mobile, tool property popovers must have a bounded height and scroll internally so they do not cover the whole canvas.
+
+
+## LongShotStitch v1.13 update
+- 手机端工具栏必须绑定在底部模式栏上方，不能漂在画布中间遮挡内容。
+- 工具属性面板必须提供收起按钮；再次点击当前工具图标也可显示/隐藏属性。
+- 工具属性面板在手机端和电脑端都要紧凑，减少 padding、间距和多行堆叠，优先一行内完成。
+- 手机端导入图片后默认按屏幕宽度适配，竖向长图优先满宽显示；用户仍可手动放大缩小。
+- 页面刷新、关闭、返回导致工程丢失前，必须触发浏览器离开提示。

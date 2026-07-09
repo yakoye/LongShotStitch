@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.12 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.13 - 长图拼接裁剪工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -109,21 +109,21 @@
     .tool-dock-btn.danger.active{background:#fff1f2;border-color:#ef4444;color:#ef4444}
     .tool-dock-btn svg{width:20px;height:20px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
     .tool-dock-sep{width:1px;height:22px;background:#e5e7eb;margin:0 2px;flex:0 0 auto}
-    .tool-popover{position:absolute;z-index:13;display:none;min-width:250px;max-width:min(430px,calc(100% - 24px));max-height:min(360px,calc(100% - 30px));overflow:auto;padding:10px;border:1px solid rgba(203,213,225,.94);border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 20px 48px rgba(15,23,42,.23);backdrop-filter:blur(18px);pointer-events:auto}
+    .tool-popover{position:absolute;z-index:13;display:none;min-width:0;max-width:min(430px,calc(100% - 16px));max-height:min(320px,calc(100% - 18px));overflow:auto;padding:6px;border:1px solid rgba(203,213,225,.94);border-radius:11px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px);pointer-events:auto}
     .tool-popover.show{display:block}
-    .tool-popover.compact{min-width:210px}
+    .tool-popover.compact{min-width:0}
     .pop-title{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:800;font-size:12px;color:#334155;margin:0 0 8px}
-    .pop-row{display:flex;align-items:center;gap:8px;margin:8px 0;min-height:32px}
+    .pop-row{display:flex;align-items:center;gap:5px;margin:4px 0;min-height:28px}
     .pop-row label{font-size:12px;color:#64748b;min-width:58px;white-space:nowrap}
     .pop-row input[type="number"],.pop-row input[type="text"],.pop-row select{height:32px;border:1px solid #d9dee7;border-radius:9px;background:#fff;padding:0 8px;min-width:0;flex:1}
     .pop-row input[type="color"]{width:34px;height:32px;border:1px solid #d9dee7;border-radius:9px;background:#fff;padding:3px;flex:0 0 auto}
-    .pop-chip-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-    .pop-chip{height:30px;min-width:30px;padding:0 8px;border:1px solid #d9dee7;border-radius:9px;background:#fff;display:inline-grid;place-items:center;font-weight:750;color:#0f172a}
+    .pop-chip-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+    .pop-chip{height:26px;min-width:26px;padding:0 6px;border:1px solid #d9dee7;border-radius:8px;background:#fff;display:inline-grid;place-items:center;font-weight:750;color:#0f172a}
     .pop-chip:hover{background:#f8fafc;border-color:#b8c1cf}
     .pop-chip.active{background:#111827;color:#fff;border-color:#111827}
     .pop-chip svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    .pop-icon-chip{width:32px;padding:0}
-    .pop-actions{display:flex;gap:8px;margin-top:10px;border-top:1px solid #eef2f7;padding-top:10px}
+    .pop-icon-chip{width:28px;padding:0}
+    .pop-actions{display:flex;gap:5px;margin-top:5px;border-top:1px solid #eef2f7;padding-top:6px}
     .pop-actions .mini-btn{flex:1}
     .tool-hint-card{font-size:12px;line-height:1.7;color:var(--muted)}
     .desktop-tools-slot{display:block}
@@ -139,24 +139,24 @@
     .pop-section summary::after{content:'⌄';font-size:12px;color:#64748b;transition:.16s}
     .pop-section:not([open]) summary::after{transform:rotate(-90deg)}
     .pop-section-body{padding:8px 10px}
-    .pop-compact{display:flex;flex-direction:column;gap:7px}
-    .pop-inline{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:30px}
-    .pop-compact .pop-chip{height:28px;min-width:28px;padding:0 7px;border-radius:8px}
+    .pop-compact{display:flex;flex-direction:column;gap:4px}
+    .pop-inline{display:flex;align-items:center;gap:3px;flex-wrap:wrap;min-height:26px}
+    .pop-compact .pop-chip{height:26px;min-width:26px;padding:0 5px;border-radius:7px}
     .pop-compact .pop-chip svg{width:16px;height:16px}
-    .color-strip,.density-strip,.size-control,.width-control{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
-    .color-swatch{width:24px;height:24px;padding:2px;border:1px solid #d9dee7;border-radius:7px;background:#fff;display:grid;place-items:center}
-    .color-swatch span{width:16px;height:16px;border-radius:5px;border:1px solid rgba(15,23,42,.12);display:block}
+    .color-strip,.density-strip,.size-control,.width-control{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap}
+    .color-swatch{width:22px;height:22px;padding:2px;border:1px solid #d9dee7;border-radius:6px;background:#fff;display:grid;place-items:center}
+    .color-swatch span{width:14px;height:14px;border-radius:4px;border:1px solid rgba(15,23,42,.12);display:block}
     .color-swatch.active{border-color:#111827;box-shadow:0 0 0 2px rgba(17,24,39,.12)}
-    .mini-color-input{width:26px!important;height:24px!important;border-radius:7px!important;padding:2px!important;flex:0 0 auto!important}
+    .mini-color-input{width:24px!important;height:22px!important;border-radius:6px!important;padding:2px!important;flex:0 0 auto!important}
     .mini-number-input,.tiny-number,.width-number{height:26px!important;border:1px solid #d9dee7;border-radius:7px;background:#fff;padding:0 4px;font-size:12px;min-width:0}
-    .tiny-number{width:48px!important;flex:0 0 auto!important;text-align:center}
-    .width-number{width:42px!important;flex:0 0 auto!important;text-align:center}
-    .compact-text-input{height:28px;border:1px solid #d9dee7;border-radius:8px;background:#fff;padding:0 7px;min-width:88px;max-width:100%;flex:1 1 110px;font-size:12px}
-    .line-chip{height:26px;min-width:30px;padding:0 5px;border:1px solid #d9dee7;border-radius:8px;background:#fff;display:inline-grid;place-items:center}
+    .tiny-number{width:42px!important;flex:0 0 auto!important;text-align:center}
+    .width-number{width:38px!important;flex:0 0 auto!important;text-align:center}
+    .compact-text-input{height:26px;border:1px solid #d9dee7;border-radius:7px;background:#fff;padding:0 6px;min-width:78px;max-width:100%;flex:1 1 100px;font-size:12px}
+    .line-chip{height:24px;min-width:28px;padding:0 4px;border:1px solid #d9dee7;border-radius:7px;background:#fff;display:inline-grid;place-items:center}
     .line-chip.active{background:#111827;border-color:#111827}
     .line-chip.active .line-preview{background:#fff}
     .line-preview{display:block;background:#111827;border-radius:999px;max-height:18px}
-    .compact-actions{margin-top:4px;padding-top:7px}
+    .compact-actions{margin-top:3px;padding-top:5px}
     .tool-panel-card .tool-popover{padding:8px;margin-top:6px}
 
 
@@ -181,8 +181,8 @@
 
     @media (max-width: 760px){
       .desktop-tools-slot{display:none}
-      .floating-toolkit{bottom:8px;left:8px;right:8px;transform:none;justify-content:flex-start;max-width:none;box-shadow:0 10px 28px rgba(15,23,42,.18)}
-      .tool-popover{max-height:min(42vh,300px);max-width:calc(100% - 16px);box-shadow:0 14px 34px rgba(15,23,42,.24)}
+      .floating-toolkit{bottom:calc(var(--mobilebar) + 6px + env(safe-area-inset-bottom));left:6px;right:6px;transform:none;justify-content:flex-start;max-width:none;box-shadow:0 8px 22px rgba(15,23,42,.16);padding:5px 6px;border-radius:11px}
+      .tool-popover{max-height:min(34vh,236px);max-width:calc(100% - 10px);box-shadow:0 10px 26px rgba(15,23,42,.22);padding:5px;border-radius:10px}
       .app[data-mode="tools"] .statusbar{display:none}
       .tool-popover.mobile-collapsed{display:none!important}
     }
@@ -212,7 +212,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.12</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.13</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -1218,11 +1218,7 @@
   function setToolGroup(group){
     const sameGroup = (state.toolSettings.group || 'select') === group;
     state.toolSettings.group = group;
-    if(isMobileLayout()){
-      state.mobileToolPopoverOpen = sameGroup ? !state.mobileToolPopoverOpen : true;
-    } else {
-      state.mobileToolPopoverOpen = true;
-    }
+    state.mobileToolPopoverOpen = sameGroup ? !state.mobileToolPopoverOpen : true;
     if(group === 'watermark'){
       const idx = findExistingWatermarkIndex();
       state.selected = idx >= 0 ? {type:'annotation', index:idx} : null;
@@ -1314,14 +1310,15 @@
   function renderToolPopover(){
     if(!toolPopover) return;
     if(state.mode !== 'tools' || state.preview || !state.images.length){ toolPopover.classList.remove('show'); toolPopover.classList.remove('mobile-collapsed'); return; }
-    if(isMobileLayout() && !state.mobileToolPopoverOpen){
+    if(!state.mobileToolPopoverOpen){
       toolPopover.classList.add('mobile-collapsed');
       toolPopover.classList.remove('show');
       return;
     }
     toolPopover.classList.remove('mobile-collapsed');
     const a = state.selected?.type === 'annotation' ? state.annotations[state.selected.index] : null;
-    const html = a ? annotationPopover(a) : groupPopover();
+    let html = a ? annotationPopover(a) : groupPopover();
+    if(html && !a) html = html.replace(/<\/div>\s*$/, '<div class="pop-actions compact-actions"><button class="mini-btn" id="hideToolPopoverBtnFloat" title="收起">⌄</button></div></div>');
     if(!html){ toolPopover.innerHTML = ''; toolPopover.classList.remove('show'); return; }
     toolPopover.innerHTML = html;
     toolPopover.classList.toggle('compact', !a && ['select','eraser'].includes(state.toolSettings.group));
@@ -1383,21 +1380,17 @@
     const s = state.toolSettings, g = s.group || 'select';
     if(g === 'select') return '';
     if(g === 'shape') return compactPanel(
-      compactRow(`${chip('shapeKind','box',s.shapeKind!=='circle',svgIcon('rect'),'矩形')}${chip('shapeKind','circle',s.shapeKind==='circle',svgIcon('circle'),'圆形')}${boolChip('shapeFill',!!s.shapeFill,'◩','填充 / 空心')}`)+
-      compactRow(`${colorPalette('color',s.color)}${colorPalette('fillColor',s.fillColor,false,['#fee2e2','#ffedd5','#fef9c3','#dcfce7','#dbeafe','#ffffff'])}`)+
-      compactRow(`${widthControl('lineWidth',s.lineWidth||4,1,64)}${opacityControl('opacity',s.opacity||1)}`)
+      compactRow(`${chip('shapeKind','box',s.shapeKind!=='circle',svgIcon('rect'),'矩形')}${chip('shapeKind','circle',s.shapeKind==='circle',svgIcon('circle'),'圆形')}${boolChip('shapeFill',!!s.shapeFill,'◩','填充 / 空心')}${colorPalette('color',s.color)}${widthControl('lineWidth',s.lineWidth||4,1,64)}${opacityControl('opacity',s.opacity||1)}`)
     );
     if(g === 'pen'){
       const widthKey = s.penKind==='highlight' ? 'highlightWidth' : 'penWidth';
       const widthVal = s.penKind==='highlight' ? (s.highlightWidth||18) : (s.penWidth||4);
       return compactPanel(
-        compactRow(`${chip('penKind','pen',s.penKind!=='highlight','✎','自由笔')}${chip('penKind','highlight',s.penKind==='highlight','▰','荧光笔')}${colorPalette('penColor',s.penColor || (s.penKind==='highlight'?'#facc15':'#ef4444'))}`)+
-        compactRow(`${widthControl(widthKey,widthVal,1,96)}`)
+        compactRow(`${chip('penKind','pen',s.penKind!=='highlight','✎','自由笔')}${chip('penKind','highlight',s.penKind==='highlight','▰','荧光笔')}${colorPalette('penColor',s.penColor || (s.penKind==='highlight'?'#facc15':'#ef4444'))}${widthControl(widthKey,widthVal,1,96)}`)
       );
     }
     if(g === 'arrow') return compactPanel(
-      compactRow(`${chip('arrowKind','line',s.arrowKind==='line',svgIcon('line'),'直线')}${chip('arrowKind','arrow',s.arrowKind!=='line'&&s.arrowKind!=='doubleArrow',svgIcon('arrow'),'单箭头')}${chip('arrowKind','doubleArrow',s.arrowKind==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}${colorPalette('color',s.color)}`)+
-      compactRow(`${widthControl('lineWidth',s.lineWidth||4,1,64)}`)
+      compactRow(`${chip('arrowKind','line',s.arrowKind==='line',svgIcon('line'),'直线')}${chip('arrowKind','arrow',s.arrowKind!=='line'&&s.arrowKind!=='doubleArrow',svgIcon('arrow'),'单箭头')}${chip('arrowKind','doubleArrow',s.arrowKind==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}${colorPalette('color',s.color)}${widthControl('lineWidth',s.lineWidth||4,1,64)}`)
     );
     if(g === 'text') return compactPanel(
       compactRow(`${textInput('textValue',s.textValue||'输入文字',false,'文字')}`)+
@@ -1440,7 +1433,7 @@
     if(a.type==='mosaic' || a.type==='mosaicPen') html += compactRow(`${widthControl('gridSize',a.gridSize||14,4,80,true)}`);
     if(a.type==='watermark') html += compactRow(`${repeatControl('repeatCount',a.repeatCount||1,true)}`);
     if(opacityLike) html += compactRow(`${opacityControl('opacity',a.opacity == null ? 1 : a.opacity,true)}`);
-    html += `<div class="pop-actions compact-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat" title="删除">✕</button><button class="mini-btn" id="duplicateAnnotationBtnFloat" title="复制">⧉</button></div>`;
+    html += `<div class="pop-actions compact-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat" title="删除">✕</button><button class="mini-btn" id="duplicateAnnotationBtnFloat" title="复制">⧉</button><button class="mini-btn" id="hideToolPopoverBtnFloat" title="收起">⌄</button></div>`;
     return compactPanel(html);
   }
   function bindToolPopoverEvents(){
@@ -1527,6 +1520,13 @@
 
     $('#deleteAnnotationBtnFloat')?.addEventListener('click', deleteSelectedAnnotation);
     $('#duplicateAnnotationBtnFloat')?.addEventListener('click', duplicateSelectedAnnotation);
+    $('#hideToolPopoverBtnFloat')?.addEventListener('click', hideToolPopover);
+  }
+
+  function hideToolPopover(){
+    state.mobileToolPopoverOpen = false;
+    renderToolDock();
+    requestRender();
   }
 
   function updateAnnotationInput(inp){
@@ -1890,12 +1890,20 @@
   function fitToView(animate=true){
     const rect = stageWrap.getBoundingClientRect();
     const layout = computeLayout(true);
-    const pad = 64;
     if(!state.images.length){ state.zoom = 1; state.pan = {x:0,y:0}; requestRender(); return; }
-    const z = Math.min((rect.width-pad)/layout.fullWidth, (rect.height-pad)/layout.fullHeight);
-    state.zoom = clamp(isFinite(z) ? z : 1, 0.03, 3);
-    state.pan.x = (rect.width - layout.fullWidth*state.zoom)/2;
-    state.pan.y = (rect.height - layout.fullHeight*state.zoom)/2;
+    if(isMobileLayout()){
+      const pad = 18;
+      const z = (rect.width - pad) / Math.max(1, layout.fullWidth);
+      state.zoom = clamp(isFinite(z) ? z : 1, 0.03, 8);
+      state.pan.x = (rect.width - layout.fullWidth * state.zoom) / 2;
+      state.pan.y = 10;
+    } else {
+      const pad = 64;
+      const z = Math.min((rect.width-pad)/layout.fullWidth, (rect.height-pad)/layout.fullHeight);
+      state.zoom = clamp(isFinite(z) ? z : 1, 0.03, 3);
+      state.pan.x = (rect.width - layout.fullWidth*state.zoom)/2;
+      state.pan.y = (rect.height - layout.fullHeight*state.zoom)/2;
+    }
     requestRender();
   }
 
@@ -2576,7 +2584,8 @@
     if(!confirm('确定清空当前图片和编辑参数吗？')) return;
     pushHistory();
     state.images=[]; state.seams=[]; state.annotations=[]; state.selected=null; state.canvasCrop={top:0,right:0,bottom:0,left:0};
-    renderProps(); requestRender();
+    state.zoom = 1; state.pan = {x:0,y:0}; state.mobileToolPopoverOpen = false;
+    renderProps(); renderToolDock(); requestRender();
   }
 
   function handleKey(e){
@@ -2697,6 +2706,17 @@
   }
 
 
+  function hasProjectContent(){
+    return !!(state.images.length || state.annotations.length || state.seams.length || Object.values(state.canvasCrop || {}).some(v => +v));
+  }
+
+  function confirmBeforeUnload(e){
+    if(!hasProjectContent()) return;
+    e.preventDefault();
+    e.returnValue = '';
+  }
+
+
   // Events
   $('#fileInput').addEventListener('change', e => { addFiles(e.target.files); e.target.value=''; });
   $('#projectInput').addEventListener('change', e => { if(e.target.files[0]) openProject(e.target.files[0]); e.target.value=''; });
@@ -2751,6 +2771,7 @@
   });
   document.addEventListener('keydown', handleKey);
   window.addEventListener('resize', () => requestRender());
+  window.addEventListener('beforeunload', confirmBeforeUnload);
   resizeObserver = new ResizeObserver(() => requestRender());
   resizeObserver.observe(stageWrap);
 
