@@ -596,29 +596,30 @@
 
 
   function drawPill(c, x, y, text, area, active=false){
-    const padX = 16, h = 38;
+    // 控制按钮需要保持屏幕尺寸，不随图片缩放变得过小。
+    const z = Math.max(0.03, state.zoom || 1);
+    const padX = 16 / z, h = 38 / z;
     c.save();
-    c.font = '700 20px ui-sans-serif, system-ui, sans-serif';
-    const w = Math.max(52, c.measureText(text).width + padX*2);
-    const rx = 16;
+    c.font = `700 ${20 / z}px ui-sans-serif, system-ui, sans-serif`;
+    const w = Math.max(52 / z, c.measureText(text).width + padX*2);
+    const rx = 16 / z;
     c.fillStyle = active ? '#ffbf00' : '#ffcc33';
     c.strokeStyle = '#f6b700';
-    c.lineWidth = 1.5;
+    c.lineWidth = 1.5 / z;
     roundRect(c, x-w/2, y-h/2, w, h, rx);
     c.fill(); c.stroke();
     c.fillStyle = '#7a5200';
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(text, x, y+1);
+    c.fillText(text, x, y+1/z);
     c.restore();
     if(area) hitAreas.push({...area, x:x-w/2, y:y-h/2, w, h});
   }
-
 
   function drawActiveGuide(c, line, orientation, dragArea, arrowMode='both'){
     const verticalMove = orientation === 'vertical';
     c.save();
     c.strokeStyle = '#ffbf00';
-    c.lineWidth = 2;
+    c.lineWidth = 2 / state.zoom;
     c.beginPath();
     if(verticalMove){ c.moveTo(line.x1, line.y); c.lineTo(line.x2, line.y); }
     else { c.moveTo(line.x, line.y1); c.lineTo(line.x, line.y2); }
@@ -655,25 +656,33 @@
     if(mode === 'canvasCrop') drawCanvasCropOverlay(c, layout);
     if(mode === 'imageCrop') drawImageCropOverlay(c, layout);
     if(mode === 'seam') drawSeamOverlay(c, layout);
-    if(mode === 'divider') drawDividerOverlay(c, layout);
+    if(mode === 'divider') {
+      // 分割线模式分两种状态：
+      // 1) 预定位：只显示唯一分割线 + 加号；
+      // 2) 刚插入后的当前接缝编辑：只显示当前这一个接缝，不显示其它拼接线。
+      if(state.activeHandle?.kind === 'seamCenter') drawSeamOverlay(c, layout);
+      else drawDividerOverlay(c, layout);
+    }
     if(mode === 'tools') drawToolsOverlay(c, layout);
     c.restore();
   }
 
   function drawSeamOverlay(c, layout){
     const vertical = state.orientation === 'vertical';
-    for(const sv of layout.seams){
+    const activeIndex = state.activeHandle?.kind === 'seamCenter' ? state.activeHandle.index : null;
+    const seamList = activeIndex == null ? layout.seams : layout.seams.filter(sv => sv.index === activeIndex);
+    for(const sv of seamList){
       const selected = state.selected?.type === 'seam' && state.selected.index === sv.index;
+      const active = state.activeHandle?.kind === 'seamCenter' && state.activeHandle.index === sv.index;
       c.save();
-      c.strokeStyle = selected ? '#ffbf00' : 'rgba(246,183,0,.82)';
-      c.lineWidth = selected ? 3 : 2;
-      c.setLineDash(selected ? [] : [8,6]);
+      c.strokeStyle = active ? '#ffbf00' : (selected ? '#ffbf00' : 'rgba(246,183,0,.82)');
+      c.lineWidth = (active || selected ? 3 : 2) / state.zoom;
+      c.setLineDash(active || selected ? [] : [8,6]);
       c.beginPath();
       if(vertical){ c.moveTo(0, sv.y); c.lineTo(layout.fullWidth, sv.y); }
       else { c.moveTo(sv.x, 0); c.lineTo(sv.x, layout.fullHeight); }
       c.stroke();
       c.restore();
-      const active = state.activeHandle?.kind === 'seamCenter' && state.activeHandle.index === sv.index;
       if(active){
         const beforeArea = layout.imageBounds.find(b => b.index === sv.index);
         const afterArea = layout.imageBounds.find(b => b.index === sv.index + 1);
@@ -699,7 +708,8 @@
     c.fillRect(0,y, x, h);
     c.fillRect(x+w,y, layout.fullWidth-(x+w), h);
     c.fillRect(0,y+h, layout.fullWidth, layout.fullHeight-(y+h));
-    c.strokeStyle = '#ffbf00'; c.lineWidth = 3; c.strokeRect(x,y,w,h);
+    c.strokeStyle = '#ffbf00'; c.lineWidth = 3 / state.zoom; c.strokeRect(x,y,w,h);
+    c.strokeStyle = 'rgba(246,183,0,.55)'; c.lineWidth = 1.5 / state.zoom; c.strokeRect(0,0,layout.fullWidth,layout.fullHeight);
     c.restore();
     const midX = x + w/2, midY = y + h/2;
     const active = state.activeHandle?.kind === 'canvasCrop';
@@ -724,7 +734,7 @@
       const selected = state.selected?.type === 'image' && state.selected.index === b.index;
       c.save();
       c.strokeStyle = selected ? '#ffbf00' : 'rgba(246,183,0,.85)';
-      c.lineWidth = selected ? 3 : 2;
+      c.lineWidth = (selected ? 3 : 2) / state.zoom;
       c.strokeRect(b.x,b.y,b.w,b.h);
       c.restore();
       const active = state.activeHandle?.kind === 'imageCrop' && state.activeHandle.index === b.index;
@@ -742,10 +752,6 @@
         drawArrowPill(c, b.x+b.w, b.y+b.h/2, 'right', {type:'imageCrop', index:b.index, edge:'right', cursor:'pointer'}, true);
       }
     }
-    for(const sv of layout.seams){
-      if(vertical) drawSeamPill(c, layout.fullWidth/2, sv.y, true, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
-      else drawSeamPill(c, sv.x, layout.fullHeight/2, false, {type:'seamCenter', index:sv.index, cursor:'pointer'}, true);
-    }
   }
 
   function drawDividerOverlay(c, layout){
@@ -754,7 +760,7 @@
     const pos = state.splitDraft.pos;
     c.save();
     c.strokeStyle = 'rgba(246,183,0,.92)';
-    c.lineWidth = 2.5;
+    c.lineWidth = 2.5 / state.zoom;
     c.beginPath();
     if(vertical){ c.moveTo(0,pos); c.lineTo(layout.fullWidth,pos); }
     else { c.moveTo(pos,0); c.lineTo(pos,layout.fullHeight); }
@@ -919,22 +925,26 @@
     const layout = computeLayout(true);
     const pos = state.splitDraft.pos;
     const seamThreshold = 18;
+    const enterCurrentSeamEdit = (idx) => {
+      state.mode = 'divider';
+      state.selected = {type:'seam', index:idx};
+      state.activeHandle = {kind:'seamCenter', index:idx};
+      updateModeButtons(); renderProps(); requestRender();
+    };
     if(state.orientation === 'vertical'){
       const existing = layout.seams.find(sv => Math.abs(sv.y - pos) <= seamThreshold);
-      if(existing){ state.mode='seam'; state.selected={type:'seam', index:existing.index}; state.activeHandle={kind:'seamCenter', index:existing.index}; updateModeButtons(); renderProps(); requestRender(); return; }
+      if(existing){ enterCurrentSeamEdit(existing.index); return; }
       const target = layout.imageBounds.find(b => pos > b.y + 1 && pos < b.y + b.h - 1);
       if(!target) return;
       splitImageAt(target.index, pos - target.y);
-      state.activeHandle = {kind:'seamCenter', index: target.index};
-      renderProps(); requestRender();
+      enterCurrentSeamEdit(target.index);
     } else {
       const existing = layout.seams.find(sv => Math.abs(sv.x - pos) <= seamThreshold);
-      if(existing){ state.mode='seam'; state.selected={type:'seam', index:existing.index}; state.activeHandle={kind:'seamCenter', index:existing.index}; updateModeButtons(); renderProps(); requestRender(); return; }
+      if(existing){ enterCurrentSeamEdit(existing.index); return; }
       const target = layout.imageBounds.find(b => pos > b.x + 1 && pos < b.x + b.w - 1);
       if(!target) return;
       splitImageAt(target.index, pos - target.x);
-      state.activeHandle = {kind:'seamCenter', index: target.index};
-      renderProps(); requestRender();
+      enterCurrentSeamEdit(target.index);
     }
   }
 
@@ -975,7 +985,11 @@
   }
 
   function handleHitDown(h, w, e){
-    if(h.type === 'activeDone'){ state.activeHandle = null; renderProps(); requestRender(); return; }
+    if(h.type === 'activeDone'){
+      state.activeHandle = null;
+      if(state.mode === 'divider') state.selected = null;
+      renderProps(); requestRender(); return;
+    }
     if(h.type === 'activeDrag'){ startActiveDrag(w); return; }
     if(h.type === 'activeDragBefore' || h.type === 'activeDragAfter'){
       const s = state.seams[h.index];
