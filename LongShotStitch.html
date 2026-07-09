@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.10 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.11 - 长图拼接裁剪工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -159,6 +159,26 @@
     .compact-actions{margin-top:4px;padding-top:7px}
     .tool-panel-card .tool-popover{padding:8px;margin-top:6px}
 
+
+    .mini-map{position:absolute;right:18px;top:14px;width:96px;display:none;z-index:11;padding:5px;border:1px solid rgba(203,213,225,.86);border-radius:12px;background:rgba(255,255,255,.9);box-shadow:0 12px 28px rgba(15,23,42,.16);backdrop-filter:blur(16px);pointer-events:auto;user-select:none}
+    .mini-map.show{display:block}
+    .mini-map canvas{position:static!important;width:100%;height:auto;display:block;border-radius:8px;background:#fff;border:1px solid #e5e7eb}
+    .mini-viewport{position:absolute;border:2px solid #2f80ed;border-radius:6px;background:rgba(47,128,237,.12);box-shadow:0 0 0 1px rgba(255,255,255,.7) inset;pointer-events:none}
+    .nav-scrollbar{position:absolute;z-index:12;display:none;pointer-events:auto;user-select:none}
+    .nav-scrollbar.show{display:block}
+    .nav-scrollbar.vertical{right:5px;top:12px;bottom:30px;width:8px}
+    .nav-scrollbar.horizontal{left:14px;right:30px;bottom:7px;height:8px}
+    .nav-track{position:absolute;inset:0;border-radius:999px;background:rgba(15,23,42,.08);box-shadow:0 0 0 1px rgba(255,255,255,.55) inset}
+    .nav-thumb{position:absolute;border-radius:999px;background:rgba(15,23,42,.44);box-shadow:0 2px 8px rgba(15,23,42,.18)}
+    .nav-thumb:hover,.nav-scrollbar.dragging .nav-thumb{background:rgba(47,128,237,.78)}
+    .nav-scrollbar.vertical .nav-thumb{left:0;width:100%;min-height:28px}
+    .nav-scrollbar.horizontal .nav-thumb{top:0;height:100%;min-width:28px}
+    @media (max-width: 760px){
+      .mini-map{right:10px;top:10px;width:72px;padding:4px;border-radius:10px}
+      .nav-scrollbar.vertical{right:4px;top:8px;bottom:14px;width:7px}
+      .nav-scrollbar.horizontal{left:8px;right:18px;bottom:6px;height:7px}
+    }
+
     @media (max-width: 760px){
       .desktop-tools-slot{display:none}
       .floating-toolkit{bottom:calc(var(--mobilebar) + 10px);left:8px;right:8px;transform:none;justify-content:flex-start}
@@ -190,7 +210,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.10</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.11</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -258,6 +278,13 @@
       <div class="statusbar" id="statusbar">Ready</div>
       <div class="floating-toolkit" id="toolDock" aria-label="工具栏"></div>
       <div class="tool-popover" id="toolPopover"></div>
+
+      <div class="mini-map" id="miniMap" title="点击跳转">
+        <canvas id="miniMapCanvas"></canvas>
+        <div class="mini-viewport" id="miniViewport"></div>
+      </div>
+      <div class="nav-scrollbar vertical" id="vScroll"><div class="nav-track"></div><div class="nav-thumb" id="vThumb"></div></div>
+      <div class="nav-scrollbar horizontal" id="hScroll"><div class="nav-track"></div><div class="nav-thumb" id="hThumb"></div></div>
     </div>
   </main>
 
@@ -289,6 +316,13 @@
   const app = $('#app');
   const toolDock = $('#toolDock');
   const toolPopover = $('#toolPopover');
+  const miniMap = $('#miniMap');
+  const miniMapCanvas = $('#miniMapCanvas');
+  const miniViewport = $('#miniViewport');
+  const vScroll = $('#vScroll');
+  const vThumb = $('#vThumb');
+  const hScroll = $('#hScroll');
+  const hThumb = $('#hThumb');
 
   let state = {
     orientation: 'vertical',
@@ -313,6 +347,7 @@
   let hitAreas = [];
   let layoutCache = null;
   let drag = null;
+  let navDrag = null;
   let redrawPending = false;
   let resizeObserver = null;
 
@@ -602,6 +637,7 @@
     app.classList.toggle('preview', state.preview);
     if(!state.images.length){
       statusbar.textContent = 'Ready：拖入、打开或粘贴图片';
+      updateNavigation(null);
       return;
     }
 
@@ -614,8 +650,137 @@
 
     const finalLayout = computeLayout(false);
     statusbar.textContent = `${state.orientation === 'vertical' ? '纵向' : '横向'} · ${state.images.length} 张图 · 输出 ${Math.round(finalLayout.width)}×${Math.round(finalLayout.height)} px · 缩放 ${Math.round(state.zoom*100)}%`;
+    updateNavigation(layoutCache);
     if(state.activeHandle && !state.preview) requestRender();
   }
+
+
+  function visibleWorldRect(){
+    const rect = stageWrap.getBoundingClientRect();
+    return {
+      x: -state.pan.x / Math.max(0.0001, state.zoom),
+      y: -state.pan.y / Math.max(0.0001, state.zoom),
+      w: rect.width / Math.max(0.0001, state.zoom),
+      h: rect.height / Math.max(0.0001, state.zoom),
+      screenW: rect.width,
+      screenH: rect.height
+    };
+  }
+
+  function clampPanToLayout(layout){
+    if(!layout) return;
+    const rect = stageWrap.getBoundingClientRect();
+    const minX = Math.min(0, rect.width - layout.fullWidth * state.zoom);
+    const minY = Math.min(0, rect.height - layout.fullHeight * state.zoom);
+    if(layout.fullWidth * state.zoom <= rect.width) state.pan.x = (rect.width - layout.fullWidth * state.zoom) / 2;
+    else state.pan.x = clamp(state.pan.x, minX, 0);
+    if(layout.fullHeight * state.zoom <= rect.height) state.pan.y = (rect.height - layout.fullHeight * state.zoom) / 2;
+    else state.pan.y = clamp(state.pan.y, minY, 0);
+  }
+
+  function setViewportCenter(wx, wy){
+    const rect = stageWrap.getBoundingClientRect();
+    const layout = computeLayout(true);
+    state.pan.x = rect.width / 2 - wx * state.zoom;
+    state.pan.y = rect.height / 2 - wy * state.zoom;
+    clampPanToLayout(layout);
+    requestRender();
+  }
+
+  function setVerticalScrollRatio(ratio){
+    const rect = stageWrap.getBoundingClientRect();
+    const layout = computeLayout(true);
+    const contentH = layout.fullHeight * state.zoom;
+    if(contentH <= rect.height) return;
+    const minY = rect.height - contentH;
+    state.pan.y = minY * clamp(ratio, 0, 1);
+    requestRender();
+  }
+
+  function setHorizontalScrollRatio(ratio){
+    const rect = stageWrap.getBoundingClientRect();
+    const layout = computeLayout(true);
+    const contentW = layout.fullWidth * state.zoom;
+    if(contentW <= rect.width) return;
+    const minX = rect.width - contentW;
+    state.pan.x = minX * clamp(ratio, 0, 1);
+    requestRender();
+  }
+
+  function updateNavigation(layout){
+    if(!layout || !state.images.length || state.preview){
+      miniMap.classList.remove('show');
+      vScroll.classList.remove('show');
+      hScroll.classList.remove('show');
+      return;
+    }
+    const rect = stageWrap.getBoundingClientRect();
+    const contentW = layout.fullWidth * state.zoom;
+    const contentH = layout.fullHeight * state.zoom;
+    const showV = contentH > rect.height + 6;
+    const showH = contentW > rect.width + 6;
+    vScroll.classList.toggle('show', showV);
+    hScroll.classList.toggle('show', showH);
+
+    if(showV){
+      const trackH = Math.max(1, vScroll.clientHeight || (rect.height - 42));
+      const thumbH = clamp(trackH * rect.height / contentH, 28, trackH);
+      const travel = Math.max(1, trackH - thumbH);
+      const ratio = clamp(-state.pan.y / Math.max(1, contentH - rect.height), 0, 1);
+      vThumb.style.height = thumbH + 'px';
+      vThumb.style.top = (ratio * travel) + 'px';
+    }
+    if(showH){
+      const trackW = Math.max(1, hScroll.clientWidth || (rect.width - 44));
+      const thumbW = clamp(trackW * rect.width / contentW, 28, trackW);
+      const travel = Math.max(1, trackW - thumbW);
+      const ratio = clamp(-state.pan.x / Math.max(1, contentW - rect.width), 0, 1);
+      hThumb.style.width = thumbW + 'px';
+      hThumb.style.left = (ratio * travel) + 'px';
+    }
+
+    const showMap = showV && rect.width > 360 && rect.height > 260;
+    miniMap.classList.toggle('show', showMap);
+    if(!showMap) return;
+
+    const maxW = window.matchMedia('(max-width: 760px)').matches ? 62 : 84;
+    const maxH = Math.max(96, rect.height - 150);
+    const mmW = maxW;
+    const mmH = clamp(layout.fullHeight / Math.max(1, layout.fullWidth) * mmW, 96, maxH);
+    const dpr = window.devicePixelRatio || 1;
+    miniMapCanvas.style.width = mmW + 'px';
+    miniMapCanvas.style.height = mmH + 'px';
+    miniMapCanvas.width = Math.max(1, Math.floor(mmW * dpr));
+    miniMapCanvas.height = Math.max(1, Math.floor(mmH * dpr));
+    const mc = miniMapCanvas.getContext('2d');
+    mc.setTransform(dpr,0,0,dpr,0,0);
+    mc.clearRect(0,0,mmW,mmH);
+    mc.save();
+    mc.scale(mmW / Math.max(1, layout.fullWidth), mmH / Math.max(1, layout.fullHeight));
+    drawComposition(mc, layout, true, true);
+    mc.restore();
+
+    const vw = visibleWorldRect();
+    const sx = mmW / Math.max(1, layout.fullWidth);
+    const sy = mmH / Math.max(1, layout.fullHeight);
+    const fx = clamp(vw.x * sx, 0, mmW);
+    const fy = clamp(vw.y * sy, 0, mmH);
+    const fw = clamp(vw.w * sx, 8, mmW - fx);
+    const fh = clamp(vw.h * sy, 14, mmH - fy);
+    miniViewport.style.left = (5 + fx) + 'px';
+    miniViewport.style.top = (5 + fy) + 'px';
+    miniViewport.style.width = fw + 'px';
+    miniViewport.style.height = fh + 'px';
+  }
+
+  function miniMapPointToWorld(e){
+    const rect = miniMapCanvas.getBoundingClientRect();
+    const layout = computeLayout(true);
+    const x = clamp(e.clientX - rect.left, 0, rect.width);
+    const y = clamp(e.clientY - rect.top, 0, rect.height);
+    return { x: x / Math.max(1, rect.width) * layout.fullWidth, y: y / Math.max(1, rect.height) * layout.fullHeight };
+  }
+
 
   function drawComposition(c, layout, exportMode=false, withUncroppedCanvas=false){
     const crop = withUncroppedCanvas ? {left:0,top:0} : layout.crop || {left:0,top:0};
@@ -950,7 +1115,7 @@
     }
   }
 
-  function splitDraftIsVisible(layout, marginPx=24){
+  function splitDraftIsVisible(layout, marginPx=0){
     if(!state.splitDraft) return false;
     const rect = stageWrap.getBoundingClientRect();
     const pos = Math.round(state.splitDraft.pos || 0);
@@ -967,7 +1132,8 @@
     // v1.4 分割线预定位态：
     // - 如果分割线还在当前可视范围内，保持不动，尊重用户刚刚调好的位置；
     // - 如果分割线已经离开当前可视范围，自动跳到屏幕中心，避免长图放大后还要回头找线。
-    if(!drag && !splitDraftIsVisible(layout)){
+    const canAutoFollow = !drag || drag.type === 'pan';
+    if(canAutoFollow && !splitDraftIsVisible(layout)){
       syncSplitDraftToViewportCenter();
     }
     const vertical = state.orientation === 'vertical';
@@ -1968,6 +2134,7 @@
     const finished = drag;
     drag = null;
     stage.classList.remove('dragging');
+    if(finished && finished.type === 'pan') requestRender();
     if(finished && finished.type === 'splitDraft') renderProps();
     if(finished && finished.type === 'toolCreate'){
       const a = state.annotations[finished.index];
@@ -2449,6 +2616,63 @@
   }
   function amountSign(delta){ return Math.abs(delta); }
 
+
+  function beginMiniMapNav(e){
+    if(!state.images.length) return;
+    e.preventDefault(); e.stopPropagation();
+    const w = miniMapPointToWorld(e);
+    setViewportCenter(w.x, w.y);
+    navDrag = {type:'miniMap'};
+  }
+  function beginVScroll(e){
+    if(!state.images.length) return;
+    e.preventDefault(); e.stopPropagation();
+    vScroll.classList.add('dragging');
+    const r = vScroll.getBoundingClientRect();
+    const th = vThumb.getBoundingClientRect();
+    const offset = e.target === vThumb ? e.clientY - th.top : th.height / 2;
+    navDrag = {type:'vScroll', offset};
+    const ratio = (e.clientY - r.top - offset) / Math.max(1, r.height - th.height);
+    setVerticalScrollRatio(ratio);
+  }
+  function beginHScroll(e){
+    if(!state.images.length) return;
+    e.preventDefault(); e.stopPropagation();
+    hScroll.classList.add('dragging');
+    const r = hScroll.getBoundingClientRect();
+    const tw = hThumb.getBoundingClientRect();
+    const offset = e.target === hThumb ? e.clientX - tw.left : tw.width / 2;
+    navDrag = {type:'hScroll', offset};
+    const ratio = (e.clientX - r.left - offset) / Math.max(1, r.width - tw.width);
+    setHorizontalScrollRatio(ratio);
+  }
+  function onNavPointerMove(e){
+    if(!navDrag) return;
+    e.preventDefault();
+    if(navDrag.type === 'miniMap'){
+      const w = miniMapPointToWorld(e);
+      setViewportCenter(w.x, w.y);
+    } else if(navDrag.type === 'vScroll'){
+      const r = vScroll.getBoundingClientRect();
+      const th = vThumb.getBoundingClientRect();
+      const ratio = (e.clientY - r.top - navDrag.offset) / Math.max(1, r.height - th.height);
+      setVerticalScrollRatio(ratio);
+    } else if(navDrag.type === 'hScroll'){
+      const r = hScroll.getBoundingClientRect();
+      const tw = hThumb.getBoundingClientRect();
+      const ratio = (e.clientX - r.left - navDrag.offset) / Math.max(1, r.width - tw.width);
+      setHorizontalScrollRatio(ratio);
+    }
+  }
+  function endNavDrag(){
+    if(!navDrag) return;
+    navDrag = null;
+    vScroll.classList.remove('dragging');
+    hScroll.classList.remove('dragging');
+    requestRender();
+  }
+
+
   // Events
   $('#fileInput').addEventListener('change', e => { addFiles(e.target.files); e.target.value=''; });
   $('#projectInput').addEventListener('change', e => { if(e.target.files[0]) openProject(e.target.files[0]); e.target.value=''; });
@@ -2464,6 +2688,12 @@
   $('#horizontalBtn').addEventListener('click', () => setOrientation('horizontal'));
   $$('.mode-btn,.mobile-mode').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
   window.addEventListener('resize', () => renderToolDock());
+  miniMap.addEventListener('pointerdown', beginMiniMapNav);
+  vScroll.addEventListener('pointerdown', beginVScroll);
+  hScroll.addEventListener('pointerdown', beginHScroll);
+  document.addEventListener('pointermove', onNavPointerMove);
+  document.addEventListener('pointerup', endNavDrag);
+  document.addEventListener('pointercancel', endNavDrag);
 
   document.addEventListener('paste', async e => {
     const files = [];

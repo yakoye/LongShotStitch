@@ -4,8 +4,8 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const htmlPath = fs.existsSync(path.join(root, 'LongShotStitch_v1.10.html'))
-  ? path.join(root, 'LongShotStitch_v1.10.html')
+const htmlPath = fs.existsSync(path.join(root, 'LongShotStitch_v1.11.html'))
+  ? path.join(root, 'LongShotStitch_v1.11.html')
   : path.join(root, 'index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -27,6 +27,10 @@ const required = [
   'function widthControl',
   'function findExistingWatermarkIndex',
   'function selectAnnotationForEdit',
+  'function updateNavigation',
+  'function miniMapPointToWorld',
+  'function setVerticalScrollRatio',
+  'function setHorizontalScrollRatio',
   'data-tool-width',
   'data-ann-width',
   'function beginToolDraw',
