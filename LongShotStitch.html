@@ -687,7 +687,9 @@
     const cc = state.canvasCrop;
     const x = cc.left, y = cc.top, w = layout.fullWidth - cc.left - cc.right, h = layout.fullHeight - cc.top - cc.bottom;
     c.save();
-    c.fillStyle = 'rgba(17,24,39,.38)';
+    // 整体裁剪时，被裁掉的区域不再半透明显示，而是直接用画布背景盖掉。
+    // 这样拖动裁剪时，用户看到的就是最终保留页面，而不是仍然能看到被裁掉的部分。
+    c.fillStyle = '#eef2f7';
     c.fillRect(0,0,layout.fullWidth, y);
     c.fillRect(0,y, x, h);
     c.fillRect(x+w,y, layout.fullWidth-(x+w), h);
