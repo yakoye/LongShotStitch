@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.8 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.9 - 长图拼接裁剪工具</title>
   <style>
     :root{
       --bg:#f3f5f8;
@@ -139,6 +139,25 @@
     .pop-section summary::after{content:'⌄';font-size:12px;color:#64748b;transition:.16s}
     .pop-section:not([open]) summary::after{transform:rotate(-90deg)}
     .pop-section-body{padding:8px 10px}
+    .pop-compact{display:flex;flex-direction:column;gap:7px}
+    .pop-inline{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:30px}
+    .pop-compact .pop-chip{height:28px;min-width:28px;padding:0 7px;border-radius:8px}
+    .pop-compact .pop-chip svg{width:16px;height:16px}
+    .color-strip,.density-strip,.size-control,.width-control{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+    .color-swatch{width:24px;height:24px;padding:2px;border:1px solid #d9dee7;border-radius:7px;background:#fff;display:grid;place-items:center}
+    .color-swatch span{width:16px;height:16px;border-radius:5px;border:1px solid rgba(15,23,42,.12);display:block}
+    .color-swatch.active{border-color:#111827;box-shadow:0 0 0 2px rgba(17,24,39,.12)}
+    .mini-color-input{width:26px!important;height:24px!important;border-radius:7px!important;padding:2px!important;flex:0 0 auto!important}
+    .mini-number-input,.tiny-number,.width-number{height:26px!important;border:1px solid #d9dee7;border-radius:7px;background:#fff;padding:0 4px;font-size:12px;min-width:0}
+    .tiny-number{width:48px!important;flex:0 0 auto!important;text-align:center}
+    .width-number{width:42px!important;flex:0 0 auto!important;text-align:center}
+    .compact-text-input{height:28px;border:1px solid #d9dee7;border-radius:8px;background:#fff;padding:0 7px;min-width:88px;max-width:100%;flex:1 1 110px;font-size:12px}
+    .line-chip{height:26px;min-width:30px;padding:0 5px;border:1px solid #d9dee7;border-radius:8px;background:#fff;display:inline-grid;place-items:center}
+    .line-chip.active{background:#111827;border-color:#111827}
+    .line-chip.active .line-preview{background:#fff}
+    .line-preview{display:block;background:#111827;border-radius:999px;max-height:18px}
+    .compact-actions{margin-top:4px;padding-top:7px}
+    .tool-panel-card .tool-popover{padding:8px;margin-top:6px}
 
     @media (max-width: 760px){
       .desktop-tools-slot{display:none}
@@ -171,7 +190,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.8</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.9</small></div>
     </div>
     <div class="mobile-title">裁剪</div>
 
@@ -1104,7 +1123,9 @@
     if(!toolPopover) return;
     if(state.mode !== 'tools' || state.preview || !state.images.length){ toolPopover.classList.remove('show'); return; }
     const a = state.selected?.type === 'annotation' ? state.annotations[state.selected.index] : null;
-    toolPopover.innerHTML = a ? annotationPopover(a) : groupPopover();
+    const html = a ? annotationPopover(a) : groupPopover();
+    if(!html){ toolPopover.innerHTML = ''; toolPopover.classList.remove('show'); return; }
+    toolPopover.innerHTML = html;
     toolPopover.classList.toggle('compact', !a && ['select','eraser'].includes(state.toolSettings.group));
     toolPopover.onpointerdown = e => e.stopPropagation();
     bindToolPopoverEvents();
@@ -1112,63 +1133,122 @@
     requestAnimationFrame(()=>positionToolPopover(activeAnchorButton()));
   }
 
-  function colorInput(key, value){ return `<input type="color" data-tool-setting="${key}" value="${value || '#ef4444'}" title="颜色">`; }
-  function numberInput(key, value, min=1, max='', step=1){ return `<input type="number" data-tool-setting="${key}" value="${value}" min="${min}" ${max!==''?`max="${max}"`:''} step="${step}">`; }
-  function chip(key, val, active, body, title=''){ return `<button class="pop-chip ${active?'active':''}" data-tool-setting="${key}" data-value="${val}" title="${title}">${body}</button>`; }
-  function popSection(title, body, open=true){ return `<details class="pop-section" ${open?'open':''}><summary>${title}</summary><div class="pop-section-body">${body}</div></details>`; }
+  const TOOL_COLORS = ['#ef4444','#f97316','#facc15','#22c55e','#3b82f6','#111827','#ffffff'];
+  const BG_COLORS = ['transparent','#ffffff','#111827','#ffeb3b','#fee2e2','#dbeafe'];
+
+  function colorInput(key, value){ return `<input class="mini-color-input" type="color" data-tool-setting="${key}" value="${value || '#ef4444'}" title="自定义颜色">`; }
+  function numberInput(key, value, min=1, max='', step=1){ return `<input class="mini-number-input" type="number" data-tool-setting="${key}" value="${value}" min="${min}" ${max!==''?`max="${max}"`:''} step="${step}" title="数字设定">`; }
+  function chip(key, val, active, body, title=''){ return `<button class="pop-chip ${active?'active':''}" data-tool-setting="${key}" data-value="${val}" title="${title}" aria-label="${title}">${body}</button>`; }
+  function boolChip(key, active, body, title=''){ return `<button class="pop-chip ${active?'active':''}" data-tool-setting="${key}" data-value="toggle" title="${title}" aria-label="${title}">${body}</button>`; }
+  function compactPanel(body){ return `<div class="pop-compact">${body}</div>`; }
+  function compactRow(body){ return `<div class="pop-inline">${body}</div>`; }
+  function swatchButton(key, color, active=false, ann=false, title=''){
+    const attr = ann ? `data-ann="${key}"` : `data-tool-setting="${key}"`;
+    const label = title || (color === 'transparent' ? '透明' : color);
+    const fill = color === 'transparent' ? 'linear-gradient(45deg,#fff 0 45%,#ef4444 45% 55%,#fff 55% 100%)' : color;
+    return `<button class="color-swatch ${active?'active':''}" ${attr} data-value="${color}" title="${label}" aria-label="${label}"><span style="background:${fill}"></span></button>`;
+  }
+  function colorPalette(key, value, ann=false, colors=TOOL_COLORS){
+    return `<span class="color-strip">${colors.map(c=>swatchButton(key,c,(value||'').toLowerCase()===c.toLowerCase(),ann)).join('')}${ann?'':colorInput(key,value)}</span>`;
+  }
+  function widthLine(w){ return `<span class="line-preview" style="height:${Math.max(1,Math.min(18,+w||1))}px;width:${18 + Math.min(26,(+w||1)*2)}px"></span>`; }
+  function widthControl(key, value, min=1, max=80, ann=false){
+    const presets = [1,2,4,8,16,32].filter(v=>v>=min && v<=max);
+    const attr = ann ? `data-ann="${key}"` : `data-tool-setting="${key}"`;
+    const wheelAttr = ann ? `data-ann-width="${key}"` : `data-tool-width="${key}"`;
+    const current = Math.round(+value || min);
+    return `<span class="width-control" ${wheelAttr} data-min="${min}" data-max="${max}" title="滚轮调粗细">${presets.map(v=>`<button class="line-chip ${current===v?'active':''}" ${attr} data-value="${v}" title="${v}">${widthLine(v)}</button>`).join('')}<input class="width-number" type="number" ${attr} value="${current}" min="${min}" max="${max}" step="1" title="数字设定"></span>`;
+  }
+  function opacityControl(key, value, ann=false){
+    const attr = ann ? `data-ann="${key}"` : `data-tool-setting="${key}"`;
+    const v = value == null ? 1 : value;
+    return `<input class="tiny-number" type="number" ${attr} value="${v}" min="0.05" max="1" step="0.05" title="透明度">`;
+  }
+  function repeatControl(key, value, ann=false){
+    const attr = ann ? `data-ann="${key}"` : `data-tool-setting="${key}"`;
+    const current = Math.round(+value || 1);
+    return `<span class="density-strip">${[1,4,9,16,25].map(v=>`<button class="pop-chip ${current===v?'active':''}" ${attr} data-value="${v}" title="${v}">${'·'.repeat(Math.min(5,Math.ceil(Math.sqrt(v))))}</button>`).join('')}<input class="tiny-number" type="number" ${attr} value="${current}" min="1" max="80" step="1" title="次数"></span>`;
+  }
+  function sizeButtons(key, value, min, max, ann=false){
+    const attr = ann ? `data-ann-step="${key}"` : `data-tool-step="${key}"`;
+    const inputAttr = ann ? `data-ann="${key}"` : `data-tool-setting="${key}"`;
+    return `<span class="size-control"><button class="pop-chip" ${attr} data-delta="-2" data-min="${min}" data-max="${max}" title="缩小">A−</button><input class="tiny-number" type="number" ${inputAttr} value="${Math.round(+value||min)}" min="${min}" max="${max}" step="1" title="数字设定"><button class="pop-chip" ${attr} data-delta="2" data-min="${min}" data-max="${max}" title="放大">A+</button></span>`;
+  }
+  function textInput(key, value, ann=false, title='文字'){
+    const attr = ann ? `data-ann="${key}"` : `data-tool-setting="${key}"`;
+    return `<input class="compact-text-input" type="text" ${attr} value="${escapeHtml(value||'')}" title="${title}" placeholder="${title}">`;
+  }
+  function annChip(key, val, active, body, title=''){ return `<button class="pop-chip ${active?'active':''}" data-ann="${key}" data-value="${val}" title="${title}" aria-label="${title}">${body}</button>`; }
 
   function groupPopover(){
     const s = state.toolSettings, g = s.group || 'select';
-    if(g === 'select') return `<div class="pop-title">选择 / 移动</div>`;
-    if(g === 'shape') return `<div class="pop-title">几何图形</div>`+
-      popSection('形状', `<div class="pop-chip-row">${chip('shapeKind','box',s.shapeKind!=='circle',svgIcon('rect'),'方框')}${chip('shapeKind','circle',s.shapeKind==='circle',svgIcon('circle'),'圆形')}${chip('shapeFill','toggle',!!s.shapeFill,'填充','填充 / 空心')}</div>`, true)+
-      popSection('颜色', `<div class="pop-row"><label>边框</label>${colorInput('color',s.color)}</div><div class="pop-row"><label>填充</label>${colorInput('fillColor',s.fillColor)}</div>`, true)+
-      popSection('线条', `<div class="pop-row"><label>边框</label>${numberInput('lineWidth',s.lineWidth||4,1,40)}</div><div class="pop-row"><label>透明度</label>${numberInput('opacity',s.opacity||1,0.05,1,0.05)}</div>`, false);
-    if(g === 'pen') return `<div class="pop-title">铅笔</div>`+
-      popSection('类型', `<div class="pop-chip-row">${chip('penKind','pen',s.penKind!=='highlight','✎','自由笔')}${chip('penKind','highlight',s.penKind==='highlight','▰','荧光笔')}</div>`, true)+
-      popSection('样式', `<div class="pop-row"><label>颜色</label>${colorInput('penColor',s.penColor || (s.penKind==='highlight'?'#facc15':'#ef4444'))}</div><div class="pop-row"><label>粗细</label>${numberInput(s.penKind==='highlight'?'highlightWidth':'penWidth',s.penKind==='highlight'?(s.highlightWidth||18):(s.penWidth||4),1,80)}</div>`, true);
-    if(g === 'arrow') return `<div class="pop-title">线条 / 箭头</div>`+
-      popSection('类型', `<div class="pop-chip-row">${chip('arrowKind','line',s.arrowKind==='line',svgIcon('line'),'直线')}${chip('arrowKind','arrow',s.arrowKind!=='line'&&s.arrowKind!=='doubleArrow',svgIcon('arrow'),'单箭头')}${chip('arrowKind','doubleArrow',s.arrowKind==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}</div>`, true)+
-      popSection('样式', `<div class="pop-row"><label>颜色</label>${colorInput('color',s.color)}</div><div class="pop-row"><label>粗细</label>${numberInput('lineWidth',s.lineWidth||4,1,40)}</div>`, true);
-    if(g === 'text') return `<div class="pop-title">文字</div>`+
-      popSection('内容', `<div class="pop-row"><label>内容</label><input type="text" data-tool-setting="textValue" value="${escapeHtml(s.textValue||'输入文字')}"></div>`, true)+
-      popSection('字体', `<div class="pop-row"><label>字号</label>${numberInput('textSize',s.textSize||28,8,160)}</div><div class="pop-row"><label>颜色</label>${colorInput('textColor',s.textColor||'#111827')}<button class="pop-chip ${s.textOutline?'active':''}" data-tool-setting="textOutline" data-value="toggle">描边</button></div>`, true)+
-      popSection('背景', `<div class="pop-row"><label>背景</label><select data-tool-setting="textBg"><option value="transparent" ${s.textBg==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${s.textBg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${s.textBg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${s.textBg==='#ffeb3b'?'selected':''}>黄底</option></select></div>`, false);
-    if(g === 'badge') return `<div class="pop-title">标号</div>`+
-      popSection('数字', `<div class="pop-chip-row">${Array.from({length:10},(_,i)=>chip('badgeNumber',i+1,(s.badgeNumber||1)===i+1,String(i+1),`标号 ${i+1}`)).join('')}</div>`, true)+
-      popSection('样式', `<div class="pop-row"><label>颜色</label>${colorInput('badgeColor',s.badgeColor||'#2f80ed')}</div><div class="pop-row"><label>大小</label>${numberInput('badgeSize',s.badgeSize||34,14,120)}</div>`, true);
-    if(g === 'mosaic') return `<div class="pop-title">马赛克</div>`+
-      popSection('类型', `<div class="pop-chip-row">${chip('mosaicKind','mosaic',s.mosaicKind!=='free','▦','矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}</div>`, true)+
-      popSection('参数', `<div class="pop-row"><label>块大小</label>${numberInput('mosaicGrid',s.mosaicGrid||14,4,80)}</div>`, true);
-    if(g === 'eraser') return `<div class="pop-title">橡皮擦</div>`+
-      popSection('大小', `<div class="pop-row"><label>大小</label>${numberInput('eraserSize',s.eraserSize||24,4,120)}</div>`, true);
-    if(g === 'watermark') return `<div class="pop-title">水印</div>`+
-      popSection('内容', `<div class="pop-row"><label>文字</label><input type="text" data-tool-setting="watermarkText" value="${escapeHtml(s.watermarkText||'水印')}"></div>`, true)+
-      popSection('样式', `<div class="pop-row"><label>字号</label>${numberInput('watermarkSize',s.watermarkSize||34,8,180)}</div><div class="pop-row"><label>颜色</label>${colorInput('watermarkColor',s.watermarkColor||'#111827')}</div><div class="pop-row"><label>透明度</label>${numberInput('watermarkOpacity',s.watermarkOpacity||.22,0.05,1,0.05)}</div><div class="pop-row"><label>次数</label>${numberInput('watermarkRepeat',s.watermarkRepeat||1,1,80)}</div>`, true);
+    if(g === 'select') return '';
+    if(g === 'shape') return compactPanel(
+      compactRow(`${chip('shapeKind','box',s.shapeKind!=='circle',svgIcon('rect'),'矩形')}${chip('shapeKind','circle',s.shapeKind==='circle',svgIcon('circle'),'圆形')}${boolChip('shapeFill',!!s.shapeFill,'◩','填充 / 空心')}`)+
+      compactRow(`${colorPalette('color',s.color)}${colorPalette('fillColor',s.fillColor,false,['#fee2e2','#ffedd5','#fef9c3','#dcfce7','#dbeafe','#ffffff'])}`)+
+      compactRow(`${widthControl('lineWidth',s.lineWidth||4,1,64)}${opacityControl('opacity',s.opacity||1)}`)
+    );
+    if(g === 'pen'){
+      const widthKey = s.penKind==='highlight' ? 'highlightWidth' : 'penWidth';
+      const widthVal = s.penKind==='highlight' ? (s.highlightWidth||18) : (s.penWidth||4);
+      return compactPanel(
+        compactRow(`${chip('penKind','pen',s.penKind!=='highlight','✎','自由笔')}${chip('penKind','highlight',s.penKind==='highlight','▰','荧光笔')}${colorPalette('penColor',s.penColor || (s.penKind==='highlight'?'#facc15':'#ef4444'))}`)+
+        compactRow(`${widthControl(widthKey,widthVal,1,96)}`)
+      );
+    }
+    if(g === 'arrow') return compactPanel(
+      compactRow(`${chip('arrowKind','line',s.arrowKind==='line',svgIcon('line'),'直线')}${chip('arrowKind','arrow',s.arrowKind!=='line'&&s.arrowKind!=='doubleArrow',svgIcon('arrow'),'单箭头')}${chip('arrowKind','doubleArrow',s.arrowKind==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}${colorPalette('color',s.color)}`)+
+      compactRow(`${widthControl('lineWidth',s.lineWidth||4,1,64)}`)
+    );
+    if(g === 'text') return compactPanel(
+      compactRow(`${textInput('textValue',s.textValue||'输入文字',false,'文字')}`)+
+      compactRow(`${sizeButtons('textSize',s.textSize||28,8,160)}${colorPalette('textColor',s.textColor||'#111827')}${boolChip('textOutline',!!s.textOutline,'Å','描边')}`)+
+      compactRow(`${['transparent','#ffffff','#111827','#ffeb3b'].map(c=>swatchButton('textBg',c,(s.textBg||'transparent')===c,false,c==='transparent'?'透明背景':'背景')).join('')}`)
+    );
+    if(g === 'badge') return compactPanel(
+      compactRow(`${Array.from({length:10},(_,i)=>chip('badgeNumber',i+1,(s.badgeNumber||1)===i+1,String(i+1),`标号 ${i+1}`)).join('')}`)+
+      compactRow(`${colorPalette('badgeColor',s.badgeColor||'#2f80ed')}${sizeButtons('badgeSize',s.badgeSize||34,14,120)}`)
+    );
+    if(g === 'mosaic') return compactPanel(
+      compactRow(`${chip('mosaicKind','mosaic',s.mosaicKind!=='free','▦','矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}${widthControl('mosaicGrid',s.mosaicGrid||14,4,80)}`)
+    );
+    if(g === 'eraser') return compactPanel(compactRow(`${widthControl('eraserSize',s.eraserSize||24,4,120)}`));
+    if(g === 'watermark') return compactPanel(
+      compactRow(`${textInput('watermarkText',s.watermarkText||'水印',false,'水印')}`)+
+      compactRow(`${sizeButtons('watermarkSize',s.watermarkSize||34,8,180)}${colorPalette('watermarkColor',s.watermarkColor||'#111827')}${opacityControl('watermarkOpacity',s.watermarkOpacity||.22)}${repeatControl('watermarkRepeat',s.watermarkRepeat||1)}`)
+    );
     return '';
   }
 
   function annotationPopover(a){
-    const typeName = ({text:'文字', watermark:'水印', mosaic:'马赛克', mosaicPen:'自由马赛克', redact:'遮挡', pen:'自由笔', highlight:'荧光笔', box:'矩形', boxFill:'填充矩形', circle:'圆圈', circleFill:'填充圆圈', line:'直线', arrow:'箭头', doubleArrow:'双箭头', badge:'标号'}[a.type] || a.type);
     const shapeLike = ['box','boxFill','circle','circleFill','mosaic','redact','line','arrow','doubleArrow'].includes(a.type);
     const lineLike = ['box','boxFill','circle','circleFill','line','arrow','doubleArrow','pen','highlight'].includes(a.type);
-    const fillLike = ['boxFill','circleFill'].includes(a.type);
     const textLike = ['text','watermark'].includes(a.type);
     const opacityLike = ['watermark','highlight','boxFill','circleFill','mosaic','mosaicPen'].includes(a.type);
-    const position = `<div class="pop-row"><label>X</label><input type="number" data-ann="x" value="${Math.round(a.x||0)}"></div><div class="pop-row"><label>Y</label><input type="number" data-ann="y" value="${Math.round(a.y||0)}"></div>${shapeLike ? `<div class="pop-row"><label>宽高</label><input type="number" data-ann="w" value="${Math.round(a.w||180)}"><input type="number" data-ann="h" value="${Math.round(a.h||90)}"></div>` : ''}`;
-    const content = `${textLike || a.type==='badge' ? `<div class="pop-row"><label>文字</label><input type="text" data-ann="text" value="${escapeHtml(a.text||'')}"></div><div class="pop-row"><label>字号</label><input type="number" data-ann="fontSize" value="${Math.round(a.fontSize||28)}"></div>` : ''}`;
-    const color = `<div class="pop-row"><label>颜色</label><input type="color" data-ann="color" value="${a.color||'#ef4444'}">${fillLike ? `<input type="color" data-ann="fillColor" value="${a.fillColor||'#fee2e2'}" title="填充色">` : ''}</div>${textLike ? `<div class="pop-row"><label>背景</label><select data-ann="bg"><option value="transparent" ${(a.bg||'transparent')==='transparent'?'selected':''}>透明</option><option value="#ffffff" ${a.bg==='#ffffff'?'selected':''}>白底</option><option value="#111827" ${a.bg==='#111827'?'selected':''}>黑底</option><option value="#ffeb3b" ${a.bg==='#ffeb3b'?'selected':''}>黄底</option></select></div><div class="pop-row"><label>描边</label><select data-ann="outline"><option value="false" ${!a.outline?'selected':''}>关闭</option><option value="true" ${a.outline?'selected':''}>开启</option></select></div>` : ''}`;
-    const stroke = `${lineLike ? `<div class="pop-row"><label>粗细</label><input type="number" data-ann="lineWidth" value="${Math.round(a.lineWidth||4)}"></div>` : ''}${a.type==='mosaic' || a.type==='mosaicPen' ? `<div class="pop-row"><label>块大小</label><input type="number" data-ann="gridSize" value="${Math.round(a.gridSize||14)}"></div>` : ''}${a.type==='watermark' ? `<div class="pop-row"><label>次数</label><input type="number" data-ann="repeatCount" value="${Math.round(a.repeatCount||1)}"></div>` : ''}${opacityLike ? `<div class="pop-row"><label>透明度</label><input type="number" step="0.05" min="0.05" max="1" data-ann="opacity" value="${a.opacity == null ? 1 : a.opacity}"></div>` : ''}`;
-    return `<div class="pop-title"><span>${typeName}</span><span class="hint">对象属性</span></div>`+
-      popSection('位置 / 尺寸', position, true)+
-      (content ? popSection('内容', content, true) : '')+
-      popSection('颜色 / 背景', color, true)+
-      (stroke ? popSection('线条 / 高级', stroke, false) : '')+
-      `<div class="pop-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat">删除</button><button class="mini-btn" id="duplicateAnnotationBtnFloat">复制</button></div>`;
+    let html = '';
+    html += compactRow(`<input class="tiny-number" type="number" data-ann="x" value="${Math.round(a.x||0)}" title="X"><input class="tiny-number" type="number" data-ann="y" value="${Math.round(a.y||0)}" title="Y">${shapeLike ? `<input class="tiny-number" type="number" data-ann="w" value="${Math.round(a.w||180)}" title="宽"><input class="tiny-number" type="number" data-ann="h" value="${Math.round(a.h||90)}" title="高">` : ''}`);
+    if(['box','boxFill','circle','circleFill'].includes(a.type)){
+      const isCircle = a.type.startsWith('circle');
+      const isFill = a.type.endsWith('Fill');
+      html += compactRow(`${annChip('type',isCircle?(isFill?'boxFill':'box'):(isFill?'box':'box'),!isCircle,svgIcon('rect'),'矩形')}${annChip('type',isCircle?(isFill?'circleFill':'circle'):(isFill?'circle':'circle'),isCircle,svgIcon('circle'),'圆形')}${annChip('type',isCircle?(isFill?'circle':'circleFill'):(isFill?'box':'boxFill'),isFill,'◩','填充 / 空心')}`);
+    }
+    if(['line','arrow','doubleArrow'].includes(a.type)) html += compactRow(`${annChip('type','line',a.type==='line',svgIcon('line'),'直线')}${annChip('type','arrow',a.type==='arrow',svgIcon('arrow'),'单箭头')}${annChip('type','doubleArrow',a.type==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}`);
+    if(textLike) html += compactRow(`${textInput('text',a.text||'',true,'文字')}${sizeButtons('fontSize',a.fontSize||28,8,180,true)}`);
+    if(a.type === 'badge') html += compactRow(`${Array.from({length:10},(_,i)=>annChip('text',String(i+1),String(a.text||'1')===String(i+1),String(i+1),`标号 ${i+1}`)).join('')}${sizeButtons('fontSize',a.fontSize||34,14,120,true)}`);
+    html += compactRow(`${colorPalette('color',a.color||'#ef4444',true)}${['boxFill','circleFill'].includes(a.type) ? colorPalette('fillColor',a.fillColor||'#fee2e2',true,['#fee2e2','#ffedd5','#fef9c3','#dcfce7','#dbeafe','#ffffff']) : ''}`);
+    if(textLike) html += compactRow(`${annChip('outline','toggle',!!a.outline,'Å','描边')}${['transparent','#ffffff','#111827','#ffeb3b'].map(c=>swatchButton('bg',c,(a.bg||'transparent')===c,true,c==='transparent'?'透明背景':'背景')).join('')}`);
+    if(lineLike) html += compactRow(`${widthControl('lineWidth',a.lineWidth || (a.type==='highlight'?18:4),1,96,true)}`);
+    if(a.type==='mosaic' || a.type==='mosaicPen') html += compactRow(`${widthControl('gridSize',a.gridSize||14,4,80,true)}`);
+    if(a.type==='watermark') html += compactRow(`${repeatControl('repeatCount',a.repeatCount||1,true)}`);
+    if(opacityLike) html += compactRow(`${opacityControl('opacity',a.opacity == null ? 1 : a.opacity,true)}`);
+    html += `<div class="pop-actions compact-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat" title="删除">✕</button><button class="mini-btn" id="duplicateAnnotationBtnFloat" title="复制">⧉</button></div>`;
+    return compactPanel(html);
   }
-
   function bindToolPopoverEvents(){
     if(!toolPopover) return;
+    const numericToolKeys = ['lineWidth','penWidth','highlightWidth','textSize','badgeNumber','badgeSize','mosaicGrid','eraserSize','watermarkSize','watermarkRepeat'];
+    const numericAnnKeys = ['x','y','w','h','fontSize','lineWidth','gridSize','repeatCount'];
+
     toolPopover.querySelectorAll('[data-tool-setting]').forEach(el=>{
       const ev = (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number' || el.type === 'color')) ? 'input' : 'click';
       el.addEventListener(ev, e=>{
@@ -1176,7 +1256,7 @@
         let val = el.dataset.value != null ? el.dataset.value : (el.type === 'checkbox' ? el.checked : el.value);
         if(val === 'toggle') val = !state.toolSettings[key];
         if(['shapeFill','textOutline'].includes(key)) val = !!val;
-        if(['lineWidth','penWidth','highlightWidth','textSize','badgeNumber','badgeSize','mosaicGrid','eraserSize','watermarkSize','watermarkRepeat'].includes(key)) val = Math.round(+val || 1);
+        if(numericToolKeys.includes(key)) val = Math.round(+val || 1);
         if(['opacity','watermarkOpacity'].includes(key)) val = clamp(parseFloat(val || '1'), .05, 1);
         state.toolSettings[key] = val;
         applyActiveTool();
@@ -1184,10 +1264,68 @@
         else { renderToolDock(); requestRender(); }
       });
     });
+
+    toolPopover.querySelectorAll('[data-tool-width]').forEach(box=>{
+      box.addEventListener('wheel', e=>{
+        e.preventDefault();
+        const key = box.dataset.toolWidth;
+        const min = Math.round(+box.dataset.min || 1);
+        const max = Math.round(+box.dataset.max || 120);
+        const next = clamp(Math.round(+state.toolSettings[key] || min) + (e.deltaY < 0 ? 1 : -1), min, max);
+        state.toolSettings[key] = next;
+        applyActiveTool();
+        renderToolDock(); requestRender();
+      }, {passive:false});
+    });
+
+    toolPopover.querySelectorAll('[data-tool-step]').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        e.preventDefault();
+        const key = btn.dataset.toolStep;
+        const min = Math.round(+btn.dataset.min || 1);
+        const max = Math.round(+btn.dataset.max || 999);
+        const delta = Math.round(+btn.dataset.delta || 0);
+        state.toolSettings[key] = clamp(Math.round(+state.toolSettings[key] || min) + delta, min, max);
+        applyActiveTool(); renderToolDock(); requestRender();
+      });
+    });
+
     toolPopover.querySelectorAll('[data-ann]').forEach(el=>{
-      const ev = (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number' || el.type === 'color')) ? 'input' : 'change';
+      const ev = (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number' || el.type === 'color')) ? 'input' : 'click';
       el.addEventListener(ev, ()=> updateAnnotationInput(el));
     });
+
+    toolPopover.querySelectorAll('[data-ann-width]').forEach(box=>{
+      box.addEventListener('wheel', e=>{
+        e.preventDefault();
+        const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+        if(idx < 0) return;
+        const key = box.dataset.annWidth;
+        const min = Math.round(+box.dataset.min || 1);
+        const max = Math.round(+box.dataset.max || 120);
+        const a = state.annotations[idx];
+        pushHistory();
+        a[key] = clamp(Math.round(+a[key] || min) + (e.deltaY < 0 ? 1 : -1), min, max);
+        renderToolPopover(); requestRender();
+      }, {passive:false});
+    });
+
+    toolPopover.querySelectorAll('[data-ann-step]').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        e.preventDefault();
+        const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+        if(idx < 0) return;
+        const key = btn.dataset.annStep;
+        const min = Math.round(+btn.dataset.min || 1);
+        const max = Math.round(+btn.dataset.max || 999);
+        const delta = Math.round(+btn.dataset.delta || 0);
+        const a = state.annotations[idx];
+        pushHistory();
+        a[key] = clamp(Math.round(+a[key] || min) + delta, min, max);
+        renderToolPopover(); requestRender();
+      });
+    });
+
     $('#deleteAnnotationBtnFloat')?.addEventListener('click', deleteSelectedAnnotation);
     $('#duplicateAnnotationBtnFloat')?.addEventListener('click', duplicateSelectedAnnotation);
   }
@@ -1197,13 +1335,22 @@
     if(idx < 0) return;
     const a = state.annotations[idx];
     const key = inp.dataset.ann;
+    let val = inp.dataset.value != null ? inp.dataset.value : (inp.type === 'checkbox' ? inp.checked : inp.value);
     pushHistory();
-    if(key === 'outline') a.outline = inp.value === 'true';
-    else if(inp.type === 'number'){
-      if(key === 'opacity') a[key] = clamp(parseFloat(inp.value || '1'), .05, 1);
-      else a[key] = Math.round(+inp.value || 0);
-    } else a[key] = inp.value;
-    requestRender();
+    if(key === 'outline'){
+      a.outline = val === 'toggle' ? !a.outline : (val === true || val === 'true');
+    } else if(key === 'type'){
+      a.type = val;
+      if((val === 'boxFill' || val === 'circleFill') && !a.fillColor) a.fillColor = '#fee2e2';
+    } else if(inp.type === 'number' || ['x','y','w','h','fontSize','lineWidth','gridSize','repeatCount'].includes(key)){
+      if(key === 'opacity') a[key] = clamp(parseFloat(val || '1'), .05, 1);
+      else a[key] = Math.round(+val || 0);
+    } else if(key === 'opacity'){
+      a[key] = clamp(parseFloat(val || '1'), .05, 1);
+    } else {
+      a[key] = val;
+    }
+    renderToolPopover(); requestRender();
   }
 
   function duplicateSelectedAnnotation(){

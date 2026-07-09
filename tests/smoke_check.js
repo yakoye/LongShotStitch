@@ -4,8 +4,8 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const htmlPath = fs.existsSync(path.join(root, 'LongShotStitch_v1.8.html'))
-  ? path.join(root, 'LongShotStitch_v1.8.html')
+const htmlPath = fs.existsSync(path.join(root, 'LongShotStitch_v1.9.html'))
+  ? path.join(root, 'LongShotStitch_v1.9.html')
   : path.join(root, 'index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -24,6 +24,9 @@ const required = [
   'function renderToolDock',
   'function groupPopover',
   'function annotationPopover',
+  'function widthControl',
+  'data-tool-width',
+  'data-ann-width',
   'function beginToolDraw',
   'function handleDroppedFiles',
   'function renderProps',
