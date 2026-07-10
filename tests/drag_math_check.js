@@ -22,4 +22,16 @@ if (!html.includes("type: h.type === 'activeDragBefore' ? 'seamBefore' : 'seamAf
   throw new Error('direct seam handle drags must capture startScreen');
 }
 
+if (!html.includes('shouldFreezeViewportForActiveEdit')) {
+  throw new Error('seam edit mode must expose a viewport-freeze guard');
+}
+
+if (!html.includes('if(!shouldFreezeViewportForActiveEdit()) clampPanToLayout(layoutCache);')) {
+  throw new Error('render must skip pan clamping while seam/divider active edit is in progress');
+}
+
+if (!html.includes("state.activeHandle?.kind === 'seamCenter'")) {
+  throw new Error('viewport freeze must cover active seam center editing until the done check is clicked');
+}
+
 console.log('drag_math_check ok');
