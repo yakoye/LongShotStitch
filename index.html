@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.34 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.35 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -284,7 +284,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.34</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.35</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -503,7 +503,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.34';
+  const APP_VERSION = 'v1.35';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -3993,6 +3993,33 @@
     };
   }
 
+  function seamCropContribution(index){
+    const c = {top:0,right:0,bottom:0,left:0};
+    if(state.orientation === 'vertical'){
+      if(index > 0) c.top = state.seams[index - 1]?.afterCrop || 0;
+      if(index < state.images.length - 1) c.bottom = state.seams[index]?.beforeCrop || 0;
+    } else {
+      if(index > 0) c.left = state.seams[index - 1]?.afterCrop || 0;
+      if(index < state.images.length - 1) c.right = state.seams[index]?.beforeCrop || 0;
+    }
+    return c;
+  }
+
+  function baseCropFromEffectiveCrop(im, index, effective){
+    const seam = seamCropContribution(index);
+    const c = {
+      top: Math.max(0, Math.round((effective.top || 0) - seam.top)),
+      right: Math.max(0, Math.round((effective.right || 0) - seam.right)),
+      bottom: Math.max(0, Math.round((effective.bottom || 0) - seam.bottom)),
+      left: Math.max(0, Math.round((effective.left || 0) - seam.left))
+    };
+    c.top = clamp(c.top, 0, im.height - 1);
+    c.bottom = clamp(c.bottom, 0, im.height - c.top - 1);
+    c.left = clamp(c.left, 0, im.width - 1);
+    c.right = clamp(c.right, 0, im.width - c.left - 1);
+    return c;
+  }
+
   function applyCanvasCropToImages(full, crop){
     const keep = {
       x1: crop.left,
@@ -4011,7 +4038,8 @@
       const ix2 = Math.min(item.dx + item.dw, keep.x2);
       const iy2 = Math.min(item.dy + item.dh, keep.y2);
       if(ix2 - ix1 < 0.5 || iy2 - iy1 < 0.5) continue;
-      im.crop = sourceCropFromLayoutIntersection(im, item, ix1, iy1, ix2, iy2);
+      const effectiveCrop = sourceCropFromLayoutIntersection(im, item, ix1, iy1, ix2, iy2);
+      im.crop = baseCropFromEffectiveCrop(im, item.index, effectiveCrop);
       nextImages.push(im);
     }
 
@@ -4055,7 +4083,6 @@
         state.mode = 'canvasCrop';
         state.exportQualityAuto = true;
       }
-      fitToView(false);
       if(applied) toast('整体裁剪已分摊锁定');
     } finally {
       canvasCropCommitBusy = false;

@@ -58,4 +58,12 @@ if (commitBlock.includes('state.images = [record]')) {
   throw new Error('canvas crop commit must not flatten all images into one record');
 }
 
+if (commitBlock.includes('fitToView(false)')) {
+  throw new Error('canvas crop commit must preserve current zoom instead of forcing fit-to-view');
+}
+
+if (!html.includes('baseCropFromEffectiveCrop')) {
+  throw new Error('canvas crop distribution must subtract seam crop before writing image.crop');
+}
+
 console.log('drag_math_check ok');
