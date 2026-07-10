@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.20',
+  'LongShotStitch v1.21',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -24,6 +24,25 @@ const required = [
   'exportCurrent',
   'exportFormatSelect',
   'exportFormat',
+  'PROXY_LIMITS',
+  'shouldUseProxy',
+  'schedulePreviewProxy',
+  'processPreviewProxyQueue',
+  'createPreviewProxy',
+  'drawImageItem',
+  'imageSourceForDraw',
+  'previewImg',
+  'proxyStatus',
+  'sourceWidth',
+  'sourceHeight',
+  'exportMode ? im.img : (im.previewImg || im.img)',
+  'data-mobile-action="about"',
+  'showAbout',
+  'LongShotStitch v1.21',
+  'mobileVerticalBtn',
+  'mobileHorizontalBtn',
+  'data-mobile-action="openImage"',
+  'data-mobile-action="openProject"',
   'downloadCanvasImage',
   'canvasToSvgBlob',
   'keepSeamAnchor',
@@ -52,7 +71,7 @@ const required = [
 for (const token of required) {
   if (!html.includes(token)) throw new Error(`missing token: ${token}`);
 }
-for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }", "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>"]) {
+for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }", "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\""]) {
   if (html.includes(token)) throw new Error(`forbidden token remains: ${token}`);
 }
 console.log('static_check ok');

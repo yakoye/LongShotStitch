@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.20 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.21 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -200,7 +200,7 @@
       :root{--topbar:56px}
       .app{display:block;height:100vh;overflow:hidden;background:#f3f5f8}
       .topbar{position:absolute;left:0;top:0;right:0;height:var(--topbar);padding:8px 10px;justify-content:space-between}
-      .brand,.toolbar-group .text-label,.desktop-only,.toolbar-group:nth-of-type(2),.toolbar-group:nth-of-type(3){display:none!important}
+      .brand,.toolbar-group .text-label,.desktop-only,.toolbar-group:first-of-type,.toolbar-group:nth-of-type(2),.toolbar-group:nth-of-type(3){display:none!important}
       .mobile-only{display:inline-flex!important}
       .toolbar-group{border-left:0;padding:0;gap:6px}
       .tool-btn,.file-label{height:38px;width:42px;padding:0;justify-content:center;border-radius:12px}
@@ -229,7 +229,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.20</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.21</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -262,6 +262,8 @@
 
     <div class="toolbar-group">
       <button class="tool-btn" id="fitBtn" title="适合窗口" aria-label="适合窗口"><span>⛶</span></button>
+      <button class="tool-btn mobile-only" id="mobileVerticalBtn" title="纵向拼接" aria-label="纵向拼接">↕</button>
+      <button class="tool-btn mobile-only" id="mobileHorizontalBtn" title="横向拼接" aria-label="横向拼接">↔</button>
       <button class="tool-btn" id="previewBtn" title="预览" aria-label="预览"><span>👁</span></button>
       <select class="format-select" id="exportFormatSelect" title="导出格式" aria-label="导出格式">
         <option value="png" selected>PNG</option>
@@ -275,13 +277,14 @@
   </header>
   <div class="mobile-more-menu" id="mobileMoreMenu">
     <button class="mini-btn" data-mobile-action="auto">⚡</button>
-    <button class="mini-btn" data-mobile-action="vertical">↕</button>
-    <button class="mini-btn" data-mobile-action="horizontal">↔</button>
+    <button class="mini-btn" data-mobile-action="openImage">📁</button>
+    <button class="mini-btn" data-mobile-action="paste">📋</button>
     <button class="mini-btn" data-mobile-action="undo">↶</button>
     <button class="mini-btn" data-mobile-action="redo">↷</button>
     <button class="mini-btn" data-mobile-action="clear">×</button>
     <button class="mini-btn" data-mobile-action="save">💾</button>
-    <button class="mini-btn" data-mobile-action="open">📂</button>
+    <button class="mini-btn" data-mobile-action="openProject">📂</button>
+    <button class="mini-btn" data-mobile-action="about">i</button>
   </div>
 
   <aside class="sidebar">
@@ -367,6 +370,15 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
+  const APP_VERSION = 'v1.21';
+  const PROXY_LIMITS = {
+    fileBytes: 8 * 1024 * 1024,
+    mobileFileBytes: 5 * 1024 * 1024,
+    pixels: 8_000_000,
+    mobilePixels: 5_000_000,
+    maxSide: 2400,
+    mobileMaxSide: 1800
+  };
 
   let state = {
     orientation: 'vertical',
@@ -402,12 +414,18 @@
   let inlineTextIndex = -1;
   let redrawPending = false;
   let resizeObserver = null;
+  let previewProxyQueue = [];
+  let previewProxyBusy = false;
 
   function toast(msg){
     toastEl.textContent = msg;
     toastEl.classList.add('show');
     clearTimeout(toastEl._t);
     toastEl._t = setTimeout(()=>toastEl.classList.remove('show'), 2200);
+  }
+
+  function showAbout(){
+    alert(`LongShotStitch ${APP_VERSION}\n长图拼裁工具`);
   }
 
   function snapshot(){
@@ -417,7 +435,9 @@
       selected: state.selected,
       autoStitchEnabled: !!state.autoStitchEnabled,
       images: state.images.map(im => ({
-        id: im.id, name: im.name, dataUrl: im.dataUrl, width: im.width, height: im.height, crop: {...im.crop}
+        id: im.id, name: im.name, dataUrl: im.dataUrl, fileSize: im.fileSize || 0,
+        width: im.width, height: im.height, sourceWidth: im.sourceWidth || im.width, sourceHeight: im.sourceHeight || im.height,
+        crop: {...im.crop}
       })),
       seams: state.seams.map(s => ({...s, divider: s.divider ? {...s.divider} : null})),
       canvasCrop: {...state.canvasCrop},
@@ -464,7 +484,16 @@
     const imgs = [];
     for(const raw of data.images || []){
       const img = await loadImage(raw.dataUrl);
-      imgs.push({...raw, img, width: img.naturalWidth, height: img.naturalHeight, crop: raw.crop || {top:0,right:0,bottom:0,left:0}});
+      const record = makeImageRecord({
+        id: raw.id,
+        name: raw.name,
+        dataUrl: raw.dataUrl,
+        fileSize: raw.fileSize || 0,
+        img,
+        crop: raw.crop || {top:0,right:0,bottom:0,left:0}
+      });
+      imgs.push(record);
+      if(record.useProxy) schedulePreviewProxy(record);
     }
     state.images = imgs;
     syncSeams(false);
@@ -508,6 +537,87 @@
     });
   }
 
+  function shouldUseProxy(file, img){
+    const pixels = (img.naturalWidth || img.width || 0) * (img.naturalHeight || img.height || 0);
+    const mobile = isMobileLayout();
+    const fileLimit = mobile ? PROXY_LIMITS.mobileFileBytes : PROXY_LIMITS.fileBytes;
+    const pixelLimit = mobile ? PROXY_LIMITS.mobilePixels : PROXY_LIMITS.pixels;
+    return (file?.size || 0) > fileLimit || pixels > pixelLimit || Math.max(img.naturalWidth || 0, img.naturalHeight || 0) > 3000;
+  }
+
+  function makeImageRecord({id, name, dataUrl, fileSize=0, img, crop}){
+    const useProxy = shouldUseProxy({size:fileSize}, img);
+    return {
+      id: id || uid('img'), name: name || 'clipboard.png', dataUrl, img,
+      width: img.naturalWidth, height: img.naturalHeight,
+      sourceWidth: img.naturalWidth, sourceHeight: img.naturalHeight,
+      fileSize,
+      useProxy,
+      proxyStatus: useProxy ? 'queued' : 'none',
+      previewDataUrl: '',
+      previewImg: null,
+      previewWidth: 0,
+      previewHeight: 0,
+      previewScaleX: 1,
+      previewScaleY: 1,
+      crop: crop || { top: 0, right: 0, bottom: 0, left: 0 }
+    };
+  }
+
+  function schedulePreviewProxy(im){
+    if(!im?.useProxy || im.proxyStatus === 'ready' || im.proxyStatus === 'building') return;
+    if(!previewProxyQueue.includes(im)) previewProxyQueue.push(im);
+    im.proxyStatus = 'queued';
+    setTimeout(processPreviewProxyQueue, 0);
+  }
+
+  async function processPreviewProxyQueue(){
+    if(previewProxyBusy) return;
+    const im = previewProxyQueue.shift();
+    if(!im) return;
+    previewProxyBusy = true;
+    im.proxyStatus = 'building';
+    renderProps();
+    requestRender();
+    try{
+      await new Promise(resolve => setTimeout(resolve, 0));
+      await createPreviewProxy(im);
+      im.proxyStatus = 'ready';
+    }catch(e){
+      im.proxyStatus = 'error';
+    }finally{
+      previewProxyBusy = false;
+      renderProps();
+      requestRender();
+      if(previewProxyQueue.length) setTimeout(processPreviewProxyQueue, 0);
+    }
+  }
+
+  async function createPreviewProxy(im){
+    const mobile = isMobileLayout();
+    const maxSide = mobile ? PROXY_LIMITS.mobileMaxSide : PROXY_LIMITS.maxSide;
+    const scale = Math.min(1, maxSide / Math.max(im.width, im.height));
+    if(scale >= 1){
+      im.proxyStatus = 'none';
+      return;
+    }
+    const w = Math.max(1, Math.round(im.width * scale));
+    const h = Math.max(1, Math.round(im.height * scale));
+    const canvasEl = document.createElement('canvas');
+    canvasEl.width = w;
+    canvasEl.height = h;
+    const c = canvasEl.getContext('2d');
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'medium';
+    c.drawImage(im.img, 0, 0, im.width, im.height, 0, 0, w, h);
+    im.previewDataUrl = canvasEl.toDataURL('image/jpeg', 0.78);
+    im.previewImg = await loadImage(im.previewDataUrl);
+    im.previewWidth = w;
+    im.previewHeight = h;
+    im.previewScaleX = w / Math.max(1, im.width);
+    im.previewScaleY = h / Math.max(1, im.height);
+  }
+
   async function addFiles(files){
     const list = Array.from(files).filter(f => f.type.startsWith('image/'));
     if(!list.length){ toast('没有找到图片文件'); return; }
@@ -515,11 +625,9 @@
     for(const file of list){
       const dataUrl = await fileToDataUrl(file);
       const img = await loadImage(dataUrl);
-      state.images.push({
-        id: uid('img'), name: file.name || 'clipboard.png', dataUrl, img,
-        width: img.naturalWidth, height: img.naturalHeight,
-        crop: { top: 0, right: 0, bottom: 0, left: 0 }
-      });
+      const record = makeImageRecord({name:file.name || 'clipboard.png', dataUrl, fileSize:file.size || 0, img});
+      state.images.push(record);
+      if(record.useProxy) schedulePreviewProxy(record);
     }
     syncSeams(true);
     if(state.autoStitchEnabled && state.images.length > 1){
@@ -531,7 +639,7 @@
     fitToView(false);
     renderProps();
     requestRender();
-    toast(`已添加 ${list.length} 张图片`);
+    toast(`已添加 ${list.length} 张图片${state.images.some(im => im.proxyStatus === 'queued' || im.proxyStatus === 'building') ? '，优化预览中' : ''}`);
   }
 
   async function addClipboardImages(){
@@ -842,7 +950,7 @@
     mc.clearRect(0,0,mmW,mmH);
     mc.save();
     mc.scale(mmW / Math.max(1, layout.fullWidth), mmH / Math.max(1, layout.fullHeight));
-    drawComposition(mc, layout, true, true);
+    drawComposition(mc, layout, false, true);
     mc.restore();
 
     const vw = visibleWorldRect();
@@ -874,9 +982,7 @@
     c.fillStyle = '#fff';
     c.fillRect(0,0,layout.fullWidth,layout.fullHeight);
     for(const item of layout.items){
-      try{
-        c.drawImage(item.img.img, item.sx, item.sy, item.sw, item.sh, item.dx, item.dy, item.dw, item.dh);
-      }catch(e){}
+      drawImageItem(c, item, exportMode);
     }
     for(const dv of layout.dividers){
       const d = dv.divider;
@@ -900,6 +1006,21 @@
     }
     drawAnnotations(c, layout, exportMode);
     c.restore();
+  }
+
+  function imageSourceForDraw(im, exportMode=false){
+    return exportMode ? im.img : (im.previewImg || im.img);
+  }
+
+  function drawImageItem(c, item, exportMode=false){
+    const im = item.img;
+    const source = imageSourceForDraw(im, exportMode);
+    if(!source) return;
+    const sxScale = exportMode ? 1 : (source === im.previewImg ? im.previewScaleX || 1 : 1);
+    const syScale = exportMode ? 1 : (source === im.previewImg ? im.previewScaleY || 1 : 1);
+    try{
+      c.drawImage(source, item.sx * sxScale, item.sy * syScale, item.sw * sxScale, item.sh * syScale, item.dx, item.dy, item.dw, item.dh);
+    }catch(e){}
   }
 
 
@@ -2758,14 +2879,25 @@
   function imageListCard(){
     return `<div class="prop-card"><div class="image-list">${state.images.map((im,i)=>`
       <div class="image-item ${state.selected?.type==='image'&&state.selected.index===i?'selected':''}" data-select-image="${i}">
-        <img class="thumb" src="${im.dataUrl}" alt="">
-        <div><div class="image-name">${escapeHtml(im.name)}</div><div class="image-meta">${im.width}×${im.height}px</div></div>
+        <img class="thumb" src="${thumbSrc(im)}" alt="">
+        <div><div class="image-name">${escapeHtml(im.name)}</div><div class="image-meta">${im.width}×${im.height}px${proxyText(im)}</div></div>
         <div class="tiny-actions">
           <button title="上移" data-move-up="${i}">↑</button>
           <button title="下移" data-move-down="${i}">↓</button>
           <button title="删除" data-remove-image="${i}">×</button>
         </div>
       </div>`).join('')}</div></div>`;
+  }
+
+  function thumbSrc(im){
+    return im.previewDataUrl || im.dataUrl;
+  }
+
+  function proxyText(im){
+    if(im.proxyStatus === 'queued') return ' · 排队';
+    if(im.proxyStatus === 'building') return ' · 优化中';
+    if(im.proxyStatus === 'ready') return ' · 预览';
+    return '';
   }
 
   function seamProps(){
@@ -3007,8 +3139,8 @@
     if(!mobileMoreMenu) return;
     mobileMoreMenu.classList.toggle('show', !!state.mobileMoreOpen && isMobileLayout());
     mobileMoreMenu.querySelector('[data-mobile-action="auto"]')?.classList.toggle('active', !!state.autoStitchEnabled);
-    mobileMoreMenu.querySelector('[data-mobile-action="vertical"]')?.classList.toggle('active', state.orientation === 'vertical');
-    mobileMoreMenu.querySelector('[data-mobile-action="horizontal"]')?.classList.toggle('active', state.orientation === 'horizontal');
+    $('#mobileVerticalBtn')?.classList.toggle('blue', state.orientation === 'vertical');
+    $('#mobileHorizontalBtn')?.classList.toggle('blue', state.orientation === 'horizontal');
   }
 
   function setMode(m){
@@ -3122,11 +3254,9 @@
   async function canvasToImageRecord(canvasEl, name){
     const dataUrl = canvasEl.toDataURL('image/png');
     const img = await loadImage(dataUrl);
-    return {
-      id: uid('img'), name, dataUrl, img,
-      width: img.naturalWidth, height: img.naturalHeight,
-      crop: { top: 0, right: 0, bottom: 0, left: 0 }
-    };
+    const record = makeImageRecord({name, dataUrl, fileSize: dataUrl.length, img});
+    if(record.useProxy) schedulePreviewProxy(record);
+    return record;
   }
 
   async function generateSubtitleStitch(){
@@ -3532,6 +3662,8 @@
   $('#clearBtn').addEventListener('click', clearAll);
   $('#verticalBtn').addEventListener('click', () => setOrientation('vertical'));
   $('#horizontalBtn').addEventListener('click', () => setOrientation('horizontal'));
+  $('#mobileVerticalBtn')?.addEventListener('click', () => setOrientation('vertical'));
+  $('#mobileHorizontalBtn')?.addEventListener('click', () => setOrientation('horizontal'));
   $('#autoStitchBtn')?.addEventListener('click', toggleAutoStitch);
   $('#mobileMoreBtn')?.addEventListener('click', e => { e.stopPropagation(); state.mobileMoreOpen = !state.mobileMoreOpen; renderMobileMoreMenu(); });
   mobileMoreMenu?.querySelectorAll('[data-mobile-action]').forEach(btn => btn.addEventListener('click', e => {
@@ -3539,13 +3671,14 @@
     const action = btn.dataset.mobileAction;
     state.mobileMoreOpen = false;
     if(action === 'auto') toggleAutoStitch();
-    if(action === 'vertical') setOrientation('vertical');
-    if(action === 'horizontal') setOrientation('horizontal');
+    if(action === 'openImage') $('#fileInput').click();
+    if(action === 'paste') addClipboardImages();
     if(action === 'undo') undo();
     if(action === 'redo') redo();
     if(action === 'clear') clearAll();
     if(action === 'save') saveProject();
-    if(action === 'open') $('#projectInput').click();
+    if(action === 'openProject') $('#projectInput').click();
+    if(action === 'about') showAbout();
     renderMobileMoreMenu();
   }));
   $$('.mode-btn,.mobile-mode').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
