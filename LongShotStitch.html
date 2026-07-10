@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.23 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.24 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -100,12 +100,20 @@
     .mobile-only{display:none!important}
     .mobile-file-menu,.export-menu{position:absolute;top:50px;z-index:30;display:none;gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
     .mobile-file-menu{left:48px;grid-template-columns:1fr;min-width:116px}
-    .export-menu{right:10px;min-width:190px}
+    .export-menu{right:10px;min-width:214px}
     .mobile-file-menu.show,.export-menu.show{display:grid}
     .mobile-file-menu .mini-btn,.export-menu .mini-btn{height:36px;padding:0 10px;font-size:12px}
+    .export-title{font-size:13px;font-weight:850;color:#111827;padding:2px 2px 4px}
     .export-row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;font-size:12px;color:#64748b}
     .export-row select,.export-row input{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 8px;color:#111827}
-    .export-quality-value{font-size:12px;color:#111827;text-align:right;font-weight:750}
+    .export-quality-panel{display:grid;gap:6px}
+    .export-quality-panel[hidden],.export-lossless-hint[hidden]{display:none!important}
+    .export-quality-head{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#64748b}
+    .export-quality-value{color:#111827;text-align:right;font-weight:800}
+    .export-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+    .export-preset{height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:11px;font-weight:750;color:#334155}
+    .export-preset.active{background:#111827;color:#fff;border-color:#111827}
+    .export-estimate,.export-lossless-hint{font-size:12px;color:#64748b;background:#f8fafc;border:1px solid #eef2f7;border-radius:9px;padding:7px 8px;line-height:1.35}
     .format-select{height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 8px;color:#111827;font-weight:700;box-shadow:0 1px 2px rgba(15,23,42,.04)}
     .toast{position:fixed;right:20px;bottom:20px;z-index:50;background:#111827;color:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);font-size:13px;opacity:0;transform:translateY(10px);pointer-events:none;transition:.22s}
     .toast.show{opacity:1;transform:translateY(0)}
@@ -235,7 +243,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.23</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.24</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -284,6 +292,7 @@
     <button class="mini-btn" data-mobile-file="about">关于版本</button>
   </div>
   <div class="export-menu" id="exportMenu">
+    <div class="export-title">导出</div>
     <label class="export-row">
       <span>格式</span>
       <select id="exportFormatSelect" title="导出格式" aria-label="导出格式">
@@ -293,12 +302,20 @@
         <option value="svg">SVG</option>
       </select>
     </label>
-    <label class="export-row">
-      <span>质量</span>
+    <div class="export-quality-panel" id="exportQualityPanel">
+      <div class="export-quality-head"><span id="exportRecommend">推荐 清晰</span><span class="export-quality-value" id="exportQualityValue">92%</span></div>
       <input id="exportQuality" type="range" min="50" max="100" step="1" value="92" aria-label="导出质量">
-    </label>
-    <div class="export-quality-value" id="exportQualityValue">92%</div>
-    <button class="mini-btn primary" id="exportDirectBtn">直接导出</button>
+      <div class="export-presets" id="exportPresets">
+        <button class="export-preset" data-export-quality="50" title="小体积，细字可能变糊">50</button>
+        <button class="export-preset" data-export-quality="78" title="均衡">78</button>
+        <button class="export-preset" data-export-quality="88" title="清晰">88</button>
+        <button class="export-preset" data-export-quality="92" title="极清晰">92</button>
+        <button class="export-preset" data-export-quality="100" title="最大质量">100</button>
+      </div>
+      <div class="export-estimate" id="exportEstimate">预计大小计算中</div>
+    </div>
+    <div class="export-lossless-hint" id="exportLosslessHint" hidden>PNG 无损导出，不使用质量压缩。</div>
+    <button class="mini-btn primary" id="exportDirectBtn">导出</button>
   </div>
 
   <aside class="sidebar">
@@ -384,7 +401,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.23';
+  const APP_VERSION = 'v1.24';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -418,7 +435,8 @@
     cutSettings: { mode: 'cols', rows: 3, cols: 3 },
     cutLines: { imageId: null, rows: 3, cols: 3, x: [], y: [] },
     exportFormat: 'png',
-    exportQuality: 0.92
+    exportQuality: 0.92,
+    exportQualityAuto: true
   };
 
   let history = [];
@@ -432,6 +450,8 @@
   let resizeObserver = null;
   let previewProxyQueue = [];
   let previewProxyBusy = false;
+  let exportEstimateTimer = null;
+  let exportEstimateSeq = 0;
 
   function toast(msg){
     toastEl.textContent = msg;
@@ -465,7 +485,8 @@
       cutSettings: {...state.cutSettings},
       cutLines: state.cutLines ? {imageId:state.cutLines.imageId, rows:state.cutLines.rows, cols:state.cutLines.cols, x:[...(state.cutLines.x||[])], y:[...(state.cutLines.y||[])]} : null,
       exportFormat: state.exportFormat || 'png',
-      exportQuality: state.exportQuality || 0.92
+      exportQuality: state.exportQuality || 0.92,
+      exportQualityAuto: !!state.exportQualityAuto
     });
   }
 
@@ -498,6 +519,7 @@
     state.cutLines = data.cutLines || {imageId:null,rows:3,cols:3,x:[],y:[]};
     state.exportFormat = data.exportFormat || state.exportFormat || 'png';
     state.exportQuality = clamp(Number(data.exportQuality || state.exportQuality || 0.92), 0.5, 1);
+    state.exportQualityAuto = data.exportQualityAuto !== undefined ? !!data.exportQualityAuto : true;
     state.activeHandle = null;
     const imgs = [];
     for(const raw of data.images || []){
@@ -647,6 +669,7 @@
       state.images.push(record);
       if(record.useProxy) schedulePreviewProxy(record);
     }
+    state.exportQualityAuto = true;
     syncSeams(true);
     if(state.autoStitchEnabled && state.images.length > 1){
       state.orientation = inferAutoOrientation(state.images);
@@ -3204,9 +3227,177 @@
     if(exportQuality && exportQuality.value !== String(q)) exportQuality.value = String(q);
     const exportQualityValue = $('#exportQualityValue');
     if(exportQualityValue) exportQualityValue.textContent = `${q}%`;
+    updateExportQualityUi();
     renderMobileFileMenu();
     renderExportMenu();
     updateUndoRedo();
+  }
+
+  function isLossyExportFormat(format=state.exportFormat){
+    return format === 'jpeg' || format === 'webp';
+  }
+
+  function qualityLabel(q){
+    const pct = Math.round(q * 100);
+    if(pct >= 98) return '最大';
+    if(pct >= 92) return '极清晰';
+    if(pct >= 86) return '清晰';
+    if(pct >= 74) return '均衡';
+    return '小体积';
+  }
+
+  function exportContentProfile(){
+    const layout = state.images.length ? computeLayout(false) : {width:1,height:1};
+    const totalPixels = state.images.reduce((sum, im) => sum + im.width * im.height, 0);
+    const totalBytes = state.images.reduce((sum, im) => sum + (im.fileSize || 0), 0);
+    const jpgCount = state.images.filter(im => /\.(jpe?g)$/i.test(im.name || '')).length;
+    const pngLikeCount = state.images.filter(im => /\.(png|bmp|gif|svg)$/i.test(im.name || '')).length;
+    const longShot = Math.max(layout.height / Math.max(1, layout.width), layout.width / Math.max(1, layout.height)) > 2.2;
+    const hasMarkups = state.annotations.length > 0 || state.mode === 'subtitle' || state.mode === 'cut';
+    const multiImage = state.images.length > 1;
+    const bytesPerMp = totalPixels ? totalBytes / (totalPixels / 1_000_000) : 0;
+    const pngPhotoLike = pngLikeCount && bytesPerMp > 700_000 && !longShot && !hasMarkups;
+    const photoLike = (jpgCount > pngLikeCount && bytesPerMp > 180_000 && !longShot) || pngPhotoLike;
+    const textScore = (pngLikeCount ? 1 : 0) + (longShot ? 1 : 0) + (multiImage ? 1 : 0) + (hasMarkups ? 1 : 0);
+    const huge = totalPixels > 24_000_000 || Math.max(layout.width, layout.height) > 10_000;
+    return {photoLike, textHeavy:textScore >= 2 || (pngLikeCount && !pngPhotoLike), huge};
+  }
+
+  function smartExportQuality(format=state.exportFormat){
+    const p = exportContentProfile();
+    let q = format === 'webp' ? 0.86 : 0.88;
+    if(p.textHeavy) q = format === 'webp' ? 0.88 : 0.92;
+    else if(p.photoLike) q = format === 'webp' ? 0.82 : 0.84;
+    if(p.huge && !p.textHeavy) q -= 0.04;
+    return clamp(q, 0.5, 1);
+  }
+
+  function applySmartExportQuality(force=false){
+    if(!isLossyExportFormat()) return;
+    if(force || state.exportQualityAuto){
+      state.exportQuality = smartExportQuality();
+      state.exportQualityAuto = true;
+    }
+  }
+
+  function updateExportQualityUi(){
+    const format = state.exportFormat || 'png';
+    const lossy = isLossyExportFormat(format);
+    const panel = $('#exportQualityPanel');
+    const hint = $('#exportLosslessHint');
+    if(panel) panel.hidden = !lossy;
+    if(hint){
+      hint.hidden = lossy;
+      hint.textContent = format === 'svg' ? 'SVG 容器导出，不使用质量压缩。' : 'PNG 无损导出，不使用质量压缩。';
+    }
+    const q = clamp(state.exportQuality || smartExportQuality(format), 0.5, 1);
+    const pct = Math.round(q * 100);
+    $('#exportRecommend') && ($('#exportRecommend').textContent = `推荐 ${qualityLabel(q)}`);
+    $('#exportQualityValue') && ($('#exportQualityValue').textContent = `${pct}%`);
+    $$('.export-preset').forEach(btn => btn.classList.toggle('active', Number(btn.dataset.exportQuality) === pct));
+  }
+
+  function formatBytes(bytes){
+    if(!isFinite(bytes) || bytes <= 0) return '--';
+    if(bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(bytes >= 10 * 1024 * 1024 ? 1 : 2)} MB`;
+    if(bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${Math.round(bytes)} B`;
+  }
+
+  function sourceBytesForEstimate(){
+    if(!state.images.length) return 0;
+    if(state.mode === 'cut'){
+      const im = state.images[selectedImageIndex()];
+      return im?.fileSize || 0;
+    }
+    return state.images.reduce((sum, im) => sum + (im.fileSize || 0), 0);
+  }
+
+  function encodeCanvasBlob(canvasEl, meta, quality){
+    return new Promise(resolve => {
+      if(!canvasEl.toBlob){ resolve(null); return; }
+      canvasEl.toBlob(blob => resolve(blob), meta.mime, quality);
+    });
+  }
+
+  function makePreviewCanvas(width, height, maxPixels=260000){
+    const scale = Math.min(1, Math.sqrt(maxPixels / Math.max(1, width * height)), 980 / Math.max(1, width, height));
+    const out = document.createElement('canvas');
+    out.width = Math.max(1, Math.round(width * scale));
+    out.height = Math.max(1, Math.round(height * scale));
+    const c = out.getContext('2d');
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'medium';
+    return {canvas:out, ctx:c, scale};
+  }
+
+  function renderExportPreviewCanvas(){
+    if(!state.images.length) return null;
+    if(state.mode === 'cut'){
+      const idx = selectedImageIndex();
+      const im = state.images[idx];
+      if(!im) return null;
+      const crop = getEffectiveCrop(idx);
+      const sw = Math.max(1, im.width - crop.left - crop.right);
+      const sh = Math.max(1, im.height - crop.top - crop.bottom);
+      const preview = makePreviewCanvas(sw, sh);
+      preview.ctx.fillStyle = '#fff';
+      preview.ctx.fillRect(0, 0, preview.canvas.width, preview.canvas.height);
+      const source = imageSourceForDraw(im, false);
+      const sxScale = source === im.previewImg ? im.previewScaleX || 1 : 1;
+      const syScale = source === im.previewImg ? im.previewScaleY || 1 : 1;
+      preview.ctx.drawImage(source, crop.left * sxScale, crop.top * syScale, sw * sxScale, sh * syScale, 0, 0, preview.canvas.width, preview.canvas.height);
+      return {...preview, fullPixels:sw * sh};
+    }
+    const layout = computeLayout(false);
+    const full = computeLayout(true);
+    const preview = makePreviewCanvas(layout.width, layout.height);
+    preview.ctx.save();
+    preview.ctx.scale(preview.scale, preview.scale);
+    preview.ctx.translate(-state.canvasCrop.left, -state.canvasCrop.top);
+    drawComposition(preview.ctx, full, false, true);
+    preview.ctx.restore();
+    return {...preview, fullPixels:layout.width * layout.height};
+  }
+
+  function scheduleExportEstimate(){
+    clearTimeout(exportEstimateTimer);
+    exportEstimateTimer = setTimeout(updateExportEstimate, 80);
+  }
+
+  async function updateExportEstimate(){
+    const el = $('#exportEstimate');
+    if(!el || !state.exportMenuOpen) return;
+    const meta = exportMeta();
+    if(!isLossyExportFormat(meta.format)){
+      el.textContent = meta.format === 'svg' ? 'SVG 不做质量压缩' : 'PNG 无损，体积以最终像素为准';
+      return;
+    }
+    if(!state.images.length){
+      el.textContent = '先导入图片';
+      return;
+    }
+    const seq = ++exportEstimateSeq;
+    el.textContent = '预计大小计算中';
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const preview = renderExportPreviewCanvas();
+    if(!preview || seq !== exportEstimateSeq) return;
+    const q = clamp(state.exportQuality || smartExportQuality(meta.format), 0.5, 1);
+    const blob = await encodeCanvasBlob(preview.canvas, meta, q);
+    if(!blob || seq !== exportEstimateSeq){
+      el.textContent = '当前浏览器无法估算';
+      return;
+    }
+    const samplePixels = Math.max(1, preview.canvas.width * preview.canvas.height);
+    const pixelScale = Math.max(1, preview.fullPixels / samplePixels);
+    const estimatedBytes = Math.round(blob.size * pixelScale * 0.92);
+    const sourceBytes = sourceBytesForEstimate();
+    const saved = sourceBytes > 0 ? Math.round((1 - estimatedBytes / sourceBytes) * 100) : null;
+    let suffix = '';
+    if(saved != null){
+      suffix = saved < -200 ? ' / 比原文件大' : ` / ${saved >= 0 ? '-' : '+'}${Math.abs(saved)}%`;
+    }
+    el.textContent = `预计 ${formatBytes(estimatedBytes)}${suffix}`;
   }
 
   function renderMobileFileMenu(){
@@ -3217,6 +3408,7 @@
   function renderExportMenu(){
     if(!exportMenu) return;
     exportMenu.classList.toggle('show', !!state.exportMenuOpen);
+    if(state.exportMenuOpen) scheduleExportEstimate();
   }
 
   function closeTopMenus(){
@@ -3373,6 +3565,7 @@
     state.canvasCrop = {top:0,right:0,bottom:0,left:0};
     state.selected = {type:'image', index:0};
     state.mode = 'canvasCrop';
+    state.exportQualityAuto = true;
     updateModeButtons();
     renderProps();
     fitToView(false);
@@ -3468,6 +3661,7 @@
   function openExportSettings(){
     state.mobileFileOpen = false;
     state.exportMenuOpen = !state.exportMenuOpen;
+    if(state.exportMenuOpen) applySmartExportQuality(false);
     updateToolbarButtons();
   }
 
@@ -3620,7 +3814,7 @@
     pushHistory();
     closeInlineTextEditor(false);
     state.images=[]; state.seams=[]; state.annotations=[]; state.selected=null; state.canvasCrop={top:0,right:0,bottom:0,left:0};
-    state.zoom = 1; state.pan = {x:0,y:0}; state.mobileToolPopoverOpen = false;
+    state.zoom = 1; state.pan = {x:0,y:0}; state.mobileToolPopoverOpen = false; state.exportQualityAuto = true;
     renderProps(); renderToolDock(); requestRender();
   }
 
@@ -3755,8 +3949,25 @@
   $('#pasteBtn').addEventListener('click', addClipboardImages);
   $('#saveProjectBtn').addEventListener('click', saveProject);
   $('#exportBtn').addEventListener('click', e => { e.stopPropagation(); openExportSettings(); });
-  $('#exportFormatSelect')?.addEventListener('change', e => { state.exportFormat = e.target.value || 'png'; updateToolbarButtons(); });
-  $('#exportQuality')?.addEventListener('input', e => { state.exportQuality = clamp(Number(e.target.value || 92) / 100, 0.5, 1); updateToolbarButtons(); });
+  $('#exportFormatSelect')?.addEventListener('change', e => {
+    state.exportFormat = e.target.value || 'png';
+    state.exportQualityAuto = true;
+    applySmartExportQuality(true);
+    updateToolbarButtons();
+    scheduleExportEstimate();
+  });
+  $('#exportQuality')?.addEventListener('input', e => {
+    state.exportQuality = clamp(Number(e.target.value || 92) / 100, 0.5, 1);
+    state.exportQualityAuto = false;
+    updateToolbarButtons();
+    scheduleExportEstimate();
+  });
+  $$('.export-preset').forEach(btn => btn.addEventListener('click', () => {
+    state.exportQuality = clamp(Number(btn.dataset.exportQuality || 88) / 100, 0.5, 1);
+    state.exportQualityAuto = false;
+    updateToolbarButtons();
+    scheduleExportEstimate();
+  }));
   $('#exportDirectBtn')?.addEventListener('click', directExportCurrent);
   $('#fitBtn').addEventListener('click', () => fitToView());
   $('#undoBtn').addEventListener('click', undo);
