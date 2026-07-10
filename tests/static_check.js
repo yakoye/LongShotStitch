@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.27',
+  'LongShotStitch v1.28',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -42,11 +42,6 @@ const required = [
   'formatBytes',
   'exportMenu',
   'exportDirectBtn',
-  'exportCutPanel',
-  'exportCutSize',
-  'exportCutModeSelect',
-  'applyExportCutSettings',
-  'cutExportSizeText',
   'PROXY_LIMITS',
   'shouldUseProxy',
   'schedulePreviewProxy',
@@ -79,13 +74,19 @@ const required = [
   'mobileUndoBtn',
   'mobileRedoBtn',
   'mobileClearBtn',
+  'mobileInfoBtn',
+  'mobileInfoMenu',
+  'mobileInfoText',
+  'renderMobileInfoMenu',
+  'state.mobileInfoOpen',
+  '.statusbar{display:none',
   'mobile-file-menu',
   'data-mobile-file="openImage"',
   'data-mobile-file="openProject"',
   'data-mobile-file="saveProject"',
   'toggleOrientation',
   'showAbout',
-  'LongShotStitch v1.27',
+  'LongShotStitch v1.28',
   'lockMobilePanAxis',
   'mobileSafeInset',
   'return isMobileLayout() ? 28 : 0;',
@@ -96,11 +97,31 @@ const required = [
   'beginPinchZoom',
   'updatePinchZoom',
   'mobilePanFactor',
+  'mobileCutSubmode',
+  'cutCropRatio',
+  'customCropRatio',
+  'mobileCutModeTabs',
+  'mobileSplitControls',
+  'mobileCropControls',
+  'cropRatioSelect',
+  'customRatioInput',
+  'applyCropRatio',
+  'parseCropRatio',
+  'data-mobile-cut-mode="split"',
+  'data-mobile-cut-mode="crop"',
+  'data-mobile-split="ok"',
+  'data-mobile-crop="ok"',
+  '裁切',
+  '分割',
+  '裁剪',
+  '自定义',
   'downloadCanvasImage',
   'canvasToSvgBlob',
   'keepSeamAnchor',
   'anchorScreen',
   'exportCutImages',
+  'exportCroppedImage',
+  'state.mobileSection === \'cut\' && state.mobileCutSubmode === \'crop\'',
   'drawCutGuides',
   'downloadCanvasPng',
   'data-mode="subtitle"',
@@ -124,7 +145,7 @@ const required = [
 for (const token of required) {
   if (!html.includes(token)) throw new Error(`missing token: ${token}`);
 }
-for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }", "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\"", "id=\"previewBtn\"", "id=\"mobileMoreBtn\"", "id=\"mobileVerticalBtn\"", "id=\"mobileHorizontalBtn\"", "data-mobile-action=\"paste\"", "mobile-more-menu"]) {
+for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }", "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\"", "id=\"previewBtn\"", "id=\"mobileMoreBtn\"", "id=\"mobileVerticalBtn\"", "id=\"mobileHorizontalBtn\"", "data-mobile-action=\"paste\"", "mobile-more-menu", "exportCutPanel", "exportCutSize", "exportCutModeSelect", "applyExportCutSettings", "cutExportSizeText", "切割"]) {
   if (html.includes(token)) throw new Error(`forbidden token remains: ${token}`);
 }
 console.log('static_check ok');

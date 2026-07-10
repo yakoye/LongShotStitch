@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.27 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.28 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -98,18 +98,15 @@
     .mobile-title{display:none}
     .mobile-bottom{display:none}
     .mobile-only{display:none!important}
-    .mobile-file-menu,.export-menu{position:absolute;top:50px;z-index:30;display:none;gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
+    .mobile-file-menu,.mobile-info-menu,.export-menu{position:absolute;top:50px;z-index:30;display:none;gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
     .mobile-file-menu{left:48px;grid-template-columns:1fr;min-width:116px}
+    .mobile-info-menu{right:58px;max-width:calc(100vw - 24px);font-size:12px;color:#475569;line-height:1.45}
     .export-menu{right:10px;min-width:214px}
-    .mobile-file-menu.show,.export-menu.show{display:grid}
+    .mobile-file-menu.show,.mobile-info-menu.show,.export-menu.show{display:grid}
     .mobile-file-menu .mini-btn,.export-menu .mini-btn{height:36px;padding:0 10px;font-size:12px}
     .export-title{font-size:13px;font-weight:850;color:#111827;padding:2px 2px 4px}
     .export-row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;font-size:12px;color:#64748b}
     .export-row select,.export-row input{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 8px;color:#111827}
-    .export-cut-panel{display:grid;grid-template-columns:1fr 70px;gap:6px;align-items:center}
-    .export-cut-panel[hidden]{display:none!important}
-    .export-cut-panel .export-row{grid-template-columns:42px 1fr;margin:0}
-    .export-cut-panel input,.export-cut-panel select{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 8px;color:#111827}
     .export-quality-panel{display:grid;gap:6px}
     .export-quality-panel[hidden],.export-lossless-hint[hidden]{display:none!important}
     .export-quality-head{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#64748b}
@@ -222,6 +219,7 @@
       .format-select{display:none}
       .mobile-main-actions{width:100%;justify-content:space-between}
       .mobile-file-menu{left:44px;top:48px}
+      .mobile-info-menu{right:8px;top:calc(var(--topbar) + var(--sectionbar) + 8px)}
       .export-menu{right:6px;top:48px}
       .mobile-title{display:none!important}
       .sidebar{display:none}
@@ -241,15 +239,26 @@
       .mobile-mode .mi,.mobile-tool-group .mi{font-size:24px;line-height:1;color:#111827}
       .mobile-mode.active,.mobile-tool-group.active{color:var(--blue);background:#eff6ff;border-color:#bfdbfe}
       .mobile-mode.active .mi,.mobile-tool-group.active .mi{color:var(--blue)}
-      .mobile-cut-controls{justify-content:center;gap:12px}
-      .mobile-cut-stepper{height:52px;display:grid;grid-template-columns:32px 42px 28px 32px;align-items:center;gap:3px;border:1px solid #d9dee7;border-radius:11px;background:#fff;padding:0 6px;flex:0 0 auto}
-      .mobile-cut-stepper button{width:30px;height:32px;border:1px solid #d9dee7;border-radius:8px;background:#f8fafc;font-size:18px;font-weight:850}
-      .mobile-cut-value{text-align:center;font-weight:850;font-size:16px}
-      .mobile-cut-label{font-size:12px;color:#334155;font-weight:800}
+      .mobile-cut-controls{justify-content:center;gap:4px;flex-direction:column;align-items:stretch;overflow:hidden}
+      .mobile-cut-mode-tabs{display:flex;justify-content:center;gap:18px;height:22px;align-items:center}
+      .mobile-cut-mode-tab{border:0;background:transparent;padding:2px 2px;font-size:13px;font-weight:850;color:#475569;border-bottom:2px solid transparent}
+      .mobile-cut-mode-tab.active{color:#0f172a;border-bottom-color:var(--accent-strong)}
+      .mobile-cut-line{display:none;align-items:center;justify-content:center;gap:12px;min-height:38px;white-space:nowrap}
+      .mobile-cut-line.active{display:flex}
+      .mobile-split-unit{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:850;color:#0f172a}
+      .mobile-split-unit button,.mobile-ok-btn{width:30px;height:30px;border:1px solid #d9dee7;border-radius:9px;background:#f8fafc;font-size:17px;font-weight:900}
+      .mobile-cut-value{min-width:18px;text-align:center;font-weight:900;font-size:16px}
+      .mobile-cut-label{font-size:13px;color:#334155;font-weight:850}
+      .mobile-ok-btn{width:40px;background:#0f172a;color:#fff;border-color:#0f172a;font-size:12px}
+      .mobile-ratio-free{height:30px;border:0;background:transparent;font-size:13px;font-weight:850;color:#0f172a;padding:0 2px}
+      .mobile-ratio-free.active{color:var(--blue)}
+      .mobile-ratio-select,.mobile-ratio-input{height:30px;border:1px solid #d9dee7;border-radius:9px;background:#fff;font-weight:850;color:#0f172a}
+      .mobile-ratio-select{width:82px;padding:0 6px}
+      .mobile-ratio-input{width:58px;padding:0 7px}
       .mobile-stitch-menu{position:absolute;left:8px;bottom:calc(var(--mobilebar) + 8px);z-index:28;display:none;grid-template-columns:repeat(2,86px);gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
       .mobile-stitch-menu.show{display:grid}
       .mobile-stitch-menu .mini-btn{height:36px;font-size:12px}
-      .statusbar{left:8px;right:8px;bottom:8px;text-align:center;font-size:11px;padding:5px 8px}
+      .statusbar{display:none}
       .drop-hint{padding:22px;width:88%}
       .drop-hint h2{font-size:19px}
       .inline-text-editor.mobile-text-mode{position:fixed!important;left:12px!important;right:12px!important;top:auto!important;bottom:calc(var(--mobilebar) + 12px)!important;width:auto!important;height:96px!important;z-index:80;border:2px solid #2f80ed;border-radius:12px;background:#fff!important;box-shadow:0 14px 34px rgba(15,23,42,.22);padding:10px 12px;font-size:18px!important;transform:none!important;writing-mode:horizontal-tb!important}
@@ -261,7 +270,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.27</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.28</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -300,6 +309,7 @@
       <button class="tool-btn mobile-only" id="mobileUndoBtn" title="撤销" aria-label="撤销">↶</button>
       <button class="tool-btn mobile-only" id="mobileRedoBtn" title="重做" aria-label="重做">↷</button>
       <button class="tool-btn" id="fitBtn" title="适合窗口" aria-label="适合窗口"><span>⛶</span></button>
+      <button class="tool-btn mobile-only" id="mobileInfoBtn" title="信息" aria-label="信息">i</button>
       <button class="tool-btn primary" id="exportBtn" title="导出" aria-label="导出"><span>⬆</span></button>
     </div>
   </header>
@@ -309,19 +319,11 @@
     <button class="mini-btn" data-mobile-file="saveProject">保存工程</button>
     <button class="mini-btn" data-mobile-file="about">关于版本</button>
   </div>
+  <div class="mobile-info-menu" id="mobileInfoMenu">
+    <div id="mobileInfoText">Ready</div>
+  </div>
   <div class="export-menu" id="exportMenu">
     <div class="export-title">导出</div>
-    <div class="export-cut-panel" id="exportCutPanel" hidden>
-      <label class="export-row">
-        <span>切</span>
-        <input id="exportCutSize" type="text" value="3" aria-label="切割数量">
-      </label>
-      <select id="exportCutModeSelect" title="切割方式" aria-label="切割方式">
-        <option value="cols">列</option>
-        <option value="rows">行</option>
-        <option value="grid">格</option>
-      </select>
-    </div>
     <label class="export-row" id="exportFormatRow">
       <span>格式</span>
       <select id="exportFormatSelect" title="导出格式" aria-label="导出格式">
@@ -357,7 +359,7 @@
         <button class="mode-btn" data-mode="divider"><span class="mode-icon">≡</span><span class="mode-label">分割线<span>整体插入接缝</span></span></button>
         <button class="mode-btn" data-mode="tools"><span class="mode-icon">✎</span><span class="mode-label">工具<span>左侧工具栏</span></span></button>
         <button class="mode-btn" data-mode="subtitle"><span class="mode-icon">▤</span><span class="mode-label">字幕<span>区域拼接</span></span></button>
-        <button class="mode-btn" data-mode="cut"><span class="mode-icon">#</span><span class="mode-label">切割<span>拆页/九宫格</span></span></button>
+        <button class="mode-btn" data-mode="cut"><span class="mode-icon">#</span><span class="mode-label">裁切<span>拆页/九宫格</span></span></button>
       </div>
     </section>
     <section class="props" id="props"></section>
@@ -392,7 +394,7 @@
 
   <nav class="mobile-primary-nav" id="mobilePrimaryNav">
     <button class="mobile-primary-mode active" data-mobile-section="stitch">拼接</button>
-    <button class="mobile-primary-mode" data-mobile-section="cut">切割</button>
+    <button class="mobile-primary-mode" data-mobile-section="cut">裁切</button>
     <button class="mobile-primary-mode" data-mobile-section="annotate">标注</button>
   </nav>
   <div class="mobile-stitch-menu" id="mobileStitchMenu">
@@ -409,11 +411,31 @@
       <button class="mobile-mode" data-mode="divider"><span class="mi">≡</span><span>分割线</span></button>
     </div>
     <div class="mobile-context-section mobile-cut-controls" id="mobileCutControls" data-mobile-section-panel="cut">
-      <div class="mobile-cut-stepper" data-mobile-cut-stepper="rows">
-        <button data-mobile-cut-step="rows:-1">−</button><span class="mobile-cut-value" id="mobileCutRowsValue">3</span><span class="mobile-cut-label">行</span><button data-mobile-cut-step="rows:1">+</button>
+      <div class="mobile-cut-mode-tabs" id="mobileCutModeTabs">
+        <button class="mobile-cut-mode-tab active" data-mobile-cut-mode="split">分割</button>
+        <button class="mobile-cut-mode-tab" data-mobile-cut-mode="crop">裁剪</button>
       </div>
-      <div class="mobile-cut-stepper" data-mobile-cut-stepper="cols">
-        <button data-mobile-cut-step="cols:-1">−</button><span class="mobile-cut-value" id="mobileCutColsValue">3</span><span class="mobile-cut-label">列</span><button data-mobile-cut-step="cols:1">+</button>
+      <div class="mobile-cut-line mobile-split-controls active" id="mobileSplitControls">
+        <span class="mobile-split-unit"><button data-mobile-cut-step="rows:-1">−</button><span class="mobile-cut-value" id="mobileCutRowsValue">3</span><span class="mobile-cut-label">行</span><button data-mobile-cut-step="rows:1">+</button></span>
+        <span class="mobile-split-unit"><button data-mobile-cut-step="cols:-1">−</button><span class="mobile-cut-value" id="mobileCutColsValue">1</span><span class="mobile-cut-label">列</span><button data-mobile-cut-step="cols:1">+</button></span>
+        <button class="mobile-ok-btn" data-mobile-split="ok">ok</button>
+      </div>
+      <div class="mobile-cut-line mobile-crop-controls" id="mobileCropControls">
+        <button class="mobile-ratio-free" data-mobile-crop-ratio="free">自由</button>
+        <select class="mobile-ratio-select" id="cropRatioSelect" aria-label="裁剪比例">
+          <option value="1:1">1:1</option>
+          <option value="2:3">竖 2:3</option>
+          <option value="3:4">竖 3:4</option>
+          <option value="5:7">竖 5:7</option>
+          <option value="9:16">竖 9:16</option>
+          <option value="3:2">横 3:2</option>
+          <option value="4:3">横 4:3</option>
+          <option value="7:5">横 7:5</option>
+          <option value="16:9">横 16:9</option>
+          <option value="custom">自定义</option>
+        </select>
+        <input class="mobile-ratio-input" id="customRatioInput" value="1:3" inputmode="decimal" aria-label="自定义裁剪比例" hidden>
+        <button class="mobile-ok-btn" data-mobile-crop="ok">ok</button>
       </div>
     </div>
     <div class="mobile-context-section mobile-annotation-tools" id="mobileAnnotationTools" data-mobile-section-panel="annotate">
@@ -447,6 +469,8 @@
   const toastEl = $('#toast');
   const app = $('#app');
   const mobileFileMenu = $('#mobileFileMenu');
+  const mobileInfoMenu = $('#mobileInfoMenu');
+  const mobileInfoText = $('#mobileInfoText');
   const mobileStitchMenu = $('#mobileStitchMenu');
   const exportMenu = $('#exportMenu');
   const toolDock = $('#toolDock');
@@ -459,7 +483,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.27';
+  const APP_VERSION = 'v1.28';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -486,14 +510,18 @@
     toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:14, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
     mobileToolPopoverOpen: false,
     mobileFileOpen: false,
+    mobileInfoOpen: false,
     mobileSection: 'stitch',
     mobileStitchMenuOpen: false,
+    mobileCutSubmode: 'split',
     exportMenuOpen: false,
     splitDraft: null,
     splitDraftManual: false,
     subtitleRegion: { heightRatio: 0.22, yRatio: 0.76 },
-    cutSettings: { mode: 'cols', rows: 3, cols: 3 },
-    cutLines: { imageId: null, rows: 3, cols: 3, x: [], y: [] },
+    cutSettings: { mode: 'rows', rows: 3, cols: 1 },
+    cutLines: { imageId: null, rows: 3, cols: 1, x: [], y: [] },
+    cutCropRatio: '1:1',
+    customCropRatio: '1:3',
     exportFormat: 'png',
     exportQuality: 0.92,
     exportQualityAuto: true
@@ -546,6 +574,9 @@
       subtitleRegion: {...state.subtitleRegion},
       cutSettings: {...state.cutSettings},
       cutLines: state.cutLines ? {imageId:state.cutLines.imageId, rows:state.cutLines.rows, cols:state.cutLines.cols, x:[...(state.cutLines.x||[])], y:[...(state.cutLines.y||[])]} : null,
+      mobileCutSubmode: state.mobileCutSubmode || 'split',
+      cutCropRatio: state.cutCropRatio || '1:1',
+      customCropRatio: state.customCropRatio || '1:3',
       exportFormat: state.exportFormat || 'png',
       exportQuality: state.exportQuality || 0.92,
       exportQualityAuto: !!state.exportQualityAuto,
@@ -578,8 +609,11 @@
     state.splitDraft = data.splitDraft || null;
     state.splitDraftManual = !!data.splitDraftManual;
     state.subtitleRegion = data.subtitleRegion || {heightRatio:0.22,yRatio:0.76};
-    state.cutSettings = data.cutSettings || {mode:'cols',rows:3,cols:3};
-    state.cutLines = data.cutLines || {imageId:null,rows:3,cols:3,x:[],y:[]};
+    state.cutSettings = data.cutSettings || {mode:'rows',rows:3,cols:1};
+    state.cutLines = data.cutLines || {imageId:null,rows:3,cols:1,x:[],y:[]};
+    state.mobileCutSubmode = data.mobileCutSubmode || 'split';
+    state.cutCropRatio = data.cutCropRatio || '1:1';
+    state.customCropRatio = data.customCropRatio || '1:3';
     state.exportFormat = data.exportFormat || state.exportFormat || 'png';
     state.exportQuality = clamp(Number(data.exportQuality || state.exportQuality || 0.92), 0.5, 1);
     state.exportQualityAuto = data.exportQualityAuto !== undefined ? !!data.exportQualityAuto : true;
@@ -933,6 +967,7 @@
     app.classList.toggle('preview', state.preview);
     if(!state.images.length){
       statusbar.textContent = 'Ready：拖入、打开或粘贴图片';
+      if(mobileInfoText) mobileInfoText.textContent = statusbar.textContent;
       updateNavigation(null);
       closeInlineTextEditor(false);
       return;
@@ -948,6 +983,7 @@
 
     const finalLayout = computeLayout(false);
     statusbar.textContent = `${state.orientation === 'vertical' ? '纵向' : '横向'} · ${state.images.length} 张图 · 输出 ${Math.round(finalLayout.width)}×${Math.round(finalLayout.height)} px · 缩放 ${Math.round(state.zoom*100)}%`;
+    if(mobileInfoText) mobileInfoText.textContent = statusbar.textContent;
     updateNavigation(layoutCache);
     positionInlineTextEditor();
     if(state.activeHandle && !state.preview) requestRender();
@@ -3249,19 +3285,21 @@
   function cutProps(){
     const s = state.cutSettings;
     ensureCutLines(false);
-    const showRows = s.mode === 'rows' || s.mode === 'grid';
-    const showCols = s.mode === 'cols' || s.mode === 'grid';
+    const custom = (state.cutCropRatio || '1:1') === 'custom';
     return `<div class="prop-card">
-      <div class="row"><label>切</label><select id="cutModeSelect">
-        <option value="rows" ${s.mode==='rows'?'selected':''}>行</option>
-        <option value="cols" ${s.mode==='cols'?'selected':''}>列</option>
-        <option value="grid" ${s.mode==='grid'?'selected':''}>格</option>
-      </select></div>
-      ${showRows ? `<div class="row"><label>行</label><input type="number" data-cut="rows" min="1" max="12" value="${s.rows}"></div>` : ''}
-      ${showCols ? `<div class="row"><label>列</label><input type="number" data-cut="cols" min="1" max="12" value="${s.cols}"></div>` : ''}
+      <div class="row"><label>分割</label><span></span></div>
+      <div class="row"><label>行</label><input type="number" data-cut="rows" min="1" max="12" value="${s.rows}"></div>
+      <div class="row"><label>列</label><input type="number" data-cut="cols" min="1" max="12" value="${s.cols}"></div>
       <div class="mini-grid">
-        <button class="mini-btn" id="cutNineBtn">3×3</button>
-        <button class="mini-btn primary" id="finishCutBtn">完成</button>
+        <button class="mini-btn primary" id="finishCutBtn">ok</button>
+      </div>
+      <div class="row"><label>裁剪</label><select id="cropRatioSelectDesktop">
+        ${cropRatioOptions(state.cutCropRatio || '1:1')}
+      </select></div>
+      ${custom ? `<div class="row"><label>自定义</label><input id="customRatioInputDesktop" value="${escapeHtml(state.customCropRatio || '1:3')}" placeholder="1:3"></div>` : ''}
+      <div class="mini-grid">
+        <button class="mini-btn" id="freeCropBtn">自由</button>
+        <button class="mini-btn primary" id="applyCropRatioBtn">ok</button>
       </div>
     </div>`;
   }
@@ -3327,18 +3365,20 @@
     }));
     $('#generateSubtitleBtn')?.addEventListener('click', () => generateSubtitleStitch());
 
-    $('#cutModeSelect')?.addEventListener('change', e => {
-      state.cutSettings.mode = e.target.value;
-      resetCutLines();
-      renderProps(); requestRender();
-    });
     $$('[data-cut]', props).forEach(inp => inp.addEventListener('change', () => {
-      state.cutSettings[inp.dataset.cut] = clamp(Math.round(+inp.value || 1), 1, 12);
-      resetCutLines();
-      renderProps(); requestRender();
+      const nextRows = inp.dataset.cut === 'rows' ? +inp.value : state.cutSettings.rows;
+      const nextCols = inp.dataset.cut === 'cols' ? +inp.value : state.cutSettings.cols;
+      setCutGridRowsCols(nextRows, nextCols);
     }));
-    $('#cutNineBtn')?.addEventListener('click', () => { state.cutSettings = {mode:'grid', rows:3, cols:3}; resetCutLines(); renderProps(); requestRender(); });
     $('#finishCutBtn')?.addEventListener('click', () => completeCutEditing());
+    $('#cropRatioSelectDesktop')?.addEventListener('change', e => {
+      state.cutCropRatio = e.target.value;
+      renderProps();
+      updateModeButtons();
+    });
+    $('#customRatioInputDesktop')?.addEventListener('input', e => { state.customCropRatio = e.target.value; updateModeButtons(); });
+    $('#freeCropBtn')?.addEventListener('click', () => { state.cutCropRatio = 'free'; applyCropRatio(); });
+    $('#applyCropRatioBtn')?.addEventListener('click', () => applyCropRatio());
 
     $$('[data-tool]', props).forEach(btn => btn.addEventListener('click', () => { state.toolArmed = btn.dataset.tool; renderProps(); requestRender(); }));
     $('#deleteAnnotationBtn')?.addEventListener('click', () => deleteSelectedAnnotation());
@@ -3422,6 +3462,13 @@
     $$('.mobile-tool-group').forEach(b => b.classList.toggle('active', b.dataset.toolGroup === (state.toolSettings.group || 'select')));
     $('#mobileCutRowsValue') && ($('#mobileCutRowsValue').textContent = String(clamp(state.cutSettings.rows, 1, 12)));
     $('#mobileCutColsValue') && ($('#mobileCutColsValue').textContent = String(clamp(state.cutSettings.cols, 1, 12)));
+    $$('.mobile-cut-mode-tab').forEach(b => b.classList.toggle('active', b.dataset.mobileCutMode === (state.mobileCutSubmode || 'split')));
+    $('#mobileSplitControls')?.classList.toggle('active', (state.mobileCutSubmode || 'split') === 'split');
+    $('#mobileCropControls')?.classList.toggle('active', (state.mobileCutSubmode || 'split') === 'crop');
+    $('#cropRatioSelect') && ($('#cropRatioSelect').value = state.cutCropRatio === 'free' ? '1:1' : (state.cutCropRatio || '1:1'));
+    $('#customRatioInput') && ($('#customRatioInput').value = state.customCropRatio || '1:3');
+    $('#customRatioInput') && ($('#customRatioInput').hidden = (state.cutCropRatio || '1:1') !== 'custom');
+    $$('.mobile-ratio-free').forEach(b => b.classList.toggle('active', (state.cutCropRatio || '1:1') === 'free'));
   }
 
   function sectionForMode(mode){
@@ -3433,7 +3480,10 @@
   function setMobileSection(section){
     state.mobileSection = section;
     state.mobileStitchMenuOpen = false;
-    if(section === 'cut') setMode('cut');
+    if(section === 'cut'){
+      if((state.mobileCutSubmode || 'split') === 'crop') setMode('imageCrop', {mobileSection:'cut'});
+      else setMode('cut', {mobileSection:'cut'});
+    }
     else if(section === 'annotate') setMode('tools');
     else if(!['seam','canvasCrop','imageCrop','divider','subtitle'].includes(state.mode)) setMode('seam');
     updateModeButtons();
@@ -3489,9 +3539,9 @@
     if(exportQuality && exportQuality.value !== String(q)) exportQuality.value = String(q);
     const exportQualityValue = $('#exportQualityValue');
     if(exportQualityValue) exportQualityValue.textContent = `${q}%`;
-    updateExportCutUi();
     updateExportQualityUi();
     renderMobileFileMenu();
+    renderMobileInfoMenu();
     renderMobileStitchMenu();
     renderExportMenu();
     updateUndoRedo();
@@ -3514,6 +3564,16 @@
     const cols = state.cutSettings.cols || 1;
     if(axis === 'rows') setCutGridRowsCols(rows + delta, cols);
     else setCutGridRowsCols(rows, cols + delta);
+  }
+
+  function setMobileCutSubmode(mode){
+    state.mobileSection = 'cut';
+    state.mobileCutSubmode = mode === 'crop' ? 'crop' : 'split';
+    if(state.mobileCutSubmode === 'split') setMode('cut', {mobileSection:'cut'});
+    else setMode('imageCrop', {mobileSection:'cut'});
+    updateModeButtons();
+    renderProps();
+    requestRender();
   }
 
   function isLossyExportFormat(format=state.exportFormat){
@@ -3565,15 +3625,14 @@
 
   function updateExportQualityUi(){
     const format = state.exportFormat || 'png';
-    const cutMode = state.mode === 'cut';
     const lossy = isLossyExportFormat(format);
     const formatRow = $('#exportFormatRow');
-    if(formatRow) formatRow.hidden = cutMode;
+    if(formatRow) formatRow.hidden = false;
     const panel = $('#exportQualityPanel');
     const hint = $('#exportLosslessHint');
-    if(panel) panel.hidden = cutMode || !lossy;
+    if(panel) panel.hidden = !lossy;
     if(hint){
-      hint.hidden = cutMode || lossy;
+      hint.hidden = lossy;
       hint.textContent = format === 'svg' ? 'SVG 容器导出，不使用质量压缩。' : 'PNG 无损导出，不使用质量压缩。';
     }
     const q = clamp(state.exportQuality || smartExportQuality(format), 0.5, 1);
@@ -3581,44 +3640,6 @@
     $('#exportRecommend') && ($('#exportRecommend').textContent = `推荐 ${qualityLabel(q)}`);
     $('#exportQualityValue') && ($('#exportQualityValue').textContent = `${pct}%`);
     $$('.export-preset').forEach(btn => btn.classList.toggle('active', Number(btn.dataset.exportQuality) === pct));
-  }
-
-  function cutExportSizeText(){
-    const s = state.cutSettings;
-    if(s.mode === 'grid') return `${clamp(s.rows,1,12)}x${clamp(s.cols,1,12)}`;
-    return String(clamp(s.mode === 'rows' ? s.rows : s.cols, 1, 12));
-  }
-
-  function updateExportCutUi(){
-    const panel = $('#exportCutPanel');
-    if(!panel) return;
-    const isCut = state.mode === 'cut';
-    panel.hidden = !isCut;
-    if(!isCut) return;
-    const size = $('#exportCutSize');
-    const mode = $('#exportCutModeSelect');
-    if(size && size.value !== cutExportSizeText()) size.value = cutExportSizeText();
-    if(mode && mode.value !== state.cutSettings.mode) mode.value = state.cutSettings.mode;
-  }
-
-  function applyExportCutSettings(){
-    const mode = $('#exportCutModeSelect')?.value || state.cutSettings.mode || 'cols';
-    const raw = String($('#exportCutSize')?.value || '').trim();
-    state.cutSettings.mode = mode;
-    if(mode === 'grid'){
-      const m = raw.match(/(\d+)\s*[x×*]\s*(\d+)/i);
-      const n = clamp(Math.round(Number(raw) || 3), 1, 12);
-      state.cutSettings.rows = m ? clamp(Math.round(Number(m[1]) || 3), 1, 12) : n;
-      state.cutSettings.cols = m ? clamp(Math.round(Number(m[2]) || 3), 1, 12) : n;
-    } else if(mode === 'rows'){
-      state.cutSettings.rows = clamp(Math.round(Number(raw) || 1), 1, 12);
-    } else {
-      state.cutSettings.cols = clamp(Math.round(Number(raw) || 1), 1, 12);
-    }
-    resetCutLines();
-    renderProps();
-    updateToolbarButtons();
-    requestRender();
   }
 
   function formatBytes(bytes){
@@ -3728,6 +3749,10 @@
     if(!mobileFileMenu) return;
     mobileFileMenu.classList.toggle('show', !!state.mobileFileOpen && isMobileLayout());
   }
+  function renderMobileInfoMenu(){
+    if(!mobileInfoMenu) return;
+    mobileInfoMenu.classList.toggle('show', !!state.mobileInfoOpen && isMobileLayout());
+  }
 
   function renderExportMenu(){
     if(!exportMenu) return;
@@ -3737,9 +3762,11 @@
 
   function closeTopMenus(){
     state.mobileFileOpen = false;
+    state.mobileInfoOpen = false;
     state.exportMenuOpen = false;
     state.mobileStitchMenuOpen = false;
     renderMobileFileMenu();
+    renderMobileInfoMenu();
     renderMobileStitchMenu();
     renderExportMenu();
   }
@@ -3748,7 +3775,7 @@
     setOrientation(state.orientation === 'vertical' ? 'horizontal' : 'vertical');
   }
 
-  function setMode(m){
+  function setMode(m, opts={}){
     if(state.mode !== m){
       state.mobileFileOpen = false;
       state.exportMenuOpen = false;
@@ -3757,7 +3784,7 @@
       hideToolPopover();
     }
     state.mode = m;
-    state.mobileSection = sectionForMode(m);
+    state.mobileSection = opts.mobileSection || sectionForMode(m);
     state.activeHandle = null;
     state.preview = false;
     if(m === 'canvasCrop') state.selected = {type:'canvasCrop'};
@@ -3905,6 +3932,71 @@
     downloadCanvasImage(canvasEl, filename, delay);
   }
 
+  function cropRatioOptions(selected){
+    const value = selected || '1:1';
+    const opts = [
+      ['1:1','1:1'],
+      ['2:3','竖 2:3'],
+      ['3:4','竖 3:4'],
+      ['5:7','竖 5:7'],
+      ['9:16','竖 9:16'],
+      ['3:2','横 3:2'],
+      ['4:3','横 4:3'],
+      ['7:5','横 7:5'],
+      ['16:9','横 16:9'],
+      ['custom','自定义']
+    ];
+    return opts.map(([v,label]) => `<option value="${v}" ${value===v?'selected':''}>${label}</option>`).join('');
+  }
+
+  function parseCropRatio(value){
+    const raw = String(value || '').trim();
+    if(!raw || raw === 'free') return null;
+    const m = raw.match(/^(\d+(?:\.\d+)?)\s*[:：/xX]\s*(\d+(?:\.\d+)?)$/);
+    if(!m) return null;
+    const w = Number(m[1]);
+    const h = Number(m[2]);
+    if(!isFinite(w) || !isFinite(h) || w <= 0 || h <= 0) return null;
+    return w / h;
+  }
+
+  function applyCropRatio(){
+    if(!state.images.length){ toast('请先导入图片'); return; }
+    const ratioKey = state.cutCropRatio || '1:1';
+    state.mobileCutSubmode = 'crop';
+    if(ratioKey === 'free'){
+      setMode('imageCrop', {mobileSection:'cut'});
+      toast('自由裁剪');
+      return;
+    }
+    const ratio = parseCropRatio(ratioKey === 'custom' ? state.customCropRatio : ratioKey);
+    if(!ratio){ toast('请输入比例，如 1:3'); return; }
+    const idx = selectedImageIndex();
+    const im = state.images[idx];
+    const base = {...im.crop};
+    const availW = Math.max(1, im.width - base.left - base.right);
+    const availH = Math.max(1, im.height - base.top - base.bottom);
+    let targetW = availW;
+    let targetH = Math.round(targetW / ratio);
+    if(targetH > availH){
+      targetH = availH;
+      targetW = Math.round(targetH * ratio);
+    }
+    const addX = Math.max(0, availW - targetW);
+    const addY = Math.max(0, availH - targetH);
+    pushHistory();
+    im.crop = {
+      left: base.left + Math.floor(addX / 2),
+      right: base.right + Math.ceil(addX / 2),
+      top: base.top + Math.floor(addY / 2),
+      bottom: base.bottom + Math.ceil(addY / 2)
+    };
+    setMode('imageCrop', {mobileSection:'cut'});
+    state.selected = {type:'image', index:idx};
+    renderProps();
+    requestRender();
+  }
+
   function cutGrid(){
     const s = state.cutSettings;
     if(s.mode === 'rows') return {rows: clamp(s.rows, 1, 12), cols: 1};
@@ -3939,8 +4031,10 @@
 
   function completeCutEditing(){
     if(!state.images.length) return;
+    state.mobileCutSubmode = 'split';
     ensureCutLines(false);
-    state.mode = 'imageCrop';
+    state.mode = 'cut';
+    state.mobileSection = 'cut';
     state.selected = {type:'image', index:selectedImageIndex()};
     state.activeHandle = null;
     updateModeButtons();
@@ -3981,20 +4075,38 @@
     toast(`已导出 ${n-1} 张 ${exportMeta().label}`);
   }
 
+  function exportCroppedImage(){
+    if(!state.images.length){ toast('请先导入图片'); return; }
+    const idx = selectedImageIndex();
+    const im = state.images[idx];
+    const c = getEffectiveCrop(idx);
+    const sw = Math.max(1, im.width - c.left - c.right);
+    const sh = Math.max(1, im.height - c.top - c.bottom);
+    const out = document.createElement('canvas');
+    out.width = sw;
+    out.height = sh;
+    const oc = out.getContext('2d');
+    oc.fillStyle = '#fff'; oc.fillRect(0,0,out.width,out.height);
+    oc.drawImage(im.img, c.left, c.top, sw, sh, 0, 0, sw, sh);
+    downloadCanvasImage(out, `${imageBaseName(im.name)}_crop`);
+    toast(`${exportMeta().label} 已导出`);
+  }
+
   function exportCurrent(){
     if(state.mode === 'cut') exportCutImages();
+    else if(state.mobileSection === 'cut' && state.mobileCutSubmode === 'crop') exportCroppedImage();
     else exportImage();
   }
 
   function openExportSettings(){
     state.mobileFileOpen = false;
+    state.mobileInfoOpen = false;
     state.exportMenuOpen = !state.exportMenuOpen;
     if(state.exportMenuOpen) applySmartExportQuality(false);
     updateToolbarButtons();
   }
 
   function directExportCurrent(){
-    if(state.mode === 'cut') applyExportCutSettings();
     state.exportMenuOpen = false;
     renderExportMenu();
     exportCurrent();
@@ -4297,8 +4409,6 @@
     updateToolbarButtons();
     scheduleExportEstimate();
   }));
-  $('#exportCutModeSelect')?.addEventListener('change', applyExportCutSettings);
-  $('#exportCutSize')?.addEventListener('change', applyExportCutSettings);
   $('#exportDirectBtn')?.addEventListener('click', directExportCurrent);
   $('#fitBtn').addEventListener('click', () => fitToView());
   $('#undoBtn').addEventListener('click', undo);
@@ -4307,7 +4417,8 @@
   $('#verticalBtn').addEventListener('click', () => setOrientation('vertical'));
   $('#horizontalBtn').addEventListener('click', () => setOrientation('horizontal'));
   $('#mobileClearBtn')?.addEventListener('click', clearAll);
-  $('#mobileFileBtn')?.addEventListener('click', e => { e.stopPropagation(); state.exportMenuOpen = false; state.mobileFileOpen = !state.mobileFileOpen; updateToolbarButtons(); });
+  $('#mobileFileBtn')?.addEventListener('click', e => { e.stopPropagation(); state.exportMenuOpen = false; state.mobileInfoOpen = false; state.mobileFileOpen = !state.mobileFileOpen; updateToolbarButtons(); });
+  $('#mobileInfoBtn')?.addEventListener('click', e => { e.stopPropagation(); state.mobileFileOpen = false; state.exportMenuOpen = false; state.mobileInfoOpen = !state.mobileInfoOpen; updateToolbarButtons(); });
   $('#mobileAutoBtn')?.addEventListener('click', toggleAutoStitch);
   $('#mobileDirectionBtn')?.addEventListener('click', toggleOrientation);
   $('#mobileUndoBtn')?.addEventListener('click', undo);
@@ -4341,6 +4452,18 @@
     const [axis, delta] = btn.dataset.mobileCutStep.split(':');
     stepMobileCut(axis, Math.round(+delta || 0));
   }));
+  $$('[data-mobile-cut-mode]').forEach(btn => btn.addEventListener('click', () => setMobileCutSubmode(btn.dataset.mobileCutMode)));
+  $('[data-mobile-split="ok"]')?.addEventListener('click', () => completeCutEditing());
+  $('[data-mobile-crop="ok"]')?.addEventListener('click', () => applyCropRatio());
+  $('[data-mobile-crop-ratio="free"]')?.addEventListener('click', () => {
+    state.cutCropRatio = 'free';
+    updateModeButtons();
+  });
+  $('#cropRatioSelect')?.addEventListener('change', e => {
+    state.cutCropRatio = e.target.value || '1:1';
+    updateModeButtons();
+  });
+  $('#customRatioInput')?.addEventListener('input', e => { state.customCropRatio = e.target.value; });
   $$('.mobile-tool-group').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
     setToolGroup(btn.dataset.toolGroup);
@@ -4353,8 +4476,8 @@
   document.addEventListener('pointerup', endNavDrag);
   document.addEventListener('pointercancel', endNavDrag);
   document.addEventListener('pointerdown', e => {
-    if(mobileFileMenu?.contains(e.target) || $('#mobileFileBtn')?.contains(e.target) || exportMenu?.contains(e.target) || $('#exportBtn')?.contains(e.target) || mobileStitchMenu?.contains(e.target)) return;
-    if(state.mobileFileOpen || state.exportMenuOpen || state.mobileStitchMenuOpen) closeTopMenus();
+    if(mobileFileMenu?.contains(e.target) || $('#mobileFileBtn')?.contains(e.target) || mobileInfoMenu?.contains(e.target) || $('#mobileInfoBtn')?.contains(e.target) || exportMenu?.contains(e.target) || $('#exportBtn')?.contains(e.target) || mobileStitchMenu?.contains(e.target)) return;
+    if(state.mobileFileOpen || state.mobileInfoOpen || state.exportMenuOpen || state.mobileStitchMenuOpen) closeTopMenus();
   });
 
   document.addEventListener('paste', async e => {
