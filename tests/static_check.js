@@ -161,6 +161,7 @@ const required = [
 const emptyDropRequired = [
   'id="dropHint" tabindex="0"',
   'id="pasteEmpty"',
+  '.drop-actions .mini-btn{min-width:0;flex:1 1 0',
   "if(e.target?.id === 'openImageEmpty')",
   "if(e.target?.id === 'openProjectEmpty')",
   "if(e.target?.id === 'pasteEmpty')",
