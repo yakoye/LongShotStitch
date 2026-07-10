@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.24 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.25 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -106,6 +106,10 @@
     .export-title{font-size:13px;font-weight:850;color:#111827;padding:2px 2px 4px}
     .export-row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;font-size:12px;color:#64748b}
     .export-row select,.export-row input{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 8px;color:#111827}
+    .export-cut-panel{display:grid;grid-template-columns:1fr 70px;gap:6px;align-items:center}
+    .export-cut-panel[hidden]{display:none!important}
+    .export-cut-panel .export-row{grid-template-columns:42px 1fr;margin:0}
+    .export-cut-panel input,.export-cut-panel select{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 8px;color:#111827}
     .export-quality-panel{display:grid;gap:6px}
     .export-quality-panel[hidden],.export-lossless-hint[hidden]{display:none!important}
     .export-quality-head{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#64748b}
@@ -243,7 +247,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.24</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.25</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -293,7 +297,18 @@
   </div>
   <div class="export-menu" id="exportMenu">
     <div class="export-title">导出</div>
-    <label class="export-row">
+    <div class="export-cut-panel" id="exportCutPanel" hidden>
+      <label class="export-row">
+        <span>切</span>
+        <input id="exportCutSize" type="text" value="3" aria-label="切割数量">
+      </label>
+      <select id="exportCutModeSelect" title="切割方式" aria-label="切割方式">
+        <option value="cols">列</option>
+        <option value="rows">行</option>
+        <option value="grid">格</option>
+      </select>
+    </div>
+    <label class="export-row" id="exportFormatRow">
       <span>格式</span>
       <select id="exportFormatSelect" title="导出格式" aria-label="导出格式">
         <option value="png" selected>PNG</option>
@@ -401,7 +416,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.24';
+  const APP_VERSION = 'v1.25';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -873,6 +888,7 @@
       closeInlineTextEditor(false);
       return;
     }
+    clampPanToLayout(layoutCache);
 
     ctx.save();
     ctx.translate(state.pan.x, state.pan.y);
@@ -909,6 +925,23 @@
   function clampPanToLayout(layout){
     if(!layout) return;
     const rect = stageWrap.getBoundingClientRect();
+    const contentW = layout.fullWidth * state.zoom;
+    const contentH = layout.fullHeight * state.zoom;
+    if(isMobileLayout()){
+      const safe = mobileSafeInset();
+      const fitW = Math.max(1, rect.width - safe * 2);
+      const fitH = Math.max(1, rect.height - safe * 2);
+      const centerX = safe + (fitW - contentW) / 2;
+      const centerY = safe + (fitH - contentH) / 2;
+      if(state.orientation === 'vertical'){
+        state.pan.x = centerX;
+        state.pan.y = contentH <= fitH ? centerY : clamp(state.pan.y, rect.height - safe - contentH, safe);
+      } else {
+        state.pan.y = centerY;
+        state.pan.x = contentW <= fitW ? centerX : clamp(state.pan.x, rect.width - safe - contentW, safe);
+      }
+      return;
+    }
     const minX = Math.min(0, rect.width - layout.fullWidth * state.zoom);
     const minY = Math.min(0, rect.height - layout.fullHeight * state.zoom);
     if(layout.fullWidth * state.zoom <= rect.width) state.pan.x = (rect.width - layout.fullWidth * state.zoom) / 2;
@@ -918,13 +951,20 @@
     lockMobilePanAxis(layout);
   }
 
+  function mobileSafeInset(){
+    return isMobileLayout() ? 28 : 0;
+  }
+
   function lockMobilePanAxis(layout){
     if(!isMobileLayout() || !layout || !state.images.length) return;
     const rect = stageWrap.getBoundingClientRect();
+    const safe = mobileSafeInset();
+    const fitW = Math.max(1, rect.width - safe * 2);
+    const fitH = Math.max(1, rect.height - safe * 2);
     if(state.orientation === 'vertical'){
-      state.pan.x = (rect.width - layout.fullWidth * state.zoom) / 2;
+      state.pan.x = safe + (fitW - layout.fullWidth * state.zoom) / 2;
     } else {
-      state.pan.y = (rect.height - layout.fullHeight * state.zoom) / 2;
+      state.pan.y = safe + (fitH - layout.fullHeight * state.zoom) / 2;
     }
   }
 
@@ -1257,6 +1297,10 @@
     c.fillRect(item.dx, yy, item.dw, hh);
     c.strokeRect(item.dx, yy, item.dw, hh);
     c.setLineDash([]);
+    const handle = Math.max(22 / state.zoom, 10);
+    hitAreas.push({type:'subtitleRegion', index:item.index, x:item.dx, y:yy + handle, w:item.dw, h:Math.max(1, hh - handle * 2), cursor:'move'});
+    hitAreas.push({type:'subtitleEdge', edge:'top', index:item.index, x:item.dx, y:yy - handle, w:item.dw, h:handle * 2, cursor:'ns-resize'});
+    hitAreas.push({type:'subtitleEdge', edge:'bottom', index:item.index, x:item.dx, y:yy + hh - handle, w:item.dw, h:handle * 2, cursor:'ns-resize'});
     c.restore();
   }
 
@@ -2528,17 +2572,19 @@
     const layout = computeLayout(true);
     if(!state.images.length){ state.zoom = 1; state.pan = {x:0,y:0}; requestRender(); return; }
     if(isMobileLayout()){
-      const pad = 18;
+      const safe = mobileSafeInset();
+      const fitW = Math.max(1, rect.width - safe * 2);
+      const fitH = Math.max(1, rect.height - safe * 2);
       const z = state.orientation === 'vertical'
-        ? (rect.width - pad) / Math.max(1, layout.fullWidth)
-        : (rect.height - pad) / Math.max(1, layout.fullHeight);
+        ? fitW / Math.max(1, layout.fullWidth)
+        : fitH / Math.max(1, layout.fullHeight);
       state.zoom = clamp(isFinite(z) ? z : 1, 0.03, 8);
       if(state.orientation === 'vertical'){
-        state.pan.x = (rect.width - layout.fullWidth * state.zoom) / 2;
-        state.pan.y = 10;
+        state.pan.x = safe + (fitW - layout.fullWidth * state.zoom) / 2;
+        state.pan.y = safe;
       } else {
-        state.pan.x = 10;
-        state.pan.y = (rect.height - layout.fullHeight * state.zoom) / 2;
+        state.pan.x = safe;
+        state.pan.y = safe + (fitH - layout.fullHeight * state.zoom) / 2;
       }
       lockMobilePanAxis(layout);
     } else {
@@ -2666,6 +2712,16 @@
     }
     if(h.type === 'splitDraftCommit'){ insertSeamAtDraft(); return; }
     if(h.type === 'splitDraftDrag'){ state.splitDraftManual = true; drag = {type:'splitDraft', start:w, pos: state.splitDraft?.pos || 0}; return; }
+    if(h.type === 'subtitleRegion' || h.type === 'subtitleEdge'){
+      const layout = computeLayout(true);
+      const item = layout.items.find(v => v.index === h.index);
+      const im = state.images[h.index];
+      if(!item || !im) return;
+      pushHistory();
+      state.selected = {type:'image', index:h.index};
+      drag = {type:h.type === 'subtitleRegion' ? 'subtitleMove' : 'subtitleEdge', edge:h.edge, index:h.index, start:w, region:{...state.subtitleRegion}, item:{...item}, imageHeight:im.height};
+      return;
+    }
     if(h.type === 'cutLine'){
       const lines = ensureCutLines(false);
       pushHistory();
@@ -2749,6 +2805,31 @@
         lines.y[drag.index] = clamp(ratio, prev, next);
       }
       requestRender(); return;
+    }
+    if(drag.type === 'subtitleMove' || drag.type === 'subtitleEdge'){
+      const scale = Math.max(0.0001, drag.item?.scale || 1);
+      const imageH = Math.max(1, drag.imageHeight || 1);
+      const dyRatio = ((w.y - drag.start.y) / scale) / imageH;
+      const minH = 0.03;
+      const maxH = 0.85;
+      if(drag.type === 'subtitleMove'){
+        state.subtitleRegion.heightRatio = clamp(drag.region.heightRatio, minH, maxH);
+        state.subtitleRegion.yRatio = clamp(drag.region.yRatio + dyRatio, 0, 1 - state.subtitleRegion.heightRatio);
+      } else {
+        const startTop = drag.region.yRatio;
+        const startBottom = drag.region.yRatio + drag.region.heightRatio;
+        if(drag.edge === 'top'){
+          const nextTop = clamp(startTop + dyRatio, 0, startBottom - minH);
+          state.subtitleRegion.yRatio = nextTop;
+          state.subtitleRegion.heightRatio = clamp(startBottom - nextTop, minH, maxH);
+        } else {
+          const nextBottom = clamp(startBottom + dyRatio, startTop + minH, 1);
+          state.subtitleRegion.yRatio = startTop;
+          state.subtitleRegion.heightRatio = clamp(nextBottom - startTop, minH, maxH);
+        }
+        state.subtitleRegion.yRatio = clamp(state.subtitleRegion.yRatio, 0, 1 - state.subtitleRegion.heightRatio);
+      }
+      renderProps(); requestRender(); return;
     }
     if(drag.type === 'canvasCrop'){
       const dx = Math.round((p.x - drag.startScreen.x) / Math.max(0.0001, state.zoom));
@@ -3030,7 +3111,7 @@
   function subtitleProps(){
     const r = state.subtitleRegion;
     return `<div class="prop-card">
-      <div class="row"><label>高</label><input type="number" data-subtitle="heightRatio" min="5" max="60" value="${Math.round(r.heightRatio*100)}"></div>
+      <div class="row"><label>高</label><input type="number" data-subtitle="heightRatio" min="3" max="85" value="${Math.round(r.heightRatio*100)}"></div>
       <div class="row"><label>位</label><input type="number" data-subtitle="yRatio" min="0" max="95" value="${Math.round(r.yRatio*100)}"></div>
       <button class="mini-btn primary" id="generateSubtitleBtn">生成</button>
     </div>`;
@@ -3111,7 +3192,7 @@
 
     $$('[data-subtitle]', props).forEach(inp => inp.addEventListener('change', () => {
       const key = inp.dataset.subtitle;
-      const value = clamp((+inp.value || 0) / 100, key === 'heightRatio' ? 0.05 : 0, key === 'heightRatio' ? 0.6 : 0.95);
+      const value = clamp((+inp.value || 0) / 100, key === 'heightRatio' ? 0.03 : 0, key === 'heightRatio' ? 0.85 : 0.95);
       state.subtitleRegion[key] = value;
       renderProps(); requestRender();
     }));
@@ -3227,6 +3308,7 @@
     if(exportQuality && exportQuality.value !== String(q)) exportQuality.value = String(q);
     const exportQualityValue = $('#exportQualityValue');
     if(exportQualityValue) exportQualityValue.textContent = `${q}%`;
+    updateExportCutUi();
     updateExportQualityUi();
     renderMobileFileMenu();
     renderExportMenu();
@@ -3282,12 +3364,15 @@
 
   function updateExportQualityUi(){
     const format = state.exportFormat || 'png';
+    const cutMode = state.mode === 'cut';
     const lossy = isLossyExportFormat(format);
+    const formatRow = $('#exportFormatRow');
+    if(formatRow) formatRow.hidden = cutMode;
     const panel = $('#exportQualityPanel');
     const hint = $('#exportLosslessHint');
-    if(panel) panel.hidden = !lossy;
+    if(panel) panel.hidden = cutMode || !lossy;
     if(hint){
-      hint.hidden = lossy;
+      hint.hidden = cutMode || lossy;
       hint.textContent = format === 'svg' ? 'SVG 容器导出，不使用质量压缩。' : 'PNG 无损导出，不使用质量压缩。';
     }
     const q = clamp(state.exportQuality || smartExportQuality(format), 0.5, 1);
@@ -3295,6 +3380,44 @@
     $('#exportRecommend') && ($('#exportRecommend').textContent = `推荐 ${qualityLabel(q)}`);
     $('#exportQualityValue') && ($('#exportQualityValue').textContent = `${pct}%`);
     $$('.export-preset').forEach(btn => btn.classList.toggle('active', Number(btn.dataset.exportQuality) === pct));
+  }
+
+  function cutExportSizeText(){
+    const s = state.cutSettings;
+    if(s.mode === 'grid') return `${clamp(s.rows,1,12)}x${clamp(s.cols,1,12)}`;
+    return String(clamp(s.mode === 'rows' ? s.rows : s.cols, 1, 12));
+  }
+
+  function updateExportCutUi(){
+    const panel = $('#exportCutPanel');
+    if(!panel) return;
+    const isCut = state.mode === 'cut';
+    panel.hidden = !isCut;
+    if(!isCut) return;
+    const size = $('#exportCutSize');
+    const mode = $('#exportCutModeSelect');
+    if(size && size.value !== cutExportSizeText()) size.value = cutExportSizeText();
+    if(mode && mode.value !== state.cutSettings.mode) mode.value = state.cutSettings.mode;
+  }
+
+  function applyExportCutSettings(){
+    const mode = $('#exportCutModeSelect')?.value || state.cutSettings.mode || 'cols';
+    const raw = String($('#exportCutSize')?.value || '').trim();
+    state.cutSettings.mode = mode;
+    if(mode === 'grid'){
+      const m = raw.match(/(\d+)\s*[x×*]\s*(\d+)/i);
+      const n = clamp(Math.round(Number(raw) || 3), 1, 12);
+      state.cutSettings.rows = m ? clamp(Math.round(Number(m[1]) || 3), 1, 12) : n;
+      state.cutSettings.cols = m ? clamp(Math.round(Number(m[2]) || 3), 1, 12) : n;
+    } else if(mode === 'rows'){
+      state.cutSettings.rows = clamp(Math.round(Number(raw) || 1), 1, 12);
+    } else {
+      state.cutSettings.cols = clamp(Math.round(Number(raw) || 1), 1, 12);
+    }
+    resetCutLines();
+    renderProps();
+    updateToolbarButtons();
+    requestRender();
   }
 
   function formatBytes(bytes){
@@ -3666,6 +3789,7 @@
   }
 
   function directExportCurrent(){
+    if(state.mode === 'cut') applyExportCutSettings();
     state.exportMenuOpen = false;
     renderExportMenu();
     exportCurrent();
@@ -3968,6 +4092,8 @@
     updateToolbarButtons();
     scheduleExportEstimate();
   }));
+  $('#exportCutModeSelect')?.addEventListener('change', applyExportCutSettings);
+  $('#exportCutSize')?.addEventListener('change', applyExportCutSettings);
   $('#exportDirectBtn')?.addEventListener('click', directExportCurrent);
   $('#fitBtn').addEventListener('click', () => fitToView());
   $('#undoBtn').addEventListener('click', undo);
