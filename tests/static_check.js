@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.37',
+  'LongShotStitch v1.38',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -86,7 +86,7 @@ const required = [
   'data-mobile-file="saveProject"',
   'toggleOrientation',
   'showAbout',
-  'LongShotStitch v1.37',
+  'LongShotStitch v1.38',
   'desktop-compact-card',
   'compact-row',
   'compact-field',
@@ -158,6 +158,17 @@ const required = [
   'syncBadgeSequence',
   'c.clip()'
 ];
+const emptyDropRequired = [
+  'id="dropHint" tabindex="0"',
+  'id="pasteEmpty"',
+  "if(e.target?.id === 'openImageEmpty')",
+  "if(e.target?.id === 'openProjectEmpty')",
+  "if(e.target?.id === 'pasteEmpty')",
+  'dropHint.focus({preventScroll:true})'
+];
+for (const token of emptyDropRequired) {
+  if (!html.includes(token)) throw new Error(`missing empty drop behavior token: ${token}`);
+}
 for (const token of required) {
   if (!html.includes(token)) throw new Error(`missing token: ${token}`);
 }
@@ -165,4 +176,5 @@ for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedA
   if (html.includes(token)) throw new Error(`forbidden token remains: ${token}`);
 }
 if (html.includes('整体裁剪已分摊锁定')) throw new Error('internal canvas crop lock toast should not be shown');
+if (html.includes("else $('#fileInput').click();")) throw new Error('empty drop area background must not open the file picker');
 console.log('static_check ok');
