@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.25 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.26 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -211,7 +211,7 @@
     }
 
     @media (max-width: 760px){
-      :root{--topbar:56px}
+      :root{--topbar:56px;--sectionbar:42px;--mobilebar:74px}
       .app{display:block;height:100vh;overflow:hidden;background:#f3f5f8}
       .topbar{position:absolute;left:0;top:0;right:0;height:var(--topbar);padding:8px 6px;justify-content:space-between}
       .brand,.toolbar-group .text-label,.desktop-only,.toolbar-group:first-of-type,.toolbar-group:nth-of-type(2),.toolbar-group:nth-of-type(3){display:none!important}
@@ -225,16 +225,30 @@
       .export-menu{right:6px;top:48px}
       .mobile-title{display:none!important}
       .sidebar{display:none}
-      .app[data-mode="subtitle"] .sidebar,.app[data-mode="cut"] .sidebar{display:block;position:absolute;left:8px;right:8px;bottom:calc(var(--mobilebar) + 8px);z-index:14;border:1px solid rgba(203,213,225,.94);border-radius:13px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.18);overflow:hidden}
-      .app[data-mode="subtitle"] .mode-panel,.app[data-mode="cut"] .mode-panel{display:none}
-      .app[data-mode="subtitle"] .props,.app[data-mode="cut"] .props{padding:6px;max-height:min(30vh,150px);overflow:auto;background:transparent}
-      .app[data-mode="subtitle"] .prop-card,.app[data-mode="cut"] .prop-card{margin:0;padding:6px;border:0;box-shadow:none;background:transparent}
-      .app[data-mode="subtitle"] .row,.app[data-mode="cut"] .row{margin:4px 0}
-      .stage-wrap{position:absolute;left:0;right:0;top:var(--topbar);bottom:var(--mobilebar);grid-row:auto;grid-column:auto}
-      .mobile-bottom{display:grid;position:absolute;left:0;right:0;bottom:0;height:var(--mobilebar);background:rgba(255,255,255,.94);border-top:1px solid var(--line);grid-template-columns:repeat(7,1fr);z-index:6;backdrop-filter:blur(14px);padding-bottom:env(safe-area-inset-bottom)}
-      .mobile-mode{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#111827;font-weight:750;font-size:11px}
-      .mobile-mode .mi{font-size:25px;line-height:1;color:#111827}
-      .mobile-mode.active .mi,.mobile-mode.active{color:var(--blue)}
+      .app[data-mode="subtitle"] .sidebar{display:block;position:absolute;left:8px;right:8px;bottom:calc(var(--mobilebar) + 8px);z-index:14;border:1px solid rgba(203,213,225,.94);border-radius:13px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.18);overflow:hidden}
+      .app[data-mode="subtitle"] .mode-panel{display:none}
+      .app[data-mode="subtitle"] .props{padding:6px;max-height:min(30vh,150px);overflow:auto;background:transparent}
+      .app[data-mode="subtitle"] .prop-card{margin:0;padding:6px;border:0;box-shadow:none;background:transparent}
+      .app[data-mode="subtitle"] .row{margin:4px 0}
+      .stage-wrap{position:absolute;left:0;right:0;top:calc(var(--topbar) + var(--sectionbar));bottom:var(--mobilebar);grid-row:auto;grid-column:auto}
+      .mobile-primary-nav{display:grid;position:absolute;left:0;right:0;top:var(--topbar);height:var(--sectionbar);grid-template-columns:repeat(3,1fr);z-index:6;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}
+      .mobile-primary-mode{display:grid;place-items:center;font-weight:850;font-size:14px;color:#334155;border-bottom:2px solid transparent}
+      .mobile-primary-mode.active{color:#0f172a;border-bottom-color:var(--accent-strong);background:#fff8d5}
+      .mobile-bottom{display:block;position:absolute;left:0;right:0;bottom:0;height:var(--mobilebar);background:rgba(255,255,255,.94);border-top:1px solid var(--line);z-index:6;backdrop-filter:blur(14px);padding-bottom:env(safe-area-inset-bottom)}
+      .mobile-context-section{display:none;height:100%;align-items:center;gap:6px;padding:7px 8px;overflow-x:auto;overscroll-behavior-x:contain}
+      .mobile-context-section.active{display:flex}
+      .mobile-mode,.mobile-tool-group{height:52px;min-width:68px;border:1px solid transparent;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#111827;font-weight:750;font-size:11px;flex:0 0 auto}
+      .mobile-mode .mi,.mobile-tool-group .mi{font-size:24px;line-height:1;color:#111827}
+      .mobile-mode.active,.mobile-tool-group.active{color:var(--blue);background:#eff6ff;border-color:#bfdbfe}
+      .mobile-mode.active .mi,.mobile-tool-group.active .mi{color:var(--blue)}
+      .mobile-cut-controls{justify-content:center;gap:12px}
+      .mobile-cut-stepper{height:52px;display:grid;grid-template-columns:32px 42px 28px 32px;align-items:center;gap:3px;border:1px solid #d9dee7;border-radius:11px;background:#fff;padding:0 6px;flex:0 0 auto}
+      .mobile-cut-stepper button{width:30px;height:32px;border:1px solid #d9dee7;border-radius:8px;background:#f8fafc;font-size:18px;font-weight:850}
+      .mobile-cut-value{text-align:center;font-weight:850;font-size:16px}
+      .mobile-cut-label{font-size:12px;color:#334155;font-weight:800}
+      .mobile-stitch-menu{position:absolute;left:8px;bottom:calc(var(--mobilebar) + 8px);z-index:28;display:none;grid-template-columns:repeat(2,86px);gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
+      .mobile-stitch-menu.show{display:grid}
+      .mobile-stitch-menu .mini-btn{height:36px;font-size:12px}
       .statusbar{left:8px;right:8px;bottom:8px;text-align:center;font-size:11px;padding:5px 8px}
       .drop-hint{padding:22px;width:88%}
       .drop-hint h2{font-size:19px}
@@ -247,7 +261,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.25</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.26</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -376,14 +390,42 @@
     </div>
   </main>
 
-  <nav class="mobile-bottom">
-    <button class="mobile-mode active" data-mode="seam"><span class="mi">☰</span><span>拼接</span></button>
-    <button class="mobile-mode" data-mode="canvasCrop"><span class="mi">▢</span><span>整体</span></button>
-    <button class="mobile-mode" data-mode="imageCrop"><span class="mi">▢¹</span><span>单图</span></button>
-    <button class="mobile-mode" data-mode="divider"><span class="mi">≡</span><span>分割</span></button>
-    <button class="mobile-mode" data-mode="tools"><span class="mi">✎</span><span>工具</span></button>
-    <button class="mobile-mode" data-mode="subtitle"><span class="mi">▤</span><span>字幕</span></button>
-    <button class="mobile-mode" data-mode="cut"><span class="mi">#</span><span>切割</span></button>
+  <nav class="mobile-primary-nav" id="mobilePrimaryNav">
+    <button class="mobile-primary-mode active" data-mobile-section="stitch">拼接</button>
+    <button class="mobile-primary-mode" data-mobile-section="cut">切割</button>
+    <button class="mobile-primary-mode" data-mobile-section="annotate">标注</button>
+  </nav>
+  <div class="mobile-stitch-menu" id="mobileStitchMenu">
+    <button class="mini-btn" data-stitch-action="manualStitch">手动拼接</button>
+    <button class="mini-btn" data-stitch-action="autoStitch">自动拼接</button>
+    <button class="mini-btn" data-stitch-action="autoSubtitle">自动字幕</button>
+    <button class="mini-btn" data-stitch-action="manualSubtitle">手动字幕</button>
+  </div>
+  <nav class="mobile-bottom" id="mobileContextBar">
+    <div class="mobile-context-section mobile-stitch-actions active" id="mobileStitchActions" data-mobile-section-panel="stitch">
+      <button class="mobile-mode active" data-mode="seam" data-stitch-main="line"><span class="mi">☰</span><span>拼接线</span></button>
+      <button class="mobile-mode" data-mode="canvasCrop"><span class="mi">▢</span><span>整体裁剪</span></button>
+      <button class="mobile-mode" data-mode="imageCrop"><span class="mi">▢¹</span><span>单图裁剪</span></button>
+      <button class="mobile-mode" data-mode="divider"><span class="mi">≡</span><span>分割线</span></button>
+    </div>
+    <div class="mobile-context-section mobile-cut-controls" id="mobileCutControls" data-mobile-section-panel="cut">
+      <div class="mobile-cut-stepper" data-mobile-cut-stepper="rows">
+        <button data-mobile-cut-step="rows:-1">−</button><span class="mobile-cut-value" id="mobileCutRowsValue">3</span><span class="mobile-cut-label">行</span><button data-mobile-cut-step="rows:1">+</button>
+      </div>
+      <div class="mobile-cut-stepper" data-mobile-cut-stepper="cols">
+        <button data-mobile-cut-step="cols:-1">−</button><span class="mobile-cut-value" id="mobileCutColsValue">3</span><span class="mobile-cut-label">列</span><button data-mobile-cut-step="cols:1">+</button>
+      </div>
+    </div>
+    <div class="mobile-context-section mobile-annotation-tools" id="mobileAnnotationTools" data-mobile-section-panel="annotate">
+      <button class="mobile-tool-group active" data-tool-group="select"><span class="mi">⌖</span><span>选择</span></button>
+      <button class="mobile-tool-group" data-tool-group="arrow"><span class="mi">↗</span><span>箭头</span></button>
+      <button class="mobile-tool-group" data-tool-group="pen"><span class="mi">✎</span><span>画笔</span></button>
+      <button class="mobile-tool-group" data-tool-group="text"><span class="mi">T</span><span>文字</span></button>
+      <button class="mobile-tool-group" data-tool-group="mosaic"><span class="mi">▦</span><span>马赛克</span></button>
+      <button class="mobile-tool-group" data-tool-group="shape"><span class="mi">□</span><span>形状</span></button>
+      <button class="mobile-tool-group" data-tool-group="badge"><span class="mi">①</span><span>标号</span></button>
+      <button class="mobile-tool-group" data-tool-group="eraser"><span class="mi">⌫</span><span>橡皮</span></button>
+    </div>
   </nav>
 </div>
 <div class="toast" id="toast"></div>
@@ -405,6 +447,7 @@
   const toastEl = $('#toast');
   const app = $('#app');
   const mobileFileMenu = $('#mobileFileMenu');
+  const mobileStitchMenu = $('#mobileStitchMenu');
   const exportMenu = $('#exportMenu');
   const toolDock = $('#toolDock');
   const toolPopover = $('#toolPopover');
@@ -416,7 +459,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.25';
+  const APP_VERSION = 'v1.26';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -443,6 +486,8 @@
     toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:14, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
     mobileToolPopoverOpen: false,
     mobileFileOpen: false,
+    mobileSection: 'stitch',
+    mobileStitchMenuOpen: false,
     exportMenuOpen: false,
     splitDraft: null,
     splitDraftManual: false,
@@ -501,7 +546,8 @@
       cutLines: state.cutLines ? {imageId:state.cutLines.imageId, rows:state.cutLines.rows, cols:state.cutLines.cols, x:[...(state.cutLines.x||[])], y:[...(state.cutLines.y||[])]} : null,
       exportFormat: state.exportFormat || 'png',
       exportQuality: state.exportQuality || 0.92,
-      exportQualityAuto: !!state.exportQualityAuto
+      exportQualityAuto: !!state.exportQualityAuto,
+      mobileSection: state.mobileSection || 'stitch'
     });
   }
 
@@ -535,6 +581,7 @@
     state.exportFormat = data.exportFormat || state.exportFormat || 'png';
     state.exportQuality = clamp(Number(data.exportQuality || state.exportQuality || 0.92), 0.5, 1);
     state.exportQualityAuto = data.exportQualityAuto !== undefined ? !!data.exportQualityAuto : true;
+    state.mobileSection = data.mobileSection || sectionForMode(state.mode);
     state.activeHandle = null;
     const imgs = [];
     for(const raw of data.images || []){
@@ -952,7 +999,7 @@
   }
 
   function mobileSafeInset(){
-    return isMobileLayout() ? 28 : 0;
+    return isMobileLayout() ? 56 : 0;
   }
 
   function lockMobilePanAxis(layout){
@@ -1705,6 +1752,7 @@
       if(group !== 'text') closeInlineTextEditor(false);
     }
     applyActiveTool();
+    updateModeButtons();
     renderProps(); requestRender();
   }
 
@@ -1722,6 +1770,7 @@
       if(group !== 'text') closeInlineTextEditor(false);
     }
     applyActiveTool();
+    updateModeButtons();
     renderProps(); requestRender();
   }
 
@@ -1761,6 +1810,11 @@
       ['watermark','watermark','水印']
     ];
     const activeGroup = state.toolSettings.group || 'select';
+    if(isMobileLayout()){
+      toolDock.classList.remove('show');
+      renderToolPopover();
+      return;
+    }
     toolDock.innerHTML = groups.map(([g,icon,title],i) => `${i===7?'<span class="tool-dock-sep"></span>':''}<button class="tool-dock-btn ${activeGroup===g?'active':''} ${g==='eraser'?'danger':''}" data-tool-group="${g}" title="${title}" aria-label="${title}">${svgIcon(icon)}</button>`).join('');
     toolDock.classList.add('show');
     toolDock.querySelectorAll('[data-tool-group]').forEach(btn=>{
@@ -1771,8 +1825,11 @@
   }
 
   function activeAnchorButton(){
-    if(!toolDock) return null;
     const group = state.toolSettings.group || 'select';
+    if(isMobileLayout()){
+      return document.querySelector(`.mobile-tool-group[data-tool-group="${group}"]`) || document.querySelector('.mobile-tool-group[data-tool-group="select"]');
+    }
+    if(!toolDock) return null;
     return toolDock.querySelector(`[data-tool-group="${group}"]`) || toolDock.querySelector('[data-tool-group="select"]');
   }
 
@@ -3286,7 +3343,59 @@
   function updateModeButtons(){
     app.dataset.mode = state.mode;
     $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === state.mode));
+    if(!state.mobileSection) state.mobileSection = sectionForMode(state.mode);
+    $$('.mobile-primary-mode').forEach(b => b.classList.toggle('active', b.dataset.mobileSection === state.mobileSection));
+    $$('[data-mobile-section-panel]').forEach(p => p.classList.toggle('active', p.dataset.mobileSectionPanel === state.mobileSection));
     $$('.mobile-mode').forEach(b => b.classList.toggle('active', b.dataset.mode === state.mode));
+    $$('.mobile-tool-group').forEach(b => b.classList.toggle('active', b.dataset.toolGroup === (state.toolSettings.group || 'select')));
+    $('#mobileCutRowsValue') && ($('#mobileCutRowsValue').textContent = String(clamp(state.cutSettings.rows, 1, 12)));
+    $('#mobileCutColsValue') && ($('#mobileCutColsValue').textContent = String(clamp(state.cutSettings.cols, 1, 12)));
+  }
+
+  function sectionForMode(mode){
+    if(mode === 'cut') return 'cut';
+    if(mode === 'tools') return 'annotate';
+    return 'stitch';
+  }
+
+  function setMobileSection(section){
+    state.mobileSection = section;
+    state.mobileStitchMenuOpen = false;
+    if(section === 'cut') setMode('cut');
+    else if(section === 'annotate') setMode('tools');
+    else if(!['seam','canvasCrop','imageCrop','divider','subtitle'].includes(state.mode)) setMode('seam');
+    updateModeButtons();
+    renderMobileStitchMenu();
+    requestRender();
+  }
+
+  function renderMobileStitchMenu(){
+    if(!mobileStitchMenu) return;
+    mobileStitchMenu.classList.toggle('show', !!state.mobileStitchMenuOpen && isMobileLayout() && state.mobileSection === 'stitch');
+  }
+
+  function openStitchLineMenu(){
+    state.mobileStitchMenuOpen = !state.mobileStitchMenuOpen;
+    renderMobileStitchMenu();
+  }
+
+  function runStitchAction(action){
+    state.mobileStitchMenuOpen = false;
+    renderMobileStitchMenu();
+    if(action === 'manualStitch') setMode('seam');
+    if(action === 'autoStitch'){
+      setMode('seam');
+      if(!state.images.length){ toast('请先导入图片'); return; }
+      pushHistory();
+      state.autoStitchEnabled = true;
+      state.orientation = inferAutoOrientation(state.images);
+      syncSeams(true);
+      autoAllSeams();
+      fitToView(false);
+      renderProps(); requestRender();
+    }
+    if(action === 'autoSubtitle') generateSubtitleStitch();
+    if(action === 'manualSubtitle') setMode('subtitle');
   }
 
   function updateToolbarButtons(){
@@ -3311,8 +3420,28 @@
     updateExportCutUi();
     updateExportQualityUi();
     renderMobileFileMenu();
+    renderMobileStitchMenu();
     renderExportMenu();
     updateUndoRedo();
+  }
+
+  function setCutGridRowsCols(rows, cols){
+    state.cutSettings.rows = clamp(Math.round(rows || 1), 1, 12);
+    state.cutSettings.cols = clamp(Math.round(cols || 1), 1, 12);
+    if(state.cutSettings.rows > 1 && state.cutSettings.cols > 1) state.cutSettings.mode = 'grid';
+    else if(state.cutSettings.rows > 1) state.cutSettings.mode = 'rows';
+    else state.cutSettings.mode = 'cols';
+    resetCutLines();
+    renderProps();
+    updateModeButtons();
+    requestRender();
+  }
+
+  function stepMobileCut(axis, delta){
+    const rows = state.cutSettings.rows || 1;
+    const cols = state.cutSettings.cols || 1;
+    if(axis === 'rows') setCutGridRowsCols(rows + delta, cols);
+    else setCutGridRowsCols(rows, cols + delta);
   }
 
   function isLossyExportFormat(format=state.exportFormat){
@@ -3537,7 +3666,9 @@
   function closeTopMenus(){
     state.mobileFileOpen = false;
     state.exportMenuOpen = false;
+    state.mobileStitchMenuOpen = false;
     renderMobileFileMenu();
+    renderMobileStitchMenu();
     renderExportMenu();
   }
 
@@ -3549,10 +3680,12 @@
     if(state.mode !== m){
       state.mobileFileOpen = false;
       state.exportMenuOpen = false;
+      state.mobileStitchMenuOpen = false;
       state.mobileToolPopoverOpen = false;
       hideToolPopover();
     }
     state.mode = m;
+    state.mobileSection = sectionForMode(m);
     state.activeHandle = null;
     state.preview = false;
     if(m === 'canvasCrop') state.selected = {type:'canvasCrop'};
@@ -4118,7 +4251,28 @@
     if(action === 'about') showAbout();
     renderMobileFileMenu();
   }));
-  $$('.mode-btn,.mobile-mode').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  $$('.mode-btn').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  $$('.mobile-primary-mode').forEach(b => b.addEventListener('click', () => setMobileSection(b.dataset.mobileSection)));
+  $$('.mobile-mode').forEach(b => b.addEventListener('click', () => {
+    if(b.dataset.stitchMain === 'line'){
+      if(state.mode === 'seam' && state.mobileSection === 'stitch') openStitchLineMenu();
+      else setMode('seam');
+      return;
+    }
+    setMode(b.dataset.mode);
+  }));
+  mobileStitchMenu?.querySelectorAll('[data-stitch-action]').forEach(btn => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    runStitchAction(btn.dataset.stitchAction);
+  }));
+  $$('[data-mobile-cut-step]').forEach(btn => btn.addEventListener('click', () => {
+    const [axis, delta] = btn.dataset.mobileCutStep.split(':');
+    stepMobileCut(axis, Math.round(+delta || 0));
+  }));
+  $$('.mobile-tool-group').forEach(btn => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    setToolGroup(btn.dataset.toolGroup);
+  }));
   window.addEventListener('resize', () => renderToolDock());
   miniMap.addEventListener('pointerdown', beginMiniMapNav);
   vScroll.addEventListener('pointerdown', beginVScroll);
@@ -4127,8 +4281,8 @@
   document.addEventListener('pointerup', endNavDrag);
   document.addEventListener('pointercancel', endNavDrag);
   document.addEventListener('pointerdown', e => {
-    if(mobileFileMenu?.contains(e.target) || $('#mobileFileBtn')?.contains(e.target) || exportMenu?.contains(e.target) || $('#exportBtn')?.contains(e.target)) return;
-    if(state.mobileFileOpen || state.exportMenuOpen) closeTopMenus();
+    if(mobileFileMenu?.contains(e.target) || $('#mobileFileBtn')?.contains(e.target) || exportMenu?.contains(e.target) || $('#exportBtn')?.contains(e.target) || mobileStitchMenu?.contains(e.target)) return;
+    if(state.mobileFileOpen || state.exportMenuOpen || state.mobileStitchMenuOpen) closeTopMenus();
   });
 
   document.addEventListener('paste', async e => {
