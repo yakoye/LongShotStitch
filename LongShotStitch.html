@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.29 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.30 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -21,7 +21,7 @@
       --shadow:0 10px 30px rgba(15,23,42,.10);
       --radius:14px;
       --topbar:54px;
-      --sidebar:328px;
+      --sidebar:300px;
       --mobilebar:74px;
       font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", Arial, sans-serif;
     }
@@ -45,26 +45,34 @@
     .spacer{flex:1}
     #fileInput,#projectInput{display:none}
     .sidebar{grid-row:2;grid-column:1;min-width:0;display:grid;grid-template-rows:auto 1fr;border-right:1px solid var(--line);background:var(--panel);z-index:3}
-    .mode-panel{padding:12px;border-bottom:1px solid var(--line);background:#fff}
-    .mode-title{font-size:12px;color:var(--muted);margin:0 0 8px 2px;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
-    .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .mode-btn{height:54px;border:1px solid var(--line);border-radius:13px;background:var(--panel-2);display:flex;align-items:center;gap:10px;padding:0 10px;text-align:left}
+    .mode-panel{padding:10px;border-bottom:1px solid var(--line);background:#fff}
+    .mode-title{font-size:12px;color:var(--muted);margin:0 0 6px 2px;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+    .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .mode-btn{height:44px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);display:flex;align-items:center;gap:8px;padding:0 9px;text-align:left}
     .mode-btn:hover{border-color:#b8c1cf;background:#fff}
     .mode-btn.active{border-color:var(--accent-strong);background:#fff8d5;box-shadow:0 0 0 3px rgba(255,204,51,.18)}
-    .mode-icon{width:26px;height:26px;display:grid;place-items:center;font-weight:800;font-size:18px;color:#111827}
-    .mode-label{font-size:13px;font-weight:720;line-height:1.15}
-    .mode-label span{display:block;color:var(--muted);font-size:11px;font-weight:500;margin-top:2px}
-    .props{min-height:0;overflow:auto;padding:12px;background:linear-gradient(#fff,#f8fafc)}
-    .prop-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:12px;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+    .mode-icon{width:22px;height:22px;display:grid;place-items:center;font-weight:800;font-size:16px;color:#111827}
+    .mode-label{font-size:12px;font-weight:720;line-height:1.1}
+    .mode-label span{display:block;color:var(--muted);font-size:10px;font-weight:500;margin-top:1px}
+    .props{min-height:0;overflow:auto;padding:8px;background:linear-gradient(#fff,#f8fafc)}
+    .prop-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px;margin-bottom:8px;box-shadow:0 1px 2px rgba(15,23,42,.03)}
     .tool-active-card{position:sticky;top:0;z-index:2;max-height:min(420px,calc(100vh - var(--topbar) - 116px));overflow:auto;box-shadow:0 12px 26px rgba(15,23,42,.10)}
     .prop-card h3{margin:0 0 10px;font-size:14px}
     .hint{font-size:12px;color:var(--muted);line-height:1.6;margin:0}
-    .row{display:flex;gap:8px;align-items:center;margin:8px 0}
-    .row label{font-size:12px;color:var(--muted);min-width:78px}
-    .row input[type="number"], .row input[type="text"], .row select, .row input[type="color"]{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 8px;min-width:0;flex:1}
+    .row{display:flex;gap:6px;align-items:center;margin:5px 0}
+    .row label{font-size:12px;color:var(--muted);min-width:52px}
+    .row input[type="number"], .row input[type="text"], .row select, .row input[type="color"]{height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 8px;min-width:0;flex:1}
     .row input[type="color"]{padding:3px;max-width:58px}
-    .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .mini-btn{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:12px;font-weight:650}
+    .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .mini-btn{height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px;font-weight:650}
+    .desktop-compact-card{display:grid;gap:7px}
+    .compact-row{display:flex;align-items:center;gap:7px;min-height:30px}
+    .compact-row strong{font-size:12px;color:#334155;min-width:34px}
+    .compact-field{display:flex;align-items:center;gap:5px;font-size:12px;color:#64748b}
+    .compact-field input,.compact-field select{height:30px;width:58px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 8px;color:#111827;font-weight:750}
+    .compact-field select{width:92px}
+    .compact-actions{display:flex;gap:6px;margin-left:auto}
+    .compact-actions .mini-btn{min-width:58px;padding:0 10px}
     .mini-btn:hover{background:#f9fafb;border-color:#b8c1cf}
     .mini-btn.primary{background:#111827;color:#fff;border-color:#111827}
     .mini-btn.primary:hover{background:#030712;border-color:#030712}
@@ -75,10 +83,10 @@
     .tool-icon-btn .ti{font-size:24px;line-height:1}
     .tool-icon-btn.active{border-color:var(--accent-strong);background:#fff8d5;box-shadow:0 0 0 3px rgba(255,204,51,.18)}
     .tool-icon-btn .tt{font-size:11px;color:var(--muted)}
-    .image-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}
-    .image-item{border:1px solid var(--line);border-radius:11px;padding:8px;background:#fff;display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center}
+    .image-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+    .image-item{border:1px solid var(--line);border-radius:10px;padding:6px;background:#fff;display:grid;grid-template-columns:38px 1fr auto;gap:7px;align-items:center}
     .image-item.selected{border-color:var(--accent-strong);box-shadow:0 0 0 3px rgba(255,204,51,.18)}
-    .thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;background:#eef2f7;border:1px solid #e5e7eb}
+    .thumb{width:38px;height:38px;border-radius:7px;object-fit:cover;background:#eef2f7;border:1px solid #e5e7eb}
     .image-name{font-size:12px;font-weight:720;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
     .image-meta{font-size:11px;color:var(--muted);margin-top:2px}
     .tiny-actions{display:flex;gap:4px;flex-direction:column}
@@ -96,6 +104,7 @@
     .drop-actions{display:flex;justify-content:center;gap:10px;margin:16px 0 10px}.drop-actions .mini-btn{min-width:112px;height:38px;background:#111827;color:#fff;border-color:#111827}.drop-actions .mini-btn+ .mini-btn{background:#fff;color:#111827;border-color:var(--line)}
     .statusbar{position:absolute;left:14px;bottom:12px;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:12px;box-shadow:0 6px 18px rgba(15,23,42,.08);backdrop-filter:blur(14px)}
     .mobile-title{display:none}
+    .mobile-primary-nav,.mobile-stitch-menu,.mobile-cut-popover{display:none}
     .mobile-bottom{display:none}
     .mobile-only{display:none!important}
     .mobile-file-menu,.mobile-info-menu,.export-menu{position:absolute;top:50px;z-index:30;display:none;gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
@@ -270,7 +279,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.29</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.30</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -484,7 +493,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.29';
+  const APP_VERSION = 'v1.30';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -3236,7 +3245,7 @@
 
   function canvasCropProps(){
     const c = state.canvasCrop;
-    return `<div class="prop-card">${cropInputs('canvas', c)}
+    return `<div class="prop-card desktop-compact-card">${cropInputs('canvas', c)}
       <div class="mini-grid">
         <button class="mini-btn" id="resetCanvasCrop">重置</button>
         <button class="mini-btn" id="autoWhiteCanvas">去白边</button>
@@ -3248,7 +3257,7 @@
     let idx = state.selected?.type==='image' ? state.selected.index : 0;
     idx = clamp(idx, 0, state.images.length-1);
     const im = state.images[idx];
-    return `<div class="prop-card">${cropInputs('image', im.crop)}
+    return `<div class="prop-card desktop-compact-card">${cropInputs('image', im.crop)}
       <div class="mini-grid">
         <button class="mini-btn" id="resetImageCrop">重置当前</button>
         <button class="mini-btn" id="copyCropNext">复制到下一张</button>
@@ -3288,29 +3297,32 @@
     const s = state.cutSettings;
     ensureCutLines(false);
     const custom = (state.cutCropRatio || '1:1') === 'custom';
-    return `<div class="prop-card">
-      <div class="row"><label>分割</label><span></span></div>
-      <div class="row"><label>行</label><input type="number" data-cut="rows" min="1" max="12" value="${s.rows}"></div>
-      <div class="row"><label>列</label><input type="number" data-cut="cols" min="1" max="12" value="${s.cols}"></div>
-      <div class="mini-grid">
-        <button class="mini-btn primary" id="finishCutBtn">ok</button>
+    return `<div class="prop-card desktop-compact-card">
+      <div class="compact-row">
+        <strong>分割</strong>
+        <label class="compact-field">行 <input type="number" data-cut="rows" min="1" max="12" value="${s.rows}"></label>
+        <label class="compact-field">列 <input type="number" data-cut="cols" min="1" max="12" value="${s.cols}"></label>
+        <span class="compact-actions"><button class="mini-btn primary" id="finishCutBtn">ok</button></span>
       </div>
-      <div class="row"><label>裁剪</label><select id="cropRatioSelectDesktop">
-        ${cropRatioOptions(state.cutCropRatio || '1:1')}
-      </select></div>
-      ${custom ? `<div class="row"><label>自定义</label><input id="customRatioInputDesktop" value="${escapeHtml(state.customCropRatio || '1:3')}" placeholder="1:3"></div>` : ''}
-      <div class="mini-grid">
+      <div class="compact-row">
+        <strong>裁剪</strong>
         <button class="mini-btn" id="freeCropBtn">自由</button>
-        <button class="mini-btn primary" id="applyCropRatioBtn">ok</button>
+        <label class="compact-field"><select id="cropRatioSelectDesktop">${cropRatioOptions(state.cutCropRatio || '1:1')}</select></label>
+        ${custom ? `<label class="compact-field"><input id="customRatioInputDesktop" value="${escapeHtml(state.customCropRatio || '1:3')}" placeholder="1:3"></label>` : ''}
+        <span class="compact-actions"><button class="mini-btn primary" id="applyCropRatioBtn">ok</button></span>
       </div>
     </div>`;
   }
 
   function cropInputs(prefix, c){
-    return `<div class="row"><label>顶部</label><input type="number" min="0" data-crop="${prefix}.top" value="${c.top}"></div>
-      <div class="row"><label>底部</label><input type="number" min="0" data-crop="${prefix}.bottom" value="${c.bottom}"></div>
-      <div class="row"><label>左侧</label><input type="number" min="0" data-crop="${prefix}.left" value="${c.left}"></div>
-      <div class="row"><label>右侧</label><input type="number" min="0" data-crop="${prefix}.right" value="${c.right}"></div>`;
+    return `<div class="compact-row">
+        <label class="compact-field">上 <input type="number" min="0" data-crop="${prefix}.top" value="${c.top}"></label>
+        <label class="compact-field">下 <input type="number" min="0" data-crop="${prefix}.bottom" value="${c.bottom}"></label>
+      </div>
+      <div class="compact-row">
+        <label class="compact-field">左 <input type="number" min="0" data-crop="${prefix}.left" value="${c.left}"></label>
+        <label class="compact-field">右 <input type="number" min="0" data-crop="${prefix}.right" value="${c.right}"></label>
+      </div>`;
   }
 
   function bindPropEvents(){
