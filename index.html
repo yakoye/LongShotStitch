@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.21 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.22 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -98,9 +98,12 @@
     .mobile-title{display:none}
     .mobile-bottom{display:none}
     .mobile-only{display:none!important}
-    .mobile-more-menu{position:absolute;right:10px;top:50px;z-index:30;display:none;grid-template-columns:repeat(3,42px);gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
+    .mobile-more-menu{position:absolute;right:10px;top:50px;z-index:30;display:none;grid-template-columns:repeat(4,50px);gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
     .mobile-more-menu.show{display:grid}
-    .mobile-more-menu .mini-btn{width:42px;height:36px;padding:0;font-size:14px}
+    .mobile-more-menu .mini-btn{width:50px;height:36px;padding:0;font-size:12px}
+    .mobile-open-options{display:none;grid-column:1/-1;grid-template-columns:1fr 1fr;gap:6px}
+    .mobile-more-menu.opening .mobile-open-options{display:grid}
+    .mobile-open-options .mini-btn{width:auto}
     .format-select{height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 8px;color:#111827;font-weight:700;box-shadow:0 1px 2px rgba(15,23,42,.04)}
     .toast{position:fixed;right:20px;bottom:20px;z-index:50;background:#111827;color:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);font-size:13px;opacity:0;transform:translateY(10px);pointer-events:none;transition:.22s}
     .toast.show{opacity:1;transform:translateY(0)}
@@ -229,7 +232,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.21</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.22</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -276,15 +279,18 @@
     </div>
   </header>
   <div class="mobile-more-menu" id="mobileMoreMenu">
-    <button class="mini-btn" data-mobile-action="auto">⚡</button>
-    <button class="mini-btn" data-mobile-action="openImage">📁</button>
-    <button class="mini-btn" data-mobile-action="paste">📋</button>
+    <button class="mini-btn" data-mobile-action="openGroup">打开</button>
+    <button class="mini-btn" data-mobile-action="paste">粘贴</button>
+    <button class="mini-btn" data-mobile-action="save">保存</button>
+    <button class="mini-btn" data-mobile-action="about">关于</button>
+    <div class="mobile-open-options">
+      <button class="mini-btn" data-mobile-action="openImage">图片</button>
+      <button class="mini-btn" data-mobile-action="openProject">工程</button>
+    </div>
+    <button class="mini-btn" data-mobile-action="auto">自动</button>
     <button class="mini-btn" data-mobile-action="undo">↶</button>
     <button class="mini-btn" data-mobile-action="redo">↷</button>
     <button class="mini-btn" data-mobile-action="clear">×</button>
-    <button class="mini-btn" data-mobile-action="save">💾</button>
-    <button class="mini-btn" data-mobile-action="openProject">📂</button>
-    <button class="mini-btn" data-mobile-action="about">i</button>
   </div>
 
   <aside class="sidebar">
@@ -370,7 +376,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.21';
+  const APP_VERSION = 'v1.22';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -397,6 +403,7 @@
     toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:14, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
     mobileToolPopoverOpen: false,
     mobileMoreOpen: false,
+    mobileOpenGroupOpen: false,
     splitDraft: null,
     splitDraftManual: false,
     subtitleRegion: { heightRatio: 0.22, yRatio: 0.76 },
@@ -860,6 +867,11 @@
     };
   }
 
+  function visibleWorldCenter(){
+    const r = visibleWorldRect();
+    return {x:r.x + r.w / 2, y:r.y + r.h / 2};
+  }
+
   function clampPanToLayout(layout){
     if(!layout) return;
     const rect = stageWrap.getBoundingClientRect();
@@ -1184,28 +1196,27 @@
   }
 
   function drawSubtitleRegion(c, layout){
+    const item = selectedLayoutItem(layout);
+    if(!item) return;
     c.save();
     c.strokeStyle = '#2f80ed';
     c.fillStyle = 'rgba(47,128,237,.12)';
     c.lineWidth = 2 / state.zoom;
     c.setLineDash([8 / state.zoom, 6 / state.zoom]);
-    for(const item of layout.items){
-      const im = state.images[item.index];
-      const r = subtitleSourceRect(im);
-      const y = item.dy + (r.y - item.sy) * item.scale;
-      const h = r.h * item.scale;
-      const yy = clamp(y, item.dy, item.dy + item.dh);
-      const hh = clamp(h, 1 / state.zoom, Math.max(1 / state.zoom, item.dy + item.dh - yy));
-      c.fillRect(item.dx, yy, item.dw, hh);
-      c.strokeRect(item.dx, yy, item.dw, hh);
-    }
+    const im = state.images[item.index];
+    const r = subtitleSourceRect(im);
+    const y = item.dy + (r.y - item.sy) * item.scale;
+    const h = r.h * item.scale;
+    const yy = clamp(y, item.dy, item.dy + item.dh);
+    const hh = clamp(h, 1 / state.zoom, Math.max(1 / state.zoom, item.dy + item.dh - yy));
+    c.fillRect(item.dx, yy, item.dw, hh);
+    c.strokeRect(item.dx, yy, item.dw, hh);
     c.setLineDash([]);
     c.restore();
   }
 
   function drawCutGuides(c, layout){
-    const idx = selectedImageIndex();
-    const item = layout.items.find(v => v.index === idx);
+    const item = selectedLayoutItem(layout);
     if(!item) return;
     const lines = ensureCutLines(false);
     c.save();
@@ -2863,7 +2874,7 @@
     if(!state.images.length){ props.innerHTML = ''; renderToolDock(); return; }
     const mode = state.mode;
     let html = '';
-    if(mode !== 'tools' && mode !== 'divider') html += imageListCard();
+    if(shouldShowImageList(mode)) html += imageListCard();
     if(mode === 'seam') html += seamProps();
     if(mode === 'canvasCrop') html += canvasCropProps();
     if(mode === 'imageCrop') html += imageCropProps();
@@ -2874,6 +2885,10 @@
     props.innerHTML = html;
     bindPropEvents();
     renderToolDock();
+  }
+
+  function shouldShowImageList(mode){
+    return mode !== 'tools' && mode !== 'divider' && !(isMobileLayout() && (mode === 'subtitle' || mode === 'cut'));
   }
 
   function imageListCard(){
@@ -3076,6 +3091,18 @@
 
   function escapeHtml(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
   function selectedImageIndex(){ return clamp(state.selected?.type==='image' ? state.selected.index : 0, 0, state.images.length-1); }
+  function selectedLayoutItem(layout){
+    const idx = selectedImageIndex();
+    return layout.items.find(v => v.index === idx) || layout.items[0] || null;
+  }
+  function selectImageForRegionMode(){
+    if(!state.images.length) return;
+    if(state.selected?.type === 'image' && state.images[state.selected.index]) return;
+    const layout = computeLayout(true);
+    const center = visibleWorldCenter();
+    const hit = layout.imageBounds.find(b => center.x >= b.x && center.x <= b.x + b.w && center.y >= b.y && center.y <= b.y + b.h);
+    state.selected = {type:'image', index: hit ? hit.index : 0};
+  }
   function selectedSeamIndex(){ return state.selected?.type==='seam' ? state.selected.index : (state.seams.length?0:-1); }
   function selectedDividerIndex(){ return state.selected?.type==='divider' ? state.selected.index : (state.seams.length?0:-1); }
 
@@ -3138,6 +3165,7 @@
   function renderMobileMoreMenu(){
     if(!mobileMoreMenu) return;
     mobileMoreMenu.classList.toggle('show', !!state.mobileMoreOpen && isMobileLayout());
+    mobileMoreMenu.classList.toggle('opening', !!state.mobileOpenGroupOpen && isMobileLayout());
     mobileMoreMenu.querySelector('[data-mobile-action="auto"]')?.classList.toggle('active', !!state.autoStitchEnabled);
     $('#mobileVerticalBtn')?.classList.toggle('blue', state.orientation === 'vertical');
     $('#mobileHorizontalBtn')?.classList.toggle('blue', state.orientation === 'horizontal');
@@ -3146,6 +3174,7 @@
   function setMode(m){
     if(state.mode !== m){
       state.mobileMoreOpen = false;
+      state.mobileOpenGroupOpen = false;
       state.mobileToolPopoverOpen = false;
       hideToolPopover();
     }
@@ -3155,7 +3184,7 @@
     if(m === 'canvasCrop') state.selected = {type:'canvasCrop'};
     if(m === 'seam' && state.seams.length) state.selected = state.selected?.type === 'seam' ? state.selected : {type:'seam', index:0};
     if(m === 'imageCrop' && state.images.length) state.selected = state.selected?.type === 'image' ? state.selected : {type:'image', index:0};
-    if((m === 'subtitle' || m === 'cut') && state.images.length && state.selected?.type !== 'image') state.selected = {type:'image', index:0};
+    if((m === 'subtitle' || m === 'cut') && state.images.length) selectImageForRegionMode();
     if(m === 'cut') ensureCutLines(false);
     if(m === 'divider'){
       state.splitDraftManual = false;
@@ -3665,11 +3694,17 @@
   $('#mobileVerticalBtn')?.addEventListener('click', () => setOrientation('vertical'));
   $('#mobileHorizontalBtn')?.addEventListener('click', () => setOrientation('horizontal'));
   $('#autoStitchBtn')?.addEventListener('click', toggleAutoStitch);
-  $('#mobileMoreBtn')?.addEventListener('click', e => { e.stopPropagation(); state.mobileMoreOpen = !state.mobileMoreOpen; renderMobileMoreMenu(); });
+  $('#mobileMoreBtn')?.addEventListener('click', e => { e.stopPropagation(); state.mobileMoreOpen = !state.mobileMoreOpen; if(!state.mobileMoreOpen) state.mobileOpenGroupOpen = false; renderMobileMoreMenu(); });
   mobileMoreMenu?.querySelectorAll('[data-mobile-action]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
     const action = btn.dataset.mobileAction;
+    if(action === 'openGroup'){
+      state.mobileOpenGroupOpen = !state.mobileOpenGroupOpen;
+      renderMobileMoreMenu();
+      return;
+    }
     state.mobileMoreOpen = false;
+    state.mobileOpenGroupOpen = false;
     if(action === 'auto') toggleAutoStitch();
     if(action === 'openImage') $('#fileInput').click();
     if(action === 'paste') addClipboardImages();

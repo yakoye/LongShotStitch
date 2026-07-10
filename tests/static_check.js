@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.21',
+  'LongShotStitch v1.22',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -14,6 +14,9 @@ const required = [
   'subtitleRegion',
   'generateSubtitleStitch',
   'drawSubtitleRegion',
+  'selectedLayoutItem',
+  'selectImageForRegionMode',
+  'shouldShowImageList',
   'cutSettings',
   'cutLines',
   'ensureCutLines',
@@ -37,8 +40,10 @@ const required = [
   'sourceHeight',
   'exportMode ? im.img : (im.previewImg || im.img)',
   'data-mobile-action="about"',
+  'data-mobile-action="openGroup"',
+  'mobile-open-options',
   'showAbout',
-  'LongShotStitch v1.21',
+  'LongShotStitch v1.22',
   'mobileVerticalBtn',
   'mobileHorizontalBtn',
   'data-mobile-action="openImage"',
