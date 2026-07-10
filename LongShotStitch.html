@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.32 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.33 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -279,7 +279,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.32</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.33</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -493,7 +493,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.32';
+  const APP_VERSION = 'v1.33';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -544,6 +544,7 @@
   let layoutCache = null;
   let drag = null;
   let navDrag = null;
+  let canvasCropCommitBusy = false;
   const activePointers = new Map();
   let pinchState = null;
   let inlineTextIndex = -1;
@@ -2820,6 +2821,10 @@
   function handleHitDown(h, w, e){
     if(h.type === 'activeDone'){
       const finishedActive = state.activeHandle ? {...state.activeHandle} : null;
+      if(finishedActive?.kind === 'canvasCrop'){
+        commitCanvasCrop();
+        return;
+      }
       if(state.mode === 'divider' && finishedActive?.kind === 'seamCenter'){
         // 完成接缝编辑后，分割线应停在当前接缝原位置。
         // 之后由 drawDividerOverlay 判断：仍在可视范围就保持；离开可视范围才自动回到屏幕中心。
@@ -3810,6 +3815,10 @@
   }
 
   function setMode(m, opts={}){
+    if(!canvasCropCommitBusy && state.mode === 'canvasCrop' && m !== 'canvasCrop' && hasCanvasCrop()){
+      commitCanvasCrop(m, opts);
+      return;
+    }
     if(state.mode !== m){
       state.mobileFileOpen = false;
       state.exportMenuOpen = false;
@@ -3928,6 +3937,79 @@
     const record = makeImageRecord({name, dataUrl, fileSize: dataUrl.length, img});
     if(record.useProxy) schedulePreviewProxy(record);
     return record;
+  }
+
+  function normalizedCanvasCrop(full){
+    const cc = state.canvasCrop || {top:0,right:0,bottom:0,left:0};
+    const fullWidth = Math.max(1, Math.round(full?.fullWidth || full?.width || 1));
+    const fullHeight = Math.max(1, Math.round(full?.fullHeight || full?.height || 1));
+    const left = clamp(Math.round(cc.left || 0), 0, fullWidth - 1);
+    const top = clamp(Math.round(cc.top || 0), 0, fullHeight - 1);
+    const right = clamp(Math.round(cc.right || 0), 0, fullWidth - left - 1);
+    const bottom = clamp(Math.round(cc.bottom || 0), 0, fullHeight - top - 1);
+    return {left, top, right, bottom};
+  }
+
+  function hasCanvasCrop(){
+    const c = state.canvasCrop || {};
+    return ['top','right','bottom','left'].some(k => Math.round(+c[k] || 0) > 0);
+  }
+
+  async function commitCanvasCrop(nextMode=null, nextOpts={}){
+    if(canvasCropCommitBusy) return false;
+    const full = computeLayout(true);
+    const crop = normalizedCanvasCrop(full);
+    const needsCommit = crop.top || crop.right || crop.bottom || crop.left;
+    state.activeHandle = null;
+    if(!needsCommit){
+      if(nextMode && nextMode !== state.mode) setMode(nextMode, nextOpts);
+      else { renderProps(); requestRender(); }
+      return false;
+    }
+
+    const width = Math.max(1, Math.round(full.fullWidth - crop.left - crop.right));
+    const height = Math.max(1, Math.round(full.fullHeight - crop.top - crop.bottom));
+    const maxSide = 32760;
+    if(width > maxSide || height > maxSide){
+      toast('裁剪后尺寸过大，建议分批处理');
+      renderProps(); requestRender();
+      return false;
+    }
+
+    canvasCropCommitBusy = true;
+    try{
+      const out = document.createElement('canvas');
+      out.width = width;
+      out.height = height;
+      const oc = out.getContext('2d');
+      oc.fillStyle = '#fff'; oc.fillRect(0,0,out.width,out.height);
+      oc.save();
+      oc.translate(-crop.left, -crop.top);
+      drawComposition(oc, full, true, true);
+      oc.restore();
+
+      const base = state.images.length === 1 ? imageBaseName(state.images[0].name) : 'longshot';
+      const record = await canvasToImageRecord(out, `${base}_crop.png`);
+      state.images = [record];
+      state.seams = [];
+      state.annotations = [];
+      state.canvasCrop = {top:0,right:0,bottom:0,left:0};
+      state.splitDraft = null;
+      state.splitDraftManual = false;
+      state.cutLines = {imageId:null, rows:state.cutSettings.rows, cols:state.cutSettings.cols, x:[], y:[]};
+      state.selected = {type:'canvasCrop'};
+      state.mode = 'canvasCrop';
+      state.exportQualityAuto = true;
+      syncSeams(true);
+      fitToView(false);
+      toast('整体裁剪已锁定');
+    } finally {
+      canvasCropCommitBusy = false;
+    }
+
+    if(nextMode && nextMode !== 'canvasCrop') setMode(nextMode, nextOpts);
+    else { updateModeButtons(); renderProps(); requestRender(); }
+    return true;
   }
 
   async function generateSubtitleStitch(){

@@ -42,4 +42,8 @@ if (!html.includes("'canvasCrop','imageCrop'")) {
   throw new Error('viewport freeze must cover live canvas/image crop drags');
 }
 
+if (!html.includes('commitCanvasCrop') || !html.includes("finishedActive?.kind === 'canvasCrop'")) {
+  throw new Error('canvas crop done must commit the cropped result before the next tool uses it');
+}
+
 console.log('drag_math_check ok');
