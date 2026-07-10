@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.22 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.23 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -98,18 +98,17 @@
     .mobile-title{display:none}
     .mobile-bottom{display:none}
     .mobile-only{display:none!important}
-    .mobile-more-menu{position:absolute;right:10px;top:50px;z-index:30;display:none;grid-template-columns:repeat(4,50px);gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
-    .mobile-more-menu.show{display:grid}
-    .mobile-more-menu .mini-btn{width:50px;height:36px;padding:0;font-size:12px}
-    .mobile-open-options{display:none;grid-column:1/-1;grid-template-columns:1fr 1fr;gap:6px}
-    .mobile-more-menu.opening .mobile-open-options{display:grid}
-    .mobile-open-options .mini-btn{width:auto}
+    .mobile-file-menu,.export-menu{position:absolute;top:50px;z-index:30;display:none;gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
+    .mobile-file-menu{left:48px;grid-template-columns:1fr;min-width:116px}
+    .export-menu{right:10px;min-width:190px}
+    .mobile-file-menu.show,.export-menu.show{display:grid}
+    .mobile-file-menu .mini-btn,.export-menu .mini-btn{height:36px;padding:0 10px;font-size:12px}
+    .export-row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;font-size:12px;color:#64748b}
+    .export-row select,.export-row input{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 8px;color:#111827}
+    .export-quality-value{font-size:12px;color:#111827;text-align:right;font-weight:750}
     .format-select{height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 8px;color:#111827;font-weight:700;box-shadow:0 1px 2px rgba(15,23,42,.04)}
     .toast{position:fixed;right:20px;bottom:20px;z-index:50;background:#111827;color:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);font-size:13px;opacity:0;transform:translateY(10px);pointer-events:none;transition:.22s}
     .toast.show{opacity:1;transform:translateY(0)}
-    .preview-badge{position:absolute;top:12px;right:12px;border-radius:999px;background:#111827;color:#fff;padding:7px 12px;font-size:12px;font-weight:700;display:none;z-index:4}
-    .preview .preview-badge{display:block}
-    .preview .stage{background:#e5e7eb}
     .divider-line{height:1px;background:var(--line);margin:10px 0}
     .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#f3f4f6;border:1px solid #e5e7eb;border-bottom-width:2px;border-radius:6px;padding:1px 5px;color:#374151}
 
@@ -202,12 +201,16 @@
     @media (max-width: 760px){
       :root{--topbar:56px}
       .app{display:block;height:100vh;overflow:hidden;background:#f3f5f8}
-      .topbar{position:absolute;left:0;top:0;right:0;height:var(--topbar);padding:8px 10px;justify-content:space-between}
+      .topbar{position:absolute;left:0;top:0;right:0;height:var(--topbar);padding:8px 6px;justify-content:space-between}
       .brand,.toolbar-group .text-label,.desktop-only,.toolbar-group:first-of-type,.toolbar-group:nth-of-type(2),.toolbar-group:nth-of-type(3){display:none!important}
+      .spacer{display:none}
       .mobile-only{display:inline-flex!important}
-      .toolbar-group{border-left:0;padding:0;gap:6px}
-      .tool-btn,.file-label{height:38px;width:42px;padding:0;justify-content:center;border-radius:12px}
-      .format-select{height:38px;width:58px;padding:0 3px;border-radius:12px;font-size:12px}
+      .toolbar-group{border-left:0;padding:0;gap:4px}
+      .tool-btn,.file-label{height:38px;width:38px;padding:0;justify-content:center;border-radius:12px}
+      .format-select{display:none}
+      .mobile-main-actions{width:100%;justify-content:space-between}
+      .mobile-file-menu{left:44px;top:48px}
+      .export-menu{right:6px;top:48px}
       .mobile-title{display:none!important}
       .sidebar{display:none}
       .app[data-mode="subtitle"] .sidebar,.app[data-mode="cut"] .sidebar{display:block;position:absolute;left:8px;right:8px;bottom:calc(var(--mobilebar) + 8px);z-index:14;border:1px solid rgba(203,213,225,.94);border-radius:13px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.18);overflow:hidden}
@@ -232,7 +235,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.22</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.23</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -263,34 +266,39 @@
 
     <div class="spacer"></div>
 
-    <div class="toolbar-group">
+    <div class="toolbar-group mobile-main-actions">
+      <button class="tool-btn mobile-only danger" id="mobileClearBtn" title="清空" aria-label="清空">×</button>
+      <button class="tool-btn mobile-only" id="mobileFileBtn" title="文件" aria-label="文件">📁</button>
+      <button class="tool-btn mobile-only" id="mobileAutoBtn" title="自动拼接" aria-label="自动拼接">⚡</button>
+      <button class="tool-btn mobile-only" id="mobileDirectionBtn" title="切换方向" aria-label="切换方向">↕</button>
+      <button class="tool-btn mobile-only" id="mobileUndoBtn" title="撤销" aria-label="撤销">↶</button>
+      <button class="tool-btn mobile-only" id="mobileRedoBtn" title="重做" aria-label="重做">↷</button>
       <button class="tool-btn" id="fitBtn" title="适合窗口" aria-label="适合窗口"><span>⛶</span></button>
-      <button class="tool-btn mobile-only" id="mobileVerticalBtn" title="纵向拼接" aria-label="纵向拼接">↕</button>
-      <button class="tool-btn mobile-only" id="mobileHorizontalBtn" title="横向拼接" aria-label="横向拼接">↔</button>
-      <button class="tool-btn" id="previewBtn" title="预览" aria-label="预览"><span>👁</span></button>
-      <select class="format-select" id="exportFormatSelect" title="导出格式" aria-label="导出格式">
+      <button class="tool-btn primary" id="exportBtn" title="导出" aria-label="导出"><span>⬆</span></button>
+    </div>
+  </header>
+  <div class="mobile-file-menu" id="mobileFileMenu">
+    <button class="mini-btn" data-mobile-file="openImage">打开图片</button>
+    <button class="mini-btn" data-mobile-file="openProject">打开工程</button>
+    <button class="mini-btn" data-mobile-file="saveProject">保存工程</button>
+    <button class="mini-btn" data-mobile-file="about">关于版本</button>
+  </div>
+  <div class="export-menu" id="exportMenu">
+    <label class="export-row">
+      <span>格式</span>
+      <select id="exportFormatSelect" title="导出格式" aria-label="导出格式">
         <option value="png" selected>PNG</option>
         <option value="jpeg">JPEG</option>
         <option value="webp">WEBP</option>
         <option value="svg">SVG</option>
       </select>
-      <button class="tool-btn primary" id="exportBtn" title="导出" aria-label="导出"><span>⬆</span></button>
-      <button class="tool-btn mobile-only" id="mobileMoreBtn" title="更多">⋯</button>
-    </div>
-  </header>
-  <div class="mobile-more-menu" id="mobileMoreMenu">
-    <button class="mini-btn" data-mobile-action="openGroup">打开</button>
-    <button class="mini-btn" data-mobile-action="paste">粘贴</button>
-    <button class="mini-btn" data-mobile-action="save">保存</button>
-    <button class="mini-btn" data-mobile-action="about">关于</button>
-    <div class="mobile-open-options">
-      <button class="mini-btn" data-mobile-action="openImage">图片</button>
-      <button class="mini-btn" data-mobile-action="openProject">工程</button>
-    </div>
-    <button class="mini-btn" data-mobile-action="auto">自动</button>
-    <button class="mini-btn" data-mobile-action="undo">↶</button>
-    <button class="mini-btn" data-mobile-action="redo">↷</button>
-    <button class="mini-btn" data-mobile-action="clear">×</button>
+    </label>
+    <label class="export-row">
+      <span>质量</span>
+      <input id="exportQuality" type="range" min="50" max="100" step="1" value="92" aria-label="导出质量">
+    </label>
+    <div class="export-quality-value" id="exportQualityValue">92%</div>
+    <button class="mini-btn primary" id="exportDirectBtn">直接导出</button>
   </div>
 
   <aside class="sidebar">
@@ -322,7 +330,6 @@
         <p>也可以直接拖入图片 / 工程文件，或粘贴剪贴板图片。</p>
         <p>方向键可微调当前选中内容。</p>
       </div>
-      <div class="preview-badge">预览模式</div>
       <div class="statusbar" id="statusbar">Ready</div>
       <div class="floating-toolkit" id="toolDock" aria-label="工具栏"></div>
       <div class="tool-popover" id="toolPopover"></div>
@@ -365,7 +372,8 @@
   const statusbar = $('#statusbar');
   const toastEl = $('#toast');
   const app = $('#app');
-  const mobileMoreMenu = $('#mobileMoreMenu');
+  const mobileFileMenu = $('#mobileFileMenu');
+  const exportMenu = $('#exportMenu');
   const toolDock = $('#toolDock');
   const toolPopover = $('#toolPopover');
   const inlineTextEditor = $('#inlineTextEditor');
@@ -376,7 +384,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.22';
+  const APP_VERSION = 'v1.23';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -402,14 +410,15 @@
     toolArmed: null,
     toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:14, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
     mobileToolPopoverOpen: false,
-    mobileMoreOpen: false,
-    mobileOpenGroupOpen: false,
+    mobileFileOpen: false,
+    exportMenuOpen: false,
     splitDraft: null,
     splitDraftManual: false,
     subtitleRegion: { heightRatio: 0.22, yRatio: 0.76 },
     cutSettings: { mode: 'cols', rows: 3, cols: 3 },
     cutLines: { imageId: null, rows: 3, cols: 3, x: [], y: [] },
-    exportFormat: 'png'
+    exportFormat: 'png',
+    exportQuality: 0.92
   };
 
   let history = [];
@@ -455,7 +464,8 @@
       subtitleRegion: {...state.subtitleRegion},
       cutSettings: {...state.cutSettings},
       cutLines: state.cutLines ? {imageId:state.cutLines.imageId, rows:state.cutLines.rows, cols:state.cutLines.cols, x:[...(state.cutLines.x||[])], y:[...(state.cutLines.y||[])]} : null,
-      exportFormat: state.exportFormat || 'png'
+      exportFormat: state.exportFormat || 'png',
+      exportQuality: state.exportQuality || 0.92
     });
   }
 
@@ -487,6 +497,7 @@
     state.cutSettings = data.cutSettings || {mode:'cols',rows:3,cols:3};
     state.cutLines = data.cutLines || {imageId:null,rows:3,cols:3,x:[],y:[]};
     state.exportFormat = data.exportFormat || state.exportFormat || 'png';
+    state.exportQuality = clamp(Number(data.exportQuality || state.exportQuality || 0.92), 0.5, 1);
     state.activeHandle = null;
     const imgs = [];
     for(const raw of data.images || []){
@@ -881,6 +892,17 @@
     else state.pan.x = clamp(state.pan.x, minX, 0);
     if(layout.fullHeight * state.zoom <= rect.height) state.pan.y = (rect.height - layout.fullHeight * state.zoom) / 2;
     else state.pan.y = clamp(state.pan.y, minY, 0);
+    lockMobilePanAxis(layout);
+  }
+
+  function lockMobilePanAxis(layout){
+    if(!isMobileLayout() || !layout || !state.images.length) return;
+    const rect = stageWrap.getBoundingClientRect();
+    if(state.orientation === 'vertical'){
+      state.pan.x = (rect.width - layout.fullWidth * state.zoom) / 2;
+    } else {
+      state.pan.y = (rect.height - layout.fullHeight * state.zoom) / 2;
+    }
   }
 
   function setViewportCenter(wx, wy){
@@ -2484,10 +2506,18 @@
     if(!state.images.length){ state.zoom = 1; state.pan = {x:0,y:0}; requestRender(); return; }
     if(isMobileLayout()){
       const pad = 18;
-      const z = (rect.width - pad) / Math.max(1, layout.fullWidth);
+      const z = state.orientation === 'vertical'
+        ? (rect.width - pad) / Math.max(1, layout.fullWidth)
+        : (rect.height - pad) / Math.max(1, layout.fullHeight);
       state.zoom = clamp(isFinite(z) ? z : 1, 0.03, 8);
-      state.pan.x = (rect.width - layout.fullWidth * state.zoom) / 2;
-      state.pan.y = 10;
+      if(state.orientation === 'vertical'){
+        state.pan.x = (rect.width - layout.fullWidth * state.zoom) / 2;
+        state.pan.y = 10;
+      } else {
+        state.pan.x = 10;
+        state.pan.y = (rect.height - layout.fullHeight * state.zoom) / 2;
+      }
+      lockMobilePanAxis(layout);
     } else {
       const pad = 64;
       const z = Math.min((rect.width-pad)/layout.fullWidth, (rect.height-pad)/layout.fullHeight);
@@ -2666,6 +2696,10 @@
     if(drag.type === 'pan'){
       state.pan.x = drag.pan.x + (p.x - drag.startX);
       state.pan.y = drag.pan.y + (p.y - drag.startY);
+      if(isMobileLayout()){
+        if(state.orientation === 'vertical') state.pan.x = drag.pan.x;
+        else state.pan.y = drag.pan.y;
+      }
       requestRender(); return;
     }
     if(drag.type === 'splitDraft'){
@@ -3155,26 +3189,51 @@
     $('#verticalBtn')?.classList.toggle('active', state.orientation === 'vertical');
     $('#horizontalBtn')?.classList.toggle('active', state.orientation === 'horizontal');
     $('#autoStitchBtn')?.classList.toggle('active', !!state.autoStitchEnabled);
-    $('#previewBtn')?.classList.toggle('blue', state.preview);
+    $('#mobileAutoBtn')?.classList.toggle('blue', !!state.autoStitchEnabled);
+    const mobileDirectionBtn = $('#mobileDirectionBtn');
+    if(mobileDirectionBtn){
+      const nextHorizontal = state.orientation === 'vertical';
+      mobileDirectionBtn.textContent = nextHorizontal ? '↔' : '↕';
+      mobileDirectionBtn.title = nextHorizontal ? '切到横向' : '切到纵向';
+      mobileDirectionBtn.setAttribute('aria-label', mobileDirectionBtn.title);
+    }
     const exportFormatSelect = $('#exportFormatSelect');
     if(exportFormatSelect && exportFormatSelect.value !== (state.exportFormat || 'png')) exportFormatSelect.value = state.exportFormat || 'png';
-    renderMobileMoreMenu();
+    const exportQuality = $('#exportQuality');
+    const q = Math.round(clamp(state.exportQuality || 0.92, 0.5, 1) * 100);
+    if(exportQuality && exportQuality.value !== String(q)) exportQuality.value = String(q);
+    const exportQualityValue = $('#exportQualityValue');
+    if(exportQualityValue) exportQualityValue.textContent = `${q}%`;
+    renderMobileFileMenu();
+    renderExportMenu();
     updateUndoRedo();
   }
 
-  function renderMobileMoreMenu(){
-    if(!mobileMoreMenu) return;
-    mobileMoreMenu.classList.toggle('show', !!state.mobileMoreOpen && isMobileLayout());
-    mobileMoreMenu.classList.toggle('opening', !!state.mobileOpenGroupOpen && isMobileLayout());
-    mobileMoreMenu.querySelector('[data-mobile-action="auto"]')?.classList.toggle('active', !!state.autoStitchEnabled);
-    $('#mobileVerticalBtn')?.classList.toggle('blue', state.orientation === 'vertical');
-    $('#mobileHorizontalBtn')?.classList.toggle('blue', state.orientation === 'horizontal');
+  function renderMobileFileMenu(){
+    if(!mobileFileMenu) return;
+    mobileFileMenu.classList.toggle('show', !!state.mobileFileOpen && isMobileLayout());
+  }
+
+  function renderExportMenu(){
+    if(!exportMenu) return;
+    exportMenu.classList.toggle('show', !!state.exportMenuOpen);
+  }
+
+  function closeTopMenus(){
+    state.mobileFileOpen = false;
+    state.exportMenuOpen = false;
+    renderMobileFileMenu();
+    renderExportMenu();
+  }
+
+  function toggleOrientation(){
+    setOrientation(state.orientation === 'vertical' ? 'horizontal' : 'vertical');
   }
 
   function setMode(m){
     if(state.mode !== m){
-      state.mobileMoreOpen = false;
-      state.mobileOpenGroupOpen = false;
+      state.mobileFileOpen = false;
+      state.exportMenuOpen = false;
       state.mobileToolPopoverOpen = false;
       hideToolPopover();
     }
@@ -3201,7 +3260,7 @@
       state.mobileToolPopoverOpen = false;
       closeInlineTextEditor(true);
     }
-    updateModeButtons(); renderProps(); requestRender();
+    updateModeButtons(); updateToolbarButtons(); renderProps(); requestRender();
   }
 
   function exportMeta(){
@@ -3239,7 +3298,8 @@
     setTimeout(() => {
       const a = document.createElement('a');
       a.download = `${cleanBase}.${meta.ext}`;
-      a.href = canvasEl.toDataURL(meta.mime, meta.format === 'jpeg' ? 0.92 : undefined);
+      const q = ['jpeg','webp'].includes(meta.format) ? clamp(state.exportQuality || 0.92, 0.5, 1) : undefined;
+      a.href = canvasEl.toDataURL(meta.mime, q);
       a.click();
     }, delay);
   }
@@ -3403,6 +3463,18 @@
   function exportCurrent(){
     if(state.mode === 'cut') exportCutImages();
     else exportImage();
+  }
+
+  function openExportSettings(){
+    state.mobileFileOpen = false;
+    state.exportMenuOpen = !state.exportMenuOpen;
+    updateToolbarButtons();
+  }
+
+  function directExportCurrent(){
+    state.exportMenuOpen = false;
+    renderExportMenu();
+    exportCurrent();
   }
 
   function saveProject(){
@@ -3682,39 +3754,32 @@
   $('#projectInput').addEventListener('change', e => { if(e.target.files[0]) openProject(e.target.files[0]); e.target.value=''; });
   $('#pasteBtn').addEventListener('click', addClipboardImages);
   $('#saveProjectBtn').addEventListener('click', saveProject);
-  $('#exportBtn').addEventListener('click', exportCurrent);
+  $('#exportBtn').addEventListener('click', e => { e.stopPropagation(); openExportSettings(); });
   $('#exportFormatSelect')?.addEventListener('change', e => { state.exportFormat = e.target.value || 'png'; updateToolbarButtons(); });
+  $('#exportQuality')?.addEventListener('input', e => { state.exportQuality = clamp(Number(e.target.value || 92) / 100, 0.5, 1); updateToolbarButtons(); });
+  $('#exportDirectBtn')?.addEventListener('click', directExportCurrent);
   $('#fitBtn').addEventListener('click', () => fitToView());
-  $('#previewBtn').addEventListener('click', () => { state.preview=!state.preview; requestRender(); updateToolbarButtons(); renderToolDock(); });
   $('#undoBtn').addEventListener('click', undo);
   $('#redoBtn').addEventListener('click', redo);
   $('#clearBtn').addEventListener('click', clearAll);
   $('#verticalBtn').addEventListener('click', () => setOrientation('vertical'));
   $('#horizontalBtn').addEventListener('click', () => setOrientation('horizontal'));
-  $('#mobileVerticalBtn')?.addEventListener('click', () => setOrientation('vertical'));
-  $('#mobileHorizontalBtn')?.addEventListener('click', () => setOrientation('horizontal'));
+  $('#mobileClearBtn')?.addEventListener('click', clearAll);
+  $('#mobileFileBtn')?.addEventListener('click', e => { e.stopPropagation(); state.exportMenuOpen = false; state.mobileFileOpen = !state.mobileFileOpen; updateToolbarButtons(); });
+  $('#mobileAutoBtn')?.addEventListener('click', toggleAutoStitch);
+  $('#mobileDirectionBtn')?.addEventListener('click', toggleOrientation);
+  $('#mobileUndoBtn')?.addEventListener('click', undo);
+  $('#mobileRedoBtn')?.addEventListener('click', redo);
   $('#autoStitchBtn')?.addEventListener('click', toggleAutoStitch);
-  $('#mobileMoreBtn')?.addEventListener('click', e => { e.stopPropagation(); state.mobileMoreOpen = !state.mobileMoreOpen; if(!state.mobileMoreOpen) state.mobileOpenGroupOpen = false; renderMobileMoreMenu(); });
-  mobileMoreMenu?.querySelectorAll('[data-mobile-action]').forEach(btn => btn.addEventListener('click', e => {
+  mobileFileMenu?.querySelectorAll('[data-mobile-file]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
-    const action = btn.dataset.mobileAction;
-    if(action === 'openGroup'){
-      state.mobileOpenGroupOpen = !state.mobileOpenGroupOpen;
-      renderMobileMoreMenu();
-      return;
-    }
-    state.mobileMoreOpen = false;
-    state.mobileOpenGroupOpen = false;
-    if(action === 'auto') toggleAutoStitch();
+    const action = btn.dataset.mobileFile;
+    state.mobileFileOpen = false;
     if(action === 'openImage') $('#fileInput').click();
-    if(action === 'paste') addClipboardImages();
-    if(action === 'undo') undo();
-    if(action === 'redo') redo();
-    if(action === 'clear') clearAll();
-    if(action === 'save') saveProject();
+    if(action === 'saveProject') saveProject();
     if(action === 'openProject') $('#projectInput').click();
     if(action === 'about') showAbout();
-    renderMobileMoreMenu();
+    renderMobileFileMenu();
   }));
   $$('.mode-btn,.mobile-mode').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
   window.addEventListener('resize', () => renderToolDock());
@@ -3724,6 +3789,10 @@
   document.addEventListener('pointermove', onNavPointerMove);
   document.addEventListener('pointerup', endNavDrag);
   document.addEventListener('pointercancel', endNavDrag);
+  document.addEventListener('pointerdown', e => {
+    if(mobileFileMenu?.contains(e.target) || $('#mobileFileBtn')?.contains(e.target) || exportMenu?.contains(e.target) || $('#exportBtn')?.contains(e.target)) return;
+    if(state.mobileFileOpen || state.exportMenuOpen) closeTopMenus();
+  });
 
   document.addEventListener('paste', async e => {
     const files = [];

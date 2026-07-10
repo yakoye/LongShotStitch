@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.22',
+  'LongShotStitch v1.23',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -27,6 +27,9 @@ const required = [
   'exportCurrent',
   'exportFormatSelect',
   'exportFormat',
+  'exportQuality',
+  'exportMenu',
+  'exportDirectBtn',
   'PROXY_LIMITS',
   'shouldUseProxy',
   'schedulePreviewProxy',
@@ -39,15 +42,20 @@ const required = [
   'sourceWidth',
   'sourceHeight',
   'exportMode ? im.img : (im.previewImg || im.img)',
-  'data-mobile-action="about"',
-  'data-mobile-action="openGroup"',
-  'mobile-open-options',
+  'mobileFileBtn',
+  'mobileAutoBtn',
+  'mobileDirectionBtn',
+  'mobileUndoBtn',
+  'mobileRedoBtn',
+  'mobileClearBtn',
+  'mobile-file-menu',
+  'data-mobile-file="openImage"',
+  'data-mobile-file="openProject"',
+  'data-mobile-file="saveProject"',
+  'toggleOrientation',
   'showAbout',
-  'LongShotStitch v1.22',
-  'mobileVerticalBtn',
-  'mobileHorizontalBtn',
-  'data-mobile-action="openImage"',
-  'data-mobile-action="openProject"',
+  'LongShotStitch v1.23',
+  'lockMobilePanAxis',
   'downloadCanvasImage',
   'canvasToSvgBlob',
   'keepSeamAnchor',
@@ -76,7 +84,7 @@ const required = [
 for (const token of required) {
   if (!html.includes(token)) throw new Error(`missing token: ${token}`);
 }
-for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }", "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\""]) {
+for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }", "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\"", "id=\"previewBtn\"", "id=\"mobileMoreBtn\"", "id=\"mobileVerticalBtn\"", "id=\"mobileHorizontalBtn\"", "data-mobile-action=\"paste\"", "mobile-more-menu"]) {
   if (html.includes(token)) throw new Error(`forbidden token remains: ${token}`);
 }
 console.log('static_check ok');
