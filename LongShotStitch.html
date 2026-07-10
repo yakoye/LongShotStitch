@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.19 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.20 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -229,7 +229,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.19</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.20</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -2447,7 +2447,7 @@
       if(!s) return;
       pushHistory();
       state.selected = {type:'seam', index:h.index};
-      drag = { type: h.type === 'activeDragBefore' ? 'seamBefore' : 'seamAfter', index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index) };
+      drag = { type: h.type === 'activeDragBefore' ? 'seamBefore' : 'seamAfter', index:h.index, start:w, startScreen:getPointer(e), before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index) };
       return;
     }
     if(h.type === 'seamSelect'){ state.activeHandle = null; state.selected = {type:'seam', index:h.index}; renderProps(); requestRender(); return; }
@@ -2518,7 +2518,7 @@
       const s = state.seams[h.index];
       if(!s) return;
       state.selected = {type:'seam', index:h.index};
-      drag = { type:'seamCenter', index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index) };
+      drag = { type:'seamCenter', index:h.index, start:w, startScreen: sp || {x:0,y:0}, before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index) };
       return;
     }
   }
@@ -2679,7 +2679,9 @@
     if(['seamBefore','seamAfter','seamCenter'].includes(drag.type)){
       const s = state.seams[drag.index];
       const vertical = state.orientation === 'vertical';
-      const d = vertical ? Math.round(w.y - drag.start.y) : Math.round(w.x - drag.start.x);
+      const d = vertical
+        ? Math.round((p.y - drag.startScreen.y) / Math.max(0.0001, state.zoom))
+        : Math.round((p.x - drag.startScreen.x) / Math.max(0.0001, state.zoom));
       const a = state.images[drag.index];
       const b = state.images[drag.index+1];
       const maxBefore = vertical ? a.height - a.crop.top - a.crop.bottom - 1 : a.width - a.crop.left - a.crop.right - 1;

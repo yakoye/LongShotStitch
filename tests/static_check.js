@@ -1,9 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const file = path.resolve(__dirname, '..', 'LongShotStitch_v1.19.html');
+const file = path.resolve(__dirname, '..', 'LongShotStitch.html');
 const html = fs.readFileSync(file, 'utf8');
+const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
+if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.19',
+  'LongShotStitch v1.20',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
