@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.35',
+  'LongShotStitch v1.36',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -86,7 +86,7 @@ const required = [
   'data-mobile-file="saveProject"',
   'toggleOrientation',
   'showAbout',
-  'LongShotStitch v1.35',
+  'LongShotStitch v1.36',
   'desktop-compact-card',
   'compact-row',
   'compact-field',
@@ -107,7 +107,9 @@ const required = [
   'customCropRatio',
   'mobileCutPopover',
   'mobileCutPopoverOpen',
+  'state.mobileCutPopoverOpen = same ? !state.mobileCutPopoverOpen : false;',
   'renderMobileCutPopover',
+  "$('#mobileContextBar')?.contains(e.target)",
   'mobile-cut-tool',
   'mobile-cut-popover',
   'mobileSplitControls',

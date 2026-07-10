@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.35 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.36 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -284,7 +284,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.35</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.36</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -503,7 +503,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.35';
+  const APP_VERSION = 'v1.36';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -3628,7 +3628,7 @@
     const same = state.mobileSection === 'cut' && state.mobileCutSubmode === next;
     state.mobileSection = 'cut';
     state.mobileCutSubmode = next;
-    state.mobileCutPopoverOpen = same ? !state.mobileCutPopoverOpen : true;
+    state.mobileCutPopoverOpen = same ? !state.mobileCutPopoverOpen : false;
     if(state.mobileCutSubmode === 'split') setMode('cut', {mobileSection:'cut'});
     else setMode('imageCrop', {mobileSection:'cut'});
     updateModeButtons();
@@ -4680,7 +4680,7 @@
   document.addEventListener('pointerup', endNavDrag);
   document.addEventListener('pointercancel', endNavDrag);
   document.addEventListener('pointerdown', e => {
-    if(mobileFileMenu?.contains(e.target) || $('#mobileFileBtn')?.contains(e.target) || mobileInfoMenu?.contains(e.target) || $('#mobileInfoBtn')?.contains(e.target) || exportMenu?.contains(e.target) || $('#exportBtn')?.contains(e.target) || mobileStitchMenu?.contains(e.target) || mobileCutPopover?.contains(e.target)) return;
+    if(mobileFileMenu?.contains(e.target) || $('#mobileFileBtn')?.contains(e.target) || mobileInfoMenu?.contains(e.target) || $('#mobileInfoBtn')?.contains(e.target) || exportMenu?.contains(e.target) || $('#exportBtn')?.contains(e.target) || mobileStitchMenu?.contains(e.target) || mobileCutPopover?.contains(e.target) || $('#mobileContextBar')?.contains(e.target)) return;
     if(state.mobileFileOpen || state.mobileInfoOpen || state.exportMenuOpen || state.mobileStitchMenuOpen || state.mobileCutPopoverOpen) closeTopMenus();
   });
 
