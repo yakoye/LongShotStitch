@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.38',
+  'LongShotStitch v1.39',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -77,6 +77,10 @@ const required = [
   'mobileInfoBtn',
   'mobileInfoMenu',
   'mobileInfoText',
+  'renderMobileInfoContent',
+  'LongShotStitch ${APP_VERSION}',
+  'info-row',
+  '预览',
   'renderMobileInfoMenu',
   'state.mobileInfoOpen',
   '.statusbar{display:none',
@@ -86,7 +90,7 @@ const required = [
   'data-mobile-file="saveProject"',
   'toggleOrientation',
   'showAbout',
-  'LongShotStitch v1.38',
+  'LongShotStitch v1.39',
   'desktop-compact-card',
   'compact-row',
   'compact-field',

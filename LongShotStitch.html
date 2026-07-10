@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.38 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.39 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -114,6 +114,10 @@
     .mobile-file-menu,.mobile-info-menu,.export-menu{position:absolute;top:50px;z-index:30;display:none;gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
     .mobile-file-menu{left:48px;grid-template-columns:1fr;min-width:116px}
     .mobile-info-menu{right:58px;max-width:calc(100vw - 24px);font-size:12px;color:#475569;line-height:1.45}
+    .mobile-info-menu .info-title{font-weight:850;color:#0f172a;margin-bottom:4px}
+    .mobile-info-menu .info-row{display:flex;align-items:center;justify-content:space-between;gap:18px;min-width:168px;padding:2px 0}
+    .mobile-info-menu .info-row span:first-child{color:#64748b}
+    .mobile-info-menu .info-row span:last-child{font-weight:700;color:#0f172a;text-align:right}
     .export-menu{right:10px;min-width:214px}
     .mobile-file-menu.show,.mobile-info-menu.show,.export-menu.show{display:grid}
     .mobile-file-menu .mini-btn,.export-menu .mini-btn{height:36px;padding:0 10px;font-size:12px}
@@ -287,7 +291,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.38</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.39</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -507,7 +511,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.38';
+  const APP_VERSION = 'v1.39';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -993,7 +997,7 @@
     app.classList.toggle('preview', state.preview);
     if(!state.images.length){
       statusbar.textContent = 'Ready：拖入、打开或粘贴图片';
-      if(mobileInfoText) mobileInfoText.textContent = statusbar.textContent;
+      renderMobileInfoContent();
       updateNavigation(null);
       closeInlineTextEditor(false);
       return;
@@ -1009,10 +1013,48 @@
 
     const finalLayout = computeLayout(false);
     statusbar.textContent = `${state.orientation === 'vertical' ? '纵向' : '横向'} · ${state.images.length} 张图 · 输出 ${Math.round(finalLayout.width)}×${Math.round(finalLayout.height)} px · 缩放 ${Math.round(state.zoom*100)}%`;
-    if(mobileInfoText) mobileInfoText.textContent = statusbar.textContent;
+    renderMobileInfoContent(finalLayout);
     updateNavigation(layoutCache);
     positionInlineTextEditor();
     if(state.activeHandle && !state.preview) requestRender();
+  }
+
+  function modeLabel(){
+    return ({
+      seam:'拼接线',
+      canvasCrop:'整体裁剪',
+      imageCrop:'单图裁剪',
+      divider:'分割线',
+      subtitle:'字幕',
+      cut:'裁切',
+      tools:'标注'
+    })[state.mode] || '拼接';
+  }
+
+  function previewStatusLabel(){
+    const counts = state.images.reduce((acc, im) => {
+      acc[im.proxyStatus || 'none'] = (acc[im.proxyStatus || 'none'] || 0) + 1;
+      return acc;
+    }, {});
+    if(counts.building || counts.queued) return '优化中';
+    if(counts.ready) return `${counts.ready} 张预览`;
+    return '原图';
+  }
+
+  function renderMobileInfoContent(layout=null){
+    if(!mobileInfoText) return;
+    const finalLayout = layout || (state.images.length ? computeLayout(false) : null);
+    const output = finalLayout ? `${Math.round(finalLayout.width)}×${Math.round(finalLayout.height)} px` : '等待导入';
+    const rows = [
+      ['版本', `LongShotStitch ${APP_VERSION}`],
+      ['模式', modeLabel()],
+      ['方向', state.orientation === 'vertical' ? '纵向' : '横向'],
+      ['图片', `${state.images.length} 张`],
+      ['输出', output],
+      ['缩放', `${Math.round(state.zoom * 100)}%`],
+      ['预览', state.images.length ? previewStatusLabel() : '未开始']
+    ];
+    mobileInfoText.innerHTML = `<div class="info-title">信息</div>${rows.map(([k,v]) => `<div class="info-row"><span>${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>`).join('')}`;
   }
 
   function shouldFreezeViewportForActiveEdit(){
