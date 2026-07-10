@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.26 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.27 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -261,7 +261,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.26</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.27</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -459,7 +459,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.26';
+  const APP_VERSION = 'v1.27';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -505,6 +505,8 @@
   let layoutCache = null;
   let drag = null;
   let navDrag = null;
+  const activePointers = new Map();
+  let pinchState = null;
   let inlineTextIndex = -1;
   let redrawPending = false;
   let resizeObserver = null;
@@ -999,7 +1001,53 @@
   }
 
   function mobileSafeInset(){
-    return isMobileLayout() ? 56 : 0;
+    return isMobileLayout() ? 28 : 0;
+  }
+
+  function mobilePanFactor(){
+    return isMobileLayout() ? 1.45 : 1;
+  }
+
+  function pointerDistance(a, b){
+    return Math.hypot((a?.x || 0) - (b?.x || 0), (a?.y || 0) - (b?.y || 0));
+  }
+
+  function pointerMidpoint(a, b){
+    return {x: ((a?.x || 0) + (b?.x || 0)) / 2, y: ((a?.y || 0) + (b?.y || 0)) / 2};
+  }
+
+  function pinchPoints(){
+    return Array.from(activePointers.values()).slice(0, 2);
+  }
+
+  function beginPinchZoom(){
+    if(!isMobileLayout() || activePointers.size < 2 || !state.images.length) return false;
+    const [a, b] = pinchPoints();
+    const distance = pointerDistance(a, b);
+    if(distance < 8) return false;
+    const center = pointerMidpoint(a, b);
+    pinchState = {
+      distance,
+      zoom: state.zoom,
+      worldCenter: screenToWorld(center.x, center.y)
+    };
+    drag = null;
+    stage.classList.remove('dragging');
+    return true;
+  }
+
+  function updatePinchZoom(){
+    if(!pinchState || activePointers.size < 2) return false;
+    const [a, b] = pinchPoints();
+    const distance = pointerDistance(a, b);
+    if(distance < 8) return false;
+    const center = pointerMidpoint(a, b);
+    state.zoom = clamp(pinchState.zoom * (distance / Math.max(1, pinchState.distance)), 0.03, 8);
+    state.pan.x = center.x - pinchState.worldCenter.x * state.zoom;
+    state.pan.y = center.y - pinchState.worldCenter.y * state.zoom;
+    clampPanToLayout(computeLayout(true));
+    requestRender();
+    return true;
   }
 
   function lockMobilePanAxis(layout){
@@ -2684,6 +2732,13 @@
     if(e.button !== undefined && e.button !== 0) return;
     stage.setPointerCapture?.(e.pointerId);
     const p = getPointer(e);
+    if(e.pointerType === 'touch'){
+      activePointers.set(e.pointerId, p);
+      if(activePointers.size >= 2 && beginPinchZoom()){
+        e.preventDefault();
+        return;
+      }
+    }
     const w = screenToWorld(p.x,p.y);
     const h = hitTest(w.x,w.y);
     if(!state.preview && state.mode === 'tools' && state.toolArmed === 'eraser'){
@@ -2823,6 +2878,13 @@
 
   function onPointerMove(e){
     const p = getPointer(e);
+    if(activePointers.has(e.pointerId)){
+      activePointers.set(e.pointerId, p);
+      if(pinchState && updatePinchZoom()){
+        e.preventDefault();
+        return;
+      }
+    }
     const w = screenToWorld(p.x,p.y);
     if(!drag){
       const h = hitTest(w.x,w.y);
@@ -2830,8 +2892,9 @@
       return;
     }
     if(drag.type === 'pan'){
-      state.pan.x = drag.pan.x + (p.x - drag.startX);
-      state.pan.y = drag.pan.y + (p.y - drag.startY);
+      const factor = mobilePanFactor();
+      state.pan.x = drag.pan.x + (p.x - drag.startX) * factor;
+      state.pan.y = drag.pan.y + (p.y - drag.startY) * factor;
       if(isMobileLayout()){
         if(state.orientation === 'vertical') state.pan.x = drag.pan.x;
         else state.pan.y = drag.pan.y;
@@ -3024,6 +3087,15 @@
   }
 
   function onPointerUp(e){
+    if(activePointers.has(e.pointerId)){
+      activePointers.delete(e.pointerId);
+      if(pinchState){
+        if(activePointers.size < 2) pinchState = null;
+        e.preventDefault();
+        requestRender();
+        return;
+      }
+    }
     const finished = drag;
     drag = null;
     stage.classList.remove('dragging');
