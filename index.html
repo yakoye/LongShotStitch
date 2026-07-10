@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.18 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.19 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -66,6 +66,8 @@
     .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .mini-btn{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:12px;font-weight:650}
     .mini-btn:hover{background:#f9fafb;border-color:#b8c1cf}
+    .mini-btn.primary{background:#111827;color:#fff;border-color:#111827}
+    .mini-btn.primary:hover{background:#030712;border-color:#030712}
     .mini-btn.active{background:#111827;color:#fff;border-color:#111827}
     .mini-btn.warn{color:var(--danger)}
     .tool-icon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
@@ -99,6 +101,7 @@
     .mobile-more-menu{position:absolute;right:10px;top:50px;z-index:30;display:none;grid-template-columns:repeat(3,42px);gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
     .mobile-more-menu.show{display:grid}
     .mobile-more-menu .mini-btn{width:42px;height:36px;padding:0;font-size:14px}
+    .format-select{height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 8px;color:#111827;font-weight:700;box-shadow:0 1px 2px rgba(15,23,42,.04)}
     .toast{position:fixed;right:20px;bottom:20px;z-index:50;background:#111827;color:#fff;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);font-size:13px;opacity:0;transform:translateY(10px);pointer-events:none;transition:.22s}
     .toast.show{opacity:1;transform:translateY(0)}
     .preview-badge{position:absolute;top:12px;right:12px;border-radius:999px;background:#111827;color:#fff;padding:7px 12px;font-size:12px;font-weight:700;display:none;z-index:4}
@@ -201,13 +204,14 @@
       .mobile-only{display:inline-flex!important}
       .toolbar-group{border-left:0;padding:0;gap:6px}
       .tool-btn,.file-label{height:38px;width:42px;padding:0;justify-content:center;border-radius:12px}
-      .mobile-title{display:block;font-size:20px;font-weight:800;position:absolute;left:50%;transform:translateX(-50%)}
+      .format-select{height:38px;width:58px;padding:0 3px;border-radius:12px;font-size:12px}
+      .mobile-title{display:none!important}
       .sidebar{display:none}
       .app[data-mode="subtitle"] .sidebar,.app[data-mode="cut"] .sidebar{display:block;position:absolute;left:8px;right:8px;bottom:calc(var(--mobilebar) + 8px);z-index:14;border:1px solid rgba(203,213,225,.94);border-radius:13px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.18);overflow:hidden}
       .app[data-mode="subtitle"] .mode-panel,.app[data-mode="cut"] .mode-panel{display:none}
-      .app[data-mode="subtitle"] .props,.app[data-mode="cut"] .props{padding:8px;max-height:190px;overflow:auto;background:transparent}
-      .app[data-mode="subtitle"] .prop-card,.app[data-mode="cut"] .prop-card{margin:0;padding:8px;border:0;box-shadow:none;background:transparent}
-      .app[data-mode="subtitle"] .row,.app[data-mode="cut"] .row{margin:5px 0}
+      .app[data-mode="subtitle"] .props,.app[data-mode="cut"] .props{padding:6px;max-height:min(30vh,150px);overflow:auto;background:transparent}
+      .app[data-mode="subtitle"] .prop-card,.app[data-mode="cut"] .prop-card{margin:0;padding:6px;border:0;box-shadow:none;background:transparent}
+      .app[data-mode="subtitle"] .row,.app[data-mode="cut"] .row{margin:4px 0}
       .stage-wrap{position:absolute;left:0;right:0;top:var(--topbar);bottom:var(--mobilebar);grid-row:auto;grid-column:auto}
       .mobile-bottom{display:grid;position:absolute;left:0;right:0;bottom:0;height:var(--mobilebar);background:rgba(255,255,255,.94);border-top:1px solid var(--line);grid-template-columns:repeat(7,1fr);z-index:6;backdrop-filter:blur(14px);padding-bottom:env(safe-area-inset-bottom)}
       .mobile-mode{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#111827;font-weight:750;font-size:11px}
@@ -225,9 +229,9 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.18</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.19</small></div>
     </div>
-    <div class="mobile-title">裁剪</div>
+    <div class="mobile-title"></div>
 
     <div class="toolbar-group">
       <label class="file-label" title="打开图片">
@@ -249,17 +253,23 @@
     </div>
 
     <div class="toolbar-group desktop-only">
-      <button class="tool-btn" id="undoBtn">↶ 撤销</button>
-      <button class="tool-btn" id="redoBtn">↷ 重做</button>
-      <button class="tool-btn danger" id="clearBtn">清空</button>
+      <button class="tool-btn" id="undoBtn" title="撤销" aria-label="撤销">↶</button>
+      <button class="tool-btn" id="redoBtn" title="重做" aria-label="重做">↷</button>
+      <button class="tool-btn danger" id="clearBtn" title="清空" aria-label="清空">×</button>
     </div>
 
     <div class="spacer"></div>
 
     <div class="toolbar-group">
-      <button class="tool-btn" id="fitBtn" title="适合窗口"><span>⛶</span><span class="text-label">适合窗口</span></button>
-      <button class="tool-btn" id="previewBtn" title="预览"><span>👁</span><span class="text-label">预览</span></button>
-      <button class="tool-btn primary" id="exportBtn" title="导出 PNG"><span>⬆</span><span class="text-label">导出 PNG</span></button>
+      <button class="tool-btn" id="fitBtn" title="适合窗口" aria-label="适合窗口"><span>⛶</span></button>
+      <button class="tool-btn" id="previewBtn" title="预览" aria-label="预览"><span>👁</span></button>
+      <select class="format-select" id="exportFormatSelect" title="导出格式" aria-label="导出格式">
+        <option value="png" selected>PNG</option>
+        <option value="jpeg">JPEG</option>
+        <option value="webp">WEBP</option>
+        <option value="svg">SVG</option>
+      </select>
+      <button class="tool-btn primary" id="exportBtn" title="导出" aria-label="导出"><span>⬆</span></button>
       <button class="tool-btn mobile-only" id="mobileMoreBtn" title="更多">⋯</button>
     </div>
   </header>
@@ -379,7 +389,8 @@
     splitDraftManual: false,
     subtitleRegion: { heightRatio: 0.22, yRatio: 0.76 },
     cutSettings: { mode: 'cols', rows: 3, cols: 3 },
-    cutLines: { imageId: null, rows: 3, cols: 3, x: [], y: [] }
+    cutLines: { imageId: null, rows: 3, cols: 3, x: [], y: [] },
+    exportFormat: 'png'
   };
 
   let history = [];
@@ -416,7 +427,8 @@
       splitDraftManual: !!state.splitDraftManual,
       subtitleRegion: {...state.subtitleRegion},
       cutSettings: {...state.cutSettings},
-      cutLines: state.cutLines ? {imageId:state.cutLines.imageId, rows:state.cutLines.rows, cols:state.cutLines.cols, x:[...(state.cutLines.x||[])], y:[...(state.cutLines.y||[])]} : null
+      cutLines: state.cutLines ? {imageId:state.cutLines.imageId, rows:state.cutLines.rows, cols:state.cutLines.cols, x:[...(state.cutLines.x||[])], y:[...(state.cutLines.y||[])]} : null,
+      exportFormat: state.exportFormat || 'png'
     });
   }
 
@@ -447,6 +459,7 @@
     state.subtitleRegion = data.subtitleRegion || {heightRatio:0.22,yRatio:0.76};
     state.cutSettings = data.cutSettings || {mode:'cols',rows:3,cols:3};
     state.cutLines = data.cutLines || {imageId:null,rows:3,cols:3,x:[],y:[]};
+    state.exportFormat = data.exportFormat || state.exportFormat || 'png';
     state.activeHandle = null;
     const imgs = [];
     for(const raw of data.images || []){
@@ -2361,6 +2374,24 @@
     return null;
   }
 
+  function seamAnchorScreen(index){
+    const layout = computeLayout(true);
+    const sv = layout.seams.find(v => v.index === index);
+    if(!sv) return null;
+    return state.orientation === 'vertical'
+      ? sv.y * state.zoom + state.pan.y
+      : sv.x * state.zoom + state.pan.x;
+  }
+
+  function keepSeamAnchor(activeDrag){
+    if(activeDrag.anchorScreen == null) return;
+    const layout = computeLayout(true);
+    const sv = layout.seams.find(v => v.index === activeDrag.index);
+    if(!sv) return;
+    if(state.orientation === 'vertical') state.pan.y = activeDrag.anchorScreen - sv.y * state.zoom;
+    else state.pan.x = activeDrag.anchorScreen - sv.x * state.zoom;
+  }
+
   function onPointerDown(e){
     if(e.button !== undefined && e.button !== 0) return;
     stage.setPointerCapture?.(e.pointerId);
@@ -2416,7 +2447,7 @@
       if(!s) return;
       pushHistory();
       state.selected = {type:'seam', index:h.index};
-      drag = { type: h.type === 'activeDragBefore' ? 'seamBefore' : 'seamAfter', index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop };
+      drag = { type: h.type === 'activeDragBefore' ? 'seamBefore' : 'seamAfter', index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index) };
       return;
     }
     if(h.type === 'seamSelect'){ state.activeHandle = null; state.selected = {type:'seam', index:h.index}; renderProps(); requestRender(); return; }
@@ -2487,7 +2518,7 @@
       const s = state.seams[h.index];
       if(!s) return;
       state.selected = {type:'seam', index:h.index};
-      drag = { type:'seamCenter', index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop };
+      drag = { type:'seamCenter', index:h.index, start:w, before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index) };
       return;
     }
   }
@@ -2653,11 +2684,12 @@
       const b = state.images[drag.index+1];
       const maxBefore = vertical ? a.height - a.crop.top - a.crop.bottom - 1 : a.width - a.crop.left - a.crop.right - 1;
       const maxAfter = vertical ? b.height - b.crop.top - b.crop.bottom - 1 : b.width - b.crop.left - b.crop.right - 1;
-      if(drag.type === 'seamBefore') s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
+      if(drag.type === 'seamBefore') s.beforeCrop = clamp(drag.before + d, 0, maxBefore);
       if(drag.type === 'seamAfter') s.afterCrop = clamp(drag.after - d, 0, maxAfter);
       if(drag.type === 'seamCenter'){
-        s.beforeCrop = clamp(drag.before - d, 0, maxBefore);
+        s.beforeCrop = clamp(drag.before + d, 0, maxBefore);
       }
+      keepSeamAnchor(drag);
       renderProps(); requestRender(); return;
     }
   }
@@ -2963,6 +2995,8 @@
     $('#horizontalBtn')?.classList.toggle('active', state.orientation === 'horizontal');
     $('#autoStitchBtn')?.classList.toggle('active', !!state.autoStitchEnabled);
     $('#previewBtn')?.classList.toggle('blue', state.preview);
+    const exportFormatSelect = $('#exportFormatSelect');
+    if(exportFormatSelect && exportFormatSelect.value !== (state.exportFormat || 'png')) exportFormatSelect.value = state.exportFormat || 'png';
     renderMobileMoreMenu();
     updateUndoRedo();
   }
@@ -2976,6 +3010,11 @@
   }
 
   function setMode(m){
+    if(state.mode !== m){
+      state.mobileMoreOpen = false;
+      state.mobileToolPopoverOpen = false;
+      hideToolPopover();
+    }
     state.mode = m;
     state.activeHandle = null;
     state.preview = false;
@@ -3002,7 +3041,47 @@
     updateModeButtons(); renderProps(); requestRender();
   }
 
-  async function exportPng(){
+  function exportMeta(){
+    const format = state.exportFormat || $('#exportFormatSelect')?.value || 'png';
+    if(format === 'jpeg') return {format, mime:'image/jpeg', ext:'jpg', label:'JPEG'};
+    if(format === 'webp') return {format, mime:'image/webp', ext:'webp', label:'WEBP'};
+    if(format === 'svg') return {format, mime:'image/svg+xml', ext:'svg', label:'SVG'};
+    return {format:'png', mime:'image/png', ext:'png', label:'PNG'};
+  }
+
+  function canvasToSvgBlob(canvasEl){
+    const href = canvasEl.toDataURL('image/png');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasEl.width}" height="${canvasEl.height}" viewBox="0 0 ${canvasEl.width} ${canvasEl.height}"><image href="${href}" width="${canvasEl.width}" height="${canvasEl.height}"/></svg>`;
+    return new Blob([svg], {type:'image/svg+xml'});
+  }
+
+  function downloadBlob(blob, filename, delay=0){
+    setTimeout(() => {
+      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.download = filename;
+      a.href = url;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+    }, delay);
+  }
+
+  function downloadCanvasImage(canvasEl, baseName, delay=0){
+    const meta = exportMeta();
+    const cleanBase = String(baseName || 'longshot').replace(/\.(png|jpe?g|webp|svg)$/i, '');
+    if(meta.format === 'svg'){
+      downloadBlob(canvasToSvgBlob(canvasEl), `${cleanBase}.${meta.ext}`, delay);
+      return;
+    }
+    setTimeout(() => {
+      const a = document.createElement('a');
+      a.download = `${cleanBase}.${meta.ext}`;
+      a.href = canvasEl.toDataURL(meta.mime, meta.format === 'jpeg' ? 0.92 : undefined);
+      a.click();
+    }, delay);
+  }
+
+  async function exportImage(){
     if(!state.images.length){ toast('请先导入图片'); return; }
     const layout = computeLayout(false);
     const maxSide = 32760;
@@ -3020,11 +3099,12 @@
     oc.translate(-state.canvasCrop.left, -state.canvasCrop.top);
     drawComposition(oc, full, true, true);
     oc.restore();
-    const a = document.createElement('a');
-    a.download = `longshot_${new Date().toISOString().replace(/[:.]/g,'-')}.png`;
-    a.href = out.toDataURL('image/png');
-    a.click();
-    toast('PNG 已导出');
+    downloadCanvasImage(out, `longshot_${new Date().toISOString().replace(/[:.]/g,'-')}`);
+    toast(`${exportMeta().label} 已导出`);
+  }
+
+  async function exportPng(){
+    await exportImage();
   }
 
   function imageBaseName(name){
@@ -3080,12 +3160,7 @@
   }
 
   function downloadCanvasPng(canvasEl, filename, delay=0){
-    setTimeout(() => {
-      const a = document.createElement('a');
-      a.download = filename;
-      a.href = canvasEl.toDataURL('image/png');
-      a.click();
-    }, delay);
+    downloadCanvasImage(canvasEl, filename, delay);
   }
 
   function cutGrid(){
@@ -3157,16 +3232,16 @@
         oc.drawImage(im.img, sx, sy, out.width, out.height, 0, 0, out.width, out.height);
         const rowLabel = String(row + 1).padStart(2,'0');
         const colLabel = String(col + 1).padStart(2,'0');
-        downloadCanvasPng(out, `${base}_${rowLabel}_${colLabel}.png`, n * 140);
+        downloadCanvasImage(out, `${base}_${rowLabel}_${colLabel}`, n * 140);
         n++;
       }
     }
-    toast(`已导出 ${n-1} 张`);
+    toast(`已导出 ${n-1} 张 ${exportMeta().label}`);
   }
 
   function exportCurrent(){
     if(state.mode === 'cut') exportCutImages();
-    else exportPng();
+    else exportImage();
   }
 
   function saveProject(){
@@ -3447,6 +3522,7 @@
   $('#pasteBtn').addEventListener('click', addClipboardImages);
   $('#saveProjectBtn').addEventListener('click', saveProject);
   $('#exportBtn').addEventListener('click', exportCurrent);
+  $('#exportFormatSelect')?.addEventListener('change', e => { state.exportFormat = e.target.value || 'png'; updateToolbarButtons(); });
   $('#fitBtn').addEventListener('click', () => fitToView());
   $('#previewBtn').addEventListener('click', () => { state.preview=!state.preview; requestRender(); updateToolbarButtons(); renderToolDock(); });
   $('#undoBtn').addEventListener('click', undo);

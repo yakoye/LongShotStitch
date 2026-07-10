@@ -8,11 +8,11 @@
 - Text edit: create text, select it, edit content, move it, rotate it, toggle vertical writing.
 - Keyboard: typing numbers in text/number inputs must not switch modes; keys 1-5 must not switch modes globally.
 - Badge: create more than 10 badges and verify they continue 11, 12, 13; edit an existing badge number and verify later badges update sequentially.
-- Regression: open images, seam editing, divider, whole crop, single-image crop, export PNG.
+- Regression: open images, seam editing, divider, whole crop, single-image crop, multi-format export.
 - Auto stitch: enable 自动, import multiple images, verify direction is inferred and seams remain editable.
 - Subtitle stitch: adjust 高 and 位, verify the blue subtitle region moves/resizes, generate a subtitle long image, crop/export it.
 - Cut mode: test 行, 列, 格, 3×3, drag cut lines, tap 完成 to enter single-image crop, then use the top export button.
-- Cut export names must use row/column labels such as source_01_01.png and source_01_02.png.
+- Cut export names must use row/column labels such as source_01_01.png and source_01_02.png; when the format selector changes, extensions follow the selected format.
 - Seam drag: dragging the upper/left area changes only the upper/left image; dragging the lower/right area changes only the lower/right image.
 - Browser chrome: tab favicon shows ✂ for index.html and LongShotStitch.html.
 - Mobile 390x844: seven bottom modes fit; first tool tap does not open properties, second tap opens properties; ⋯ exposes desktop-only actions.
@@ -34,4 +34,12 @@
 - 新建文字默认字号比 v1.17 更小，适合截图标注。
 - 旋转文字后，文字内容、蓝色虚线框、旋转手柄保持同一旋转中心，文字不跑出虚线框。
 - 选中任意标注后，按 Backspace / Delete 不会删除标注；只能用显式删除按钮删除。
-- 回归检查：矩形/圆形、箭头、标号、马赛克、裁剪、分割线、导出 PNG 不受影响。
+- 回归检查：矩形/圆形、箭头、标号、马赛克、裁剪、分割线、多格式导出不受影响。
+
+
+## v1.19 manual checks
+
+- 拼接线、分割线、单图裁剪中拖动中线的上方/左方图片时，中线和下方/右方图片保持屏幕位置不动。
+- 切割和字幕面板在手机端切换时只显示当前模式属性，面板不遮挡过多画布。
+- 切割的“完成”和字幕的“生成”按钮文字清晰可见。
+- 顶部撤销、重做、清空、适合窗口、预览、导出只显示图标；导出格式可选择 PNG、JPEG、WEBP、SVG。
