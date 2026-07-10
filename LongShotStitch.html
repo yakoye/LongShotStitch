@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.31 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.32 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -279,7 +279,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.31</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.32</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -493,7 +493,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.31';
+  const APP_VERSION = 'v1.32';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -1002,8 +1002,8 @@
 
   function shouldFreezeViewportForActiveEdit(){
     if(state.preview) return false;
-    if(state.activeHandle?.kind === 'seamCenter') return true;
-    return !!(drag && ['seamBefore','seamAfter','seamCenter'].includes(drag.type));
+    if(['seamCenter','canvasCrop','imageCrop'].includes(state.activeHandle?.kind)) return true;
+    return !!(drag && ['seamBefore','seamAfter','seamCenter','canvasCrop','imageCrop'].includes(drag.type));
   }
 
 

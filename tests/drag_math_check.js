@@ -34,4 +34,12 @@ if (!html.includes("state.activeHandle?.kind === 'seamCenter'")) {
   throw new Error('viewport freeze must cover active seam center editing until the done check is clicked');
 }
 
+if (!html.includes("['seamCenter','canvasCrop','imageCrop'].includes(state.activeHandle?.kind)")) {
+  throw new Error('viewport freeze must cover active crop editing so pan compensation is not clamped away');
+}
+
+if (!html.includes("'canvasCrop','imageCrop'")) {
+  throw new Error('viewport freeze must cover live canvas/image crop drags');
+}
+
 console.log('drag_math_check ok');
