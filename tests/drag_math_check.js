@@ -18,8 +18,8 @@ if (seamBranch.includes('w.y - drag.start.y') || seamBranch.includes('w.x - drag
   throw new Error('seam drag must not compute movement from pan-adjusted world coordinates');
 }
 
-if (!html.includes("type: h.type === 'activeDragBefore' ? 'seamBefore' : 'seamAfter'") || !html.includes('startScreen:')) {
-  throw new Error('direct seam handle drags must capture startScreen');
+if (!html.includes("const side = h.type === 'activeDragAfter' ? 'after' : 'before';") || !html.includes('startScreen:') || !html.includes('sourceScale:seamDragSourceScale(h.index, side)')) {
+  throw new Error('direct seam handle drags must capture startScreen and the affected image scale');
 }
 
 if (!html.includes('shouldFreezeViewportForActiveEdit')) {
@@ -64,6 +64,30 @@ if (commitBlock.includes('fitToView(false)')) {
 
 if (!html.includes('baseCropFromEffectiveCrop')) {
   throw new Error('canvas crop distribution must subtract seam crop before writing image.crop');
+}
+
+if (!html.includes('layoutDistanceToSourcePixels')) {
+  throw new Error('divider insert must convert layout distance back to source pixels using image scale');
+}
+
+if (!html.includes("layoutDistanceToSourcePixels(pos - target.y, target, 'y')") || !html.includes("layoutDistanceToSourcePixels(pos - target.x, target, 'x')")) {
+  throw new Error('divider insert must keep the inserted seam at the same visual position for vertical and horizontal layouts');
+}
+
+if (!html.includes('splitDraftHitPad')) {
+  throw new Error('divider draft drag hit area must stay finger-sized at low zoom');
+}
+
+if (!html.includes("drag && ['splitDraft','seamBefore','seamAfter','seamCenter','canvasCrop','imageCrop'].includes(drag.type)")) {
+  throw new Error('viewport freeze must cover split draft dragging');
+}
+
+if (!html.includes('seamDragSourceScale')) {
+  throw new Error('seam dragging must convert screen movement through the affected image scale');
+}
+
+if (!html.includes('/ Math.max(0.0001, drag.sourceScale || 1)')) {
+  throw new Error('seam dragging must divide movement by source scale so large images drag smoothly');
 }
 
 console.log('drag_math_check ok');

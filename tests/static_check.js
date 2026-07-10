@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.36',
+  'LongShotStitch v1.37',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -86,7 +86,7 @@ const required = [
   'data-mobile-file="saveProject"',
   'toggleOrientation',
   'showAbout',
-  'LongShotStitch v1.36',
+  'LongShotStitch v1.37',
   'desktop-compact-card',
   'compact-row',
   'compact-field',
@@ -164,4 +164,5 @@ for (const token of required) {
 for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }", "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\"", "id=\"previewBtn\"", "id=\"mobileMoreBtn\"", "id=\"mobileVerticalBtn\"", "id=\"mobileHorizontalBtn\"", "data-mobile-action=\"paste\"", "mobile-more-menu", "exportCutPanel", "exportCutSize", "exportCutModeSelect", "applyExportCutSettings", "cutExportSizeText", "切割", "mobile-cut-mode-tabs", "<button class=\"mode-btn\" data-mode=\"subtitle\""]) {
   if (html.includes(token)) throw new Error(`forbidden token remains: ${token}`);
 }
+if (html.includes('整体裁剪已分摊锁定')) throw new Error('internal canvas crop lock toast should not be shown');
 console.log('static_check ok');

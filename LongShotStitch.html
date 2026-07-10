@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.36 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.37 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -284,7 +284,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.36</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.37</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -503,7 +503,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.36';
+  const APP_VERSION = 'v1.37';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -1014,7 +1014,7 @@
   function shouldFreezeViewportForActiveEdit(){
     if(state.preview) return false;
     if(['seamCenter','canvasCrop','imageCrop'].includes(state.activeHandle?.kind)) return true;
-    return !!(drag && ['seamBefore','seamAfter','seamCenter','canvasCrop','imageCrop'].includes(drag.type));
+    return !!(drag && ['splitDraft','seamBefore','seamAfter','seamCenter','canvasCrop','imageCrop'].includes(drag.type));
   }
 
 
@@ -1302,6 +1302,16 @@
     const raw = state.orientation === 'vertical' ? center.y : center.x;
     if(!state.splitDraft) state.splitDraft = {pos: 1};
     state.splitDraft.pos = clamp(Math.round(raw), 1, Math.max(1, max-1));
+  }
+
+  function layoutDistanceToSourcePixels(distance, item, axis){
+    const scale = axis === 'y' ? (item?.scaleY || item?.scale || 1) : (item?.scaleX || item?.scale || 1);
+    return Math.round(distance / Math.max(0.0001, scale));
+  }
+
+  function splitDraftHitPad(){
+    const screenPad = isMobileLayout() ? 24 : 18;
+    return Math.max(10, screenPad / Math.max(0.03, state.zoom || 1));
   }
 
   function drawDoubleChevron(c, x, y, dir, scale=1){
@@ -1657,11 +1667,12 @@
     else { c.moveTo(pos,0); c.lineTo(pos,layout.fullHeight); }
     c.stroke();
     c.restore();
+    const pad = splitDraftHitPad();
     if(vertical){
-      hitAreas.push({type:'splitDraftDrag', x:0, y:pos-10, w:layout.fullWidth, h:20, cursor:'ns-resize'});
+      hitAreas.push({type:'splitDraftDrag', x:0, y:pos-pad, w:layout.fullWidth, h:pad*2, cursor:'ns-resize'});
       drawPill(c, layout.fullWidth/2, pos, '+', {type:'splitDraftCommit', cursor:'pointer'}, true);
     } else {
-      hitAreas.push({type:'splitDraftDrag', x:pos-10, y:0, w:20, h:layout.fullHeight, cursor:'ew-resize'});
+      hitAreas.push({type:'splitDraftDrag', x:pos-pad, y:0, w:pad*2, h:layout.fullHeight, cursor:'ew-resize'});
       drawPill(c, pos, layout.fullHeight/2, '+', {type:'splitDraftCommit', cursor:'pointer'}, true);
     }
   }
@@ -2724,14 +2735,14 @@
       if(existing){ enterCurrentSeamEdit(existing.index); return; }
       const target = layout.imageBounds.find(b => pos > b.y + 1 && pos < b.y + b.h - 1);
       if(!target) return;
-      splitImageAt(target.index, pos - target.y);
+      splitImageAt(target.index, layoutDistanceToSourcePixels(pos - target.y, target, 'y'));
       enterCurrentSeamEdit(target.index);
     } else {
       const existing = layout.seams.find(sv => Math.abs(sv.x - pos) <= seamThreshold);
       if(existing){ enterCurrentSeamEdit(existing.index); return; }
       const target = layout.imageBounds.find(b => pos > b.x + 1 && pos < b.x + b.w - 1);
       if(!target) return;
-      splitImageAt(target.index, pos - target.x);
+      splitImageAt(target.index, layoutDistanceToSourcePixels(pos - target.x, target, 'x'));
       enterCurrentSeamEdit(target.index);
     }
   }
@@ -2781,6 +2792,16 @@
     return state.orientation === 'vertical'
       ? sv.y * state.zoom + state.pan.y
       : sv.x * state.zoom + state.pan.x;
+  }
+
+  function seamDragSourceScale(index, side='before'){
+    const layout = computeLayout(true);
+    const imageIndex = side === 'after' ? index + 1 : index;
+    const item = layout.items.find(v => v.index === imageIndex);
+    if(!item) return 1;
+    return state.orientation === 'vertical'
+      ? (item.scaleY || item.scale || 1)
+      : (item.scaleX || item.scale || 1);
   }
 
   function keepSeamAnchor(activeDrag){
@@ -2858,7 +2879,8 @@
       if(!s) return;
       pushHistory();
       state.selected = {type:'seam', index:h.index};
-      drag = { type: h.type === 'activeDragBefore' ? 'seamBefore' : 'seamAfter', index:h.index, start:w, startScreen:getPointer(e), before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index) };
+      const side = h.type === 'activeDragAfter' ? 'after' : 'before';
+      drag = { type: side === 'before' ? 'seamBefore' : 'seamAfter', index:h.index, start:w, startScreen:getPointer(e), before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index), sourceScale:seamDragSourceScale(h.index, side) };
       return;
     }
     if(h.type === 'seamSelect'){ state.activeHandle = null; state.selected = {type:'seam', index:h.index}; renderProps(); requestRender(); return; }
@@ -2891,7 +2913,7 @@
       drag = {type:'annotationRotate', index:h.index, center, startAngle:Math.atan2(w.y-center.y,w.x-center.x), rotation:+(a.rotation||0)}; return;
     }
     if(h.type === 'splitDraftCommit'){ insertSeamAtDraft(); return; }
-    if(h.type === 'splitDraftDrag'){ state.splitDraftManual = true; drag = {type:'splitDraft', start:w, pos: state.splitDraft?.pos || 0}; return; }
+    if(h.type === 'splitDraftDrag'){ state.splitDraftManual = true; drag = {type:'splitDraft', start:w, startScreen:getPointer(e), pos: state.splitDraft?.pos || 0}; return; }
     if(h.type === 'subtitleRegion' || h.type === 'subtitleEdge'){
       const layout = computeLayout(true);
       const item = layout.items.find(v => v.index === h.index);
@@ -2939,7 +2961,7 @@
       const s = state.seams[h.index];
       if(!s) return;
       state.selected = {type:'seam', index:h.index};
-      drag = { type:'seamCenter', index:h.index, start:w, startScreen: sp || {x:0,y:0}, before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index) };
+      drag = { type:'seamCenter', index:h.index, start:w, startScreen: sp || {x:0,y:0}, before:s.beforeCrop, after:s.afterCrop, anchorScreen:seamAnchorScreen(h.index), sourceScale:seamDragSourceScale(h.index, 'before') };
       return;
     }
   }
@@ -2971,8 +2993,10 @@
     }
     if(drag.type === 'splitDraft'){
       const layout = computeLayout(true);
-      if(state.orientation === 'vertical') state.splitDraft.pos = clamp(Math.round(drag.pos + (w.y - drag.start.y)), 1, Math.max(1, layout.fullHeight-1));
-      else state.splitDraft.pos = clamp(Math.round(drag.pos + (w.x - drag.start.x)), 1, Math.max(1, layout.fullWidth-1));
+      const dx = (p.x - drag.startScreen.x) / Math.max(0.0001, state.zoom);
+      const dy = (p.y - drag.startScreen.y) / Math.max(0.0001, state.zoom);
+      if(state.orientation === 'vertical') state.splitDraft.pos = clamp(Math.round(drag.pos + dy), 1, Math.max(1, layout.fullHeight-1));
+      else state.splitDraft.pos = clamp(Math.round(drag.pos + dx), 1, Math.max(1, layout.fullWidth-1));
       requestRender(); return;
     }
     if(drag.type === 'cutLine'){
@@ -3137,9 +3161,10 @@
     if(['seamBefore','seamAfter','seamCenter'].includes(drag.type)){
       const s = state.seams[drag.index];
       const vertical = state.orientation === 'vertical';
-      const d = vertical
+      const layoutDelta = vertical
         ? Math.round((p.y - drag.startScreen.y) / Math.max(0.0001, state.zoom))
         : Math.round((p.x - drag.startScreen.x) / Math.max(0.0001, state.zoom));
+      const d = Math.round(layoutDelta / Math.max(0.0001, drag.sourceScale || 1));
       const a = state.images[drag.index];
       const b = state.images[drag.index+1];
       const maxBefore = vertical ? a.height - a.crop.top - a.crop.bottom - 1 : a.width - a.crop.left - a.crop.right - 1;
@@ -4083,7 +4108,6 @@
         state.mode = 'canvasCrop';
         state.exportQualityAuto = true;
       }
-      if(applied) toast('整体裁剪已分摊锁定');
     } finally {
       canvasCropCommitBusy = false;
     }
