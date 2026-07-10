@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.33 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.34 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -52,6 +52,7 @@
     .mode-btn:hover{border-color:#b8c1cf;background:#fff}
     .mode-btn.active{border-color:var(--accent-strong);background:#fff8d5;box-shadow:0 0 0 3px rgba(255,204,51,.18)}
     .mode-icon{width:22px;height:22px;display:grid;place-items:center;font-weight:800;font-size:16px;color:#111827}
+    .single-crop-icon{border:1.8px solid currentColor;border-radius:3px;font-size:12px;line-height:1}
     .mode-label{font-size:12px;font-weight:720;line-height:1.1}
     .mode-label span{display:block;color:var(--muted);font-size:10px;font-weight:500;margin-top:1px}
     .props{min-height:0;overflow:auto;padding:8px;background:linear-gradient(#fff,#f8fafc)}
@@ -65,6 +66,8 @@
     .row input[type="color"]{padding:3px;max-width:58px}
     .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
     .mini-btn{height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px;font-weight:650}
+    .stitch-action-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+    .stitch-action-row .mini-btn{height:32px;min-width:0}
     .desktop-compact-card{display:grid;gap:7px}
     .compact-row{display:flex;align-items:center;gap:7px;min-height:30px}
     .compact-row strong{font-size:12px;color:#334155;min-width:34px}
@@ -244,8 +247,10 @@
       .mobile-bottom{display:block;position:absolute;left:0;right:0;bottom:0;height:var(--mobilebar);background:rgba(255,255,255,.94);border-top:1px solid var(--line);z-index:6;backdrop-filter:blur(14px);padding-bottom:env(safe-area-inset-bottom)}
       .mobile-context-section{display:none;height:100%;align-items:center;gap:3px;padding:6px 5px;overflow-x:auto;overscroll-behavior-x:contain}
       .mobile-context-section.active{display:flex}
-      .mobile-mode,.mobile-tool-group{height:50px;min-width:50px;border:1px solid transparent;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#111827;font-weight:750;font-size:10px;flex:0 0 auto}
+      .mobile-mode,.mobile-tool-group{height:50px;width:64px;min-width:64px;border:1px solid transparent;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#111827;font-weight:750;font-size:10px;flex:0 0 auto}
       .mobile-mode .mi,.mobile-tool-group .mi{font-size:22px;line-height:1;color:#111827}
+      .mobile-mode .single-crop-icon,.mobile-tool-group .single-crop-icon{width:22px;height:22px;font-size:12px}
+      .stitch-extra-mark{font-size:12px;line-height:1;margin-left:1px;color:#64748b}
       .mobile-mode.active,.mobile-tool-group.active{color:var(--blue);background:#eff6ff;border-color:#bfdbfe}
       .mobile-mode.active .mi,.mobile-tool-group.active .mi{color:var(--blue)}
       .mobile-cut-controls{justify-content:center}
@@ -264,9 +269,9 @@
       .mobile-ratio-select,.mobile-ratio-input{height:30px;border:1px solid #d9dee7;border-radius:9px;background:#fff;font-weight:850;color:#0f172a}
       .mobile-ratio-select{width:82px;padding:0 6px}
       .mobile-ratio-input{width:58px;padding:0 7px}
-      .mobile-stitch-menu{position:absolute;left:8px;bottom:calc(var(--mobilebar) + 8px);z-index:28;display:none;grid-template-columns:repeat(2,86px);gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px)}
-      .mobile-stitch-menu.show{display:grid}
-      .mobile-stitch-menu .mini-btn{height:36px;font-size:12px}
+      .mobile-stitch-menu{position:absolute;left:8px;right:8px;bottom:calc(var(--mobilebar) + 8px);z-index:28;display:none;gap:6px;padding:8px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px);overflow-x:auto;white-space:nowrap}
+      .mobile-stitch-menu.show{display:flex}
+      .mobile-stitch-menu .mini-btn{height:36px;width:84px;min-width:84px;font-size:12px}
       .statusbar{display:none}
       .drop-hint{padding:22px;width:88%}
       .drop-hint h2{font-size:19px}
@@ -279,7 +284,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.33</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.34</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -360,15 +365,20 @@
 
   <aside class="sidebar">
     <section class="mode-panel">
-      <p class="mode-title">编辑模式</p>
+      <p class="mode-title">拼接</p>
       <div class="mode-grid">
         <button class="mode-btn active" data-mode="seam"><span class="mode-icon">☰</span><span class="mode-label">拼接线<span>调接缝/覆盖</span></span></button>
         <button class="mode-btn" data-mode="canvasCrop"><span class="mode-icon">▢</span><span class="mode-label">整体裁剪<span>裁最终长图</span></span></button>
-        <button class="mode-btn" data-mode="imageCrop"><span class="mode-icon">▢¹</span><span class="mode-label">单图裁剪<span>每张图四边</span></span></button>
+        <button class="mode-btn" data-mode="imageCrop"><span class="mode-icon single-crop-icon">1</span><span class="mode-label">单图裁剪<span>每张图四边</span></span></button>
         <button class="mode-btn" data-mode="divider"><span class="mode-icon">≡</span><span class="mode-label">分割线<span>整体插入接缝</span></span></button>
-        <button class="mode-btn" data-mode="tools"><span class="mode-icon">✎</span><span class="mode-label">工具<span>左侧工具栏</span></span></button>
-        <button class="mode-btn" data-mode="subtitle"><span class="mode-icon">▤</span><span class="mode-label">字幕<span>区域拼接</span></span></button>
+      </div>
+      <p class="mode-title">裁切</p>
+      <div class="mode-grid">
         <button class="mode-btn" data-mode="cut"><span class="mode-icon">#</span><span class="mode-label">裁切<span>拆页/九宫格</span></span></button>
+      </div>
+      <p class="mode-title">标注</p>
+      <div class="mode-grid">
+        <button class="mode-btn" data-mode="tools"><span class="mode-icon">✎</span><span class="mode-label">工具<span>左侧工具栏</span></span></button>
       </div>
     </section>
     <section class="props" id="props"></section>
@@ -438,9 +448,9 @@
   </div>
   <nav class="mobile-bottom" id="mobileContextBar">
     <div class="mobile-context-section mobile-stitch-actions active" id="mobileStitchActions" data-mobile-section-panel="stitch">
-      <button class="mobile-mode active" data-mode="seam" data-stitch-main="line"><span class="mi">☰</span><span>拼接线</span></button>
+      <button class="mobile-mode active" data-mode="seam" data-stitch-main="line"><span class="mi">☰<span class="stitch-extra-mark">···</span></span><span>拼接线</span></button>
       <button class="mobile-mode" data-mode="canvasCrop"><span class="mi">▢</span><span>整体裁剪</span></button>
-      <button class="mobile-mode" data-mode="imageCrop"><span class="mi">▢¹</span><span>单图裁剪</span></button>
+      <button class="mobile-mode" data-mode="imageCrop"><span class="mi single-crop-icon">1</span><span>单图裁剪</span></button>
       <button class="mobile-mode" data-mode="divider"><span class="mi">≡</span><span>分割线</span></button>
     </div>
     <div class="mobile-context-section mobile-cut-controls" id="mobileCutControls" data-mobile-section-panel="cut">
@@ -493,7 +503,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.33';
+  const APP_VERSION = 'v1.34';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -3240,11 +3250,21 @@
     return '';
   }
 
+  function stitchActionButtons(){
+    return `<div class="stitch-action-row">
+      <button class="mini-btn" data-stitch-action="manualStitch">手动拼接</button>
+      <button class="mini-btn" data-stitch-action="autoStitch">自动拼接</button>
+      <button class="mini-btn" data-stitch-action="autoSubtitle">自动字幕</button>
+      <button class="mini-btn" data-stitch-action="manualSubtitle">手动字幕</button>
+    </div>`;
+  }
+
   function seamProps(){
     const idx = state.selected?.type==='seam' ? state.selected.index : 0;
     const s = state.seams[idx];
-    if(!s) return `<div class="prop-card"></div>`;
+    if(!s) return `<div class="prop-card">${stitchActionButtons()}<p class="hint">当前只有一张图。</p></div>`;
     return `<div class="prop-card">
+      ${stitchActionButtons()}
       <div class="row"><label>上图/左图</label><input type="number" data-num="seam.beforeCrop" value="${s.beforeCrop}" min="0"></div>
       <div class="row"><label>下图/右图</label><input type="number" data-num="seam.afterCrop" value="${s.afterCrop}" min="0"></div>
       <div class="mini-grid">
@@ -3370,6 +3390,10 @@
 
     $('#autoSeamBtn')?.addEventListener('click', () => autoCurrentSeam());
     $('#resetSeamBtn')?.addEventListener('click', () => { const idx = selectedSeamIndex(); if(idx<0)return; pushHistory(); state.seams[idx].beforeCrop=0; state.seams[idx].afterCrop=0; renderProps(); requestRender(); });
+    $$('[data-stitch-action]', props).forEach(btn => btn.addEventListener('click', e => {
+      e.stopPropagation();
+      runStitchAction(btn.dataset.stitchAction);
+    }));
 
     $('#resetCanvasCrop')?.addEventListener('click', () => { pushHistory(); state.canvasCrop={top:0,right:0,bottom:0,left:0}; renderProps(); requestRender(); });
     $('#autoWhiteCanvas')?.addEventListener('click', () => { autoWhiteCanvas(); });
@@ -3955,6 +3979,62 @@
     return ['top','right','bottom','left'].some(k => Math.round(+c[k] || 0) > 0);
   }
 
+  function sourceCropFromLayoutIntersection(im, item, ix1, iy1, ix2, iy2){
+    const scale = Math.max(0.0001, item.scale || 1);
+    const left = clamp(Math.round(item.sx + (ix1 - item.dx) / scale), 0, im.width - 1);
+    const top = clamp(Math.round(item.sy + (iy1 - item.dy) / scale), 0, im.height - 1);
+    const rightEdge = clamp(Math.round(item.sx + (ix2 - item.dx) / scale), left + 1, im.width);
+    const bottomEdge = clamp(Math.round(item.sy + (iy2 - item.dy) / scale), top + 1, im.height);
+    return {
+      top,
+      right: Math.max(0, im.width - rightEdge),
+      bottom: Math.max(0, im.height - bottomEdge),
+      left
+    };
+  }
+
+  function applyCanvasCropToImages(full, crop){
+    const keep = {
+      x1: crop.left,
+      y1: crop.top,
+      x2: Math.max(crop.left + 1, full.fullWidth - crop.right),
+      y2: Math.max(crop.top + 1, full.fullHeight - crop.bottom)
+    };
+    const nextImages = [];
+    const oldSelectedId = state.selected?.type === 'image' ? state.images[state.selected.index]?.id : null;
+
+    for(const item of full.items){
+      const im = state.images[item.index];
+      if(!im) continue;
+      const ix1 = Math.max(item.dx, keep.x1);
+      const iy1 = Math.max(item.dy, keep.y1);
+      const ix2 = Math.min(item.dx + item.dw, keep.x2);
+      const iy2 = Math.min(item.dy + item.dh, keep.y2);
+      if(ix2 - ix1 < 0.5 || iy2 - iy1 < 0.5) continue;
+      im.crop = sourceCropFromLayoutIntersection(im, item, ix1, iy1, ix2, iy2);
+      nextImages.push(im);
+    }
+
+    if(!nextImages.length){
+      toast('裁剪范围过小');
+      return false;
+    }
+
+    state.images = nextImages;
+    syncSeams(true);
+    state.annotations.forEach(a => {
+      a.x = Math.round((a.x || 0) - crop.left);
+      a.y = Math.round((a.y || 0) - crop.top);
+    });
+    state.canvasCrop = {top:0,right:0,bottom:0,left:0};
+    state.splitDraft = null;
+    state.splitDraftManual = false;
+    state.cutLines = {imageId:null, rows:state.cutSettings.rows, cols:state.cutSettings.cols, x:[], y:[]};
+    const selectedIndex = oldSelectedId ? state.images.findIndex(im => im.id === oldSelectedId) : -1;
+    state.selected = state.images.length ? {type:'image', index:selectedIndex >= 0 ? selectedIndex : 0} : null;
+    return true;
+  }
+
   async function commitCanvasCrop(nextMode=null, nextOpts={}){
     if(canvasCropCommitBusy) return false;
     const full = computeLayout(true);
@@ -3967,46 +4047,24 @@
       return false;
     }
 
-    const width = Math.max(1, Math.round(full.fullWidth - crop.left - crop.right));
-    const height = Math.max(1, Math.round(full.fullHeight - crop.top - crop.bottom));
-    const maxSide = 32760;
-    if(width > maxSide || height > maxSide){
-      toast('裁剪后尺寸过大，建议分批处理');
-      renderProps(); requestRender();
-      return false;
-    }
-
     canvasCropCommitBusy = true;
+    let applied = false;
     try{
-      const out = document.createElement('canvas');
-      out.width = width;
-      out.height = height;
-      const oc = out.getContext('2d');
-      oc.fillStyle = '#fff'; oc.fillRect(0,0,out.width,out.height);
-      oc.save();
-      oc.translate(-crop.left, -crop.top);
-      drawComposition(oc, full, true, true);
-      oc.restore();
-
-      const base = state.images.length === 1 ? imageBaseName(state.images[0].name) : 'longshot';
-      const record = await canvasToImageRecord(out, `${base}_crop.png`);
-      state.images = [record];
-      state.seams = [];
-      state.annotations = [];
-      state.canvasCrop = {top:0,right:0,bottom:0,left:0};
-      state.splitDraft = null;
-      state.splitDraftManual = false;
-      state.cutLines = {imageId:null, rows:state.cutSettings.rows, cols:state.cutSettings.cols, x:[], y:[]};
-      state.selected = {type:'canvasCrop'};
-      state.mode = 'canvasCrop';
-      state.exportQualityAuto = true;
-      syncSeams(true);
+      applied = applyCanvasCropToImages(full, crop);
+      if(applied){
+        state.mode = 'canvasCrop';
+        state.exportQualityAuto = true;
+      }
       fitToView(false);
-      toast('整体裁剪已锁定');
+      if(applied) toast('整体裁剪已分摊锁定');
     } finally {
       canvasCropCommitBusy = false;
     }
 
+    if(!applied){
+      renderProps(); requestRender();
+      return false;
+    }
     if(nextMode && nextMode !== 'canvasCrop') setMode(nextMode, nextOpts);
     else { updateModeButtons(); renderProps(); requestRender(); }
     return true;

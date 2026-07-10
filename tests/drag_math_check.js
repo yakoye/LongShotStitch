@@ -46,4 +46,16 @@ if (!html.includes('commitCanvasCrop') || !html.includes("finishedActive?.kind =
   throw new Error('canvas crop done must commit the cropped result before the next tool uses it');
 }
 
+if (!html.includes('applyCanvasCropToImages')) {
+  throw new Error('canvas crop commit must distribute crop into original images instead of flattening');
+}
+
+const commitStart = html.indexOf('async function commitCanvasCrop');
+const commitEnd = html.indexOf('\n\n  async function generateSubtitleStitch', commitStart);
+if (commitStart < 0 || commitEnd < 0) throw new Error('commitCanvasCrop block missing');
+const commitBlock = html.slice(commitStart, commitEnd);
+if (commitBlock.includes('state.images = [record]')) {
+  throw new Error('canvas crop commit must not flatten all images into one record');
+}
+
 console.log('drag_math_check ok');
