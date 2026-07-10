@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.28 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.29 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -233,17 +233,17 @@
       .mobile-primary-mode{display:grid;place-items:center;font-weight:850;font-size:14px;color:#334155;border-bottom:2px solid transparent}
       .mobile-primary-mode.active{color:#0f172a;border-bottom-color:var(--accent-strong);background:#fff8d5}
       .mobile-bottom{display:block;position:absolute;left:0;right:0;bottom:0;height:var(--mobilebar);background:rgba(255,255,255,.94);border-top:1px solid var(--line);z-index:6;backdrop-filter:blur(14px);padding-bottom:env(safe-area-inset-bottom)}
-      .mobile-context-section{display:none;height:100%;align-items:center;gap:6px;padding:7px 8px;overflow-x:auto;overscroll-behavior-x:contain}
+      .mobile-context-section{display:none;height:100%;align-items:center;gap:3px;padding:6px 5px;overflow-x:auto;overscroll-behavior-x:contain}
       .mobile-context-section.active{display:flex}
-      .mobile-mode,.mobile-tool-group{height:52px;min-width:68px;border:1px solid transparent;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#111827;font-weight:750;font-size:11px;flex:0 0 auto}
-      .mobile-mode .mi,.mobile-tool-group .mi{font-size:24px;line-height:1;color:#111827}
+      .mobile-mode,.mobile-tool-group{height:50px;min-width:50px;border:1px solid transparent;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#111827;font-weight:750;font-size:10px;flex:0 0 auto}
+      .mobile-mode .mi,.mobile-tool-group .mi{font-size:22px;line-height:1;color:#111827}
       .mobile-mode.active,.mobile-tool-group.active{color:var(--blue);background:#eff6ff;border-color:#bfdbfe}
       .mobile-mode.active .mi,.mobile-tool-group.active .mi{color:var(--blue)}
-      .mobile-cut-controls{justify-content:center;gap:4px;flex-direction:column;align-items:stretch;overflow:hidden}
-      .mobile-cut-mode-tabs{display:flex;justify-content:center;gap:18px;height:22px;align-items:center}
-      .mobile-cut-mode-tab{border:0;background:transparent;padding:2px 2px;font-size:13px;font-weight:850;color:#475569;border-bottom:2px solid transparent}
-      .mobile-cut-mode-tab.active{color:#0f172a;border-bottom-color:var(--accent-strong)}
-      .mobile-cut-line{display:none;align-items:center;justify-content:center;gap:12px;min-height:38px;white-space:nowrap}
+      .mobile-cut-controls{justify-content:center}
+      .mobile-cut-tool{min-width:64px}
+      .mobile-cut-popover{position:absolute;left:8px;right:8px;bottom:calc(var(--mobilebar) + 8px);z-index:28;display:none;align-items:center;justify-content:center;gap:10px;padding:9px 10px;border:1px solid rgba(203,213,225,.94);border-radius:12px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px);overflow-x:auto;white-space:nowrap}
+      .mobile-cut-popover.show{display:flex}
+      .mobile-cut-line{display:none;align-items:center;justify-content:center;gap:10px;min-height:36px;white-space:nowrap}
       .mobile-cut-line.active{display:flex}
       .mobile-split-unit{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:850;color:#0f172a}
       .mobile-split-unit button,.mobile-ok-btn{width:30px;height:30px;border:1px solid #d9dee7;border-radius:9px;background:#f8fafc;font-size:17px;font-weight:900}
@@ -270,7 +270,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.28</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.29</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -403,6 +403,30 @@
     <button class="mini-btn" data-stitch-action="autoSubtitle">自动字幕</button>
     <button class="mini-btn" data-stitch-action="manualSubtitle">手动字幕</button>
   </div>
+  <div class="mobile-cut-popover" id="mobileCutPopover">
+    <div class="mobile-cut-line mobile-split-controls" id="mobileSplitControls">
+      <span class="mobile-split-unit"><button data-mobile-cut-step="rows:-1">−</button><span class="mobile-cut-value" id="mobileCutRowsValue">3</span><span class="mobile-cut-label">行</span><button data-mobile-cut-step="rows:1">+</button></span>
+      <span class="mobile-split-unit"><button data-mobile-cut-step="cols:-1">−</button><span class="mobile-cut-value" id="mobileCutColsValue">1</span><span class="mobile-cut-label">列</span><button data-mobile-cut-step="cols:1">+</button></span>
+      <button class="mobile-ok-btn" data-mobile-split="ok">ok</button>
+    </div>
+    <div class="mobile-cut-line mobile-crop-controls" id="mobileCropControls">
+      <button class="mobile-ratio-free" data-mobile-crop-ratio="free">自由</button>
+      <select class="mobile-ratio-select" id="cropRatioSelect" aria-label="裁剪比例">
+        <option value="1:1">1:1</option>
+        <option value="2:3">竖 2:3</option>
+        <option value="3:4">竖 3:4</option>
+        <option value="5:7">竖 5:7</option>
+        <option value="9:16">竖 9:16</option>
+        <option value="3:2">横 3:2</option>
+        <option value="4:3">横 4:3</option>
+        <option value="7:5">横 7:5</option>
+        <option value="16:9">横 16:9</option>
+        <option value="custom">自定义</option>
+      </select>
+      <input class="mobile-ratio-input" id="customRatioInput" value="1:3" inputmode="decimal" aria-label="自定义裁剪比例" hidden>
+      <button class="mobile-ok-btn" data-mobile-crop="ok">ok</button>
+    </div>
+  </div>
   <nav class="mobile-bottom" id="mobileContextBar">
     <div class="mobile-context-section mobile-stitch-actions active" id="mobileStitchActions" data-mobile-section-panel="stitch">
       <button class="mobile-mode active" data-mode="seam" data-stitch-main="line"><span class="mi">☰</span><span>拼接线</span></button>
@@ -411,32 +435,8 @@
       <button class="mobile-mode" data-mode="divider"><span class="mi">≡</span><span>分割线</span></button>
     </div>
     <div class="mobile-context-section mobile-cut-controls" id="mobileCutControls" data-mobile-section-panel="cut">
-      <div class="mobile-cut-mode-tabs" id="mobileCutModeTabs">
-        <button class="mobile-cut-mode-tab active" data-mobile-cut-mode="split">分割</button>
-        <button class="mobile-cut-mode-tab" data-mobile-cut-mode="crop">裁剪</button>
-      </div>
-      <div class="mobile-cut-line mobile-split-controls active" id="mobileSplitControls">
-        <span class="mobile-split-unit"><button data-mobile-cut-step="rows:-1">−</button><span class="mobile-cut-value" id="mobileCutRowsValue">3</span><span class="mobile-cut-label">行</span><button data-mobile-cut-step="rows:1">+</button></span>
-        <span class="mobile-split-unit"><button data-mobile-cut-step="cols:-1">−</button><span class="mobile-cut-value" id="mobileCutColsValue">1</span><span class="mobile-cut-label">列</span><button data-mobile-cut-step="cols:1">+</button></span>
-        <button class="mobile-ok-btn" data-mobile-split="ok">ok</button>
-      </div>
-      <div class="mobile-cut-line mobile-crop-controls" id="mobileCropControls">
-        <button class="mobile-ratio-free" data-mobile-crop-ratio="free">自由</button>
-        <select class="mobile-ratio-select" id="cropRatioSelect" aria-label="裁剪比例">
-          <option value="1:1">1:1</option>
-          <option value="2:3">竖 2:3</option>
-          <option value="3:4">竖 3:4</option>
-          <option value="5:7">竖 5:7</option>
-          <option value="9:16">竖 9:16</option>
-          <option value="3:2">横 3:2</option>
-          <option value="4:3">横 4:3</option>
-          <option value="7:5">横 7:5</option>
-          <option value="16:9">横 16:9</option>
-          <option value="custom">自定义</option>
-        </select>
-        <input class="mobile-ratio-input" id="customRatioInput" value="1:3" inputmode="decimal" aria-label="自定义裁剪比例" hidden>
-        <button class="mobile-ok-btn" data-mobile-crop="ok">ok</button>
-      </div>
+      <button class="mobile-tool-group mobile-cut-tool active" data-mobile-cut-mode="split"><span class="mi">☷</span><span>分割</span></button>
+      <button class="mobile-tool-group mobile-cut-tool" data-mobile-cut-mode="crop"><span class="mi">▢</span><span>裁剪</span></button>
     </div>
     <div class="mobile-context-section mobile-annotation-tools" id="mobileAnnotationTools" data-mobile-section-panel="annotate">
       <button class="mobile-tool-group active" data-tool-group="select"><span class="mi">⌖</span><span>选择</span></button>
@@ -472,6 +472,7 @@
   const mobileInfoMenu = $('#mobileInfoMenu');
   const mobileInfoText = $('#mobileInfoText');
   const mobileStitchMenu = $('#mobileStitchMenu');
+  const mobileCutPopover = $('#mobileCutPopover');
   const exportMenu = $('#exportMenu');
   const toolDock = $('#toolDock');
   const toolPopover = $('#toolPopover');
@@ -483,7 +484,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.28';
+  const APP_VERSION = 'v1.29';
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -514,6 +515,7 @@
     mobileSection: 'stitch',
     mobileStitchMenuOpen: false,
     mobileCutSubmode: 'split',
+    mobileCutPopoverOpen: false,
     exportMenuOpen: false,
     splitDraft: null,
     splitDraftManual: false,
@@ -3462,7 +3464,7 @@
     $$('.mobile-tool-group').forEach(b => b.classList.toggle('active', b.dataset.toolGroup === (state.toolSettings.group || 'select')));
     $('#mobileCutRowsValue') && ($('#mobileCutRowsValue').textContent = String(clamp(state.cutSettings.rows, 1, 12)));
     $('#mobileCutColsValue') && ($('#mobileCutColsValue').textContent = String(clamp(state.cutSettings.cols, 1, 12)));
-    $$('.mobile-cut-mode-tab').forEach(b => b.classList.toggle('active', b.dataset.mobileCutMode === (state.mobileCutSubmode || 'split')));
+    $$('.mobile-cut-tool').forEach(b => b.classList.toggle('active', b.dataset.mobileCutMode === (state.mobileCutSubmode || 'split')));
     $('#mobileSplitControls')?.classList.toggle('active', (state.mobileCutSubmode || 'split') === 'split');
     $('#mobileCropControls')?.classList.toggle('active', (state.mobileCutSubmode || 'split') === 'crop');
     $('#cropRatioSelect') && ($('#cropRatioSelect').value = state.cutCropRatio === 'free' ? '1:1' : (state.cutCropRatio || '1:1'));
@@ -3480,6 +3482,7 @@
   function setMobileSection(section){
     state.mobileSection = section;
     state.mobileStitchMenuOpen = false;
+    state.mobileCutPopoverOpen = false;
     if(section === 'cut'){
       if((state.mobileCutSubmode || 'split') === 'crop') setMode('imageCrop', {mobileSection:'cut'});
       else setMode('cut', {mobileSection:'cut'});
@@ -3488,12 +3491,18 @@
     else if(!['seam','canvasCrop','imageCrop','divider','subtitle'].includes(state.mode)) setMode('seam');
     updateModeButtons();
     renderMobileStitchMenu();
+    renderMobileCutPopover();
     requestRender();
   }
 
   function renderMobileStitchMenu(){
     if(!mobileStitchMenu) return;
     mobileStitchMenu.classList.toggle('show', !!state.mobileStitchMenuOpen && isMobileLayout() && state.mobileSection === 'stitch');
+  }
+
+  function renderMobileCutPopover(){
+    if(!mobileCutPopover) return;
+    mobileCutPopover.classList.toggle('show', !!state.mobileCutPopoverOpen && isMobileLayout() && state.mobileSection === 'cut');
   }
 
   function openStitchLineMenu(){
@@ -3543,6 +3552,7 @@
     renderMobileFileMenu();
     renderMobileInfoMenu();
     renderMobileStitchMenu();
+    renderMobileCutPopover();
     renderExportMenu();
     updateUndoRedo();
   }
@@ -3567,11 +3577,15 @@
   }
 
   function setMobileCutSubmode(mode){
+    const next = mode === 'crop' ? 'crop' : 'split';
+    const same = state.mobileSection === 'cut' && state.mobileCutSubmode === next;
     state.mobileSection = 'cut';
-    state.mobileCutSubmode = mode === 'crop' ? 'crop' : 'split';
+    state.mobileCutSubmode = next;
+    state.mobileCutPopoverOpen = same ? !state.mobileCutPopoverOpen : true;
     if(state.mobileCutSubmode === 'split') setMode('cut', {mobileSection:'cut'});
     else setMode('imageCrop', {mobileSection:'cut'});
     updateModeButtons();
+    renderMobileCutPopover();
     renderProps();
     requestRender();
   }
@@ -3765,9 +3779,11 @@
     state.mobileInfoOpen = false;
     state.exportMenuOpen = false;
     state.mobileStitchMenuOpen = false;
+    state.mobileCutPopoverOpen = false;
     renderMobileFileMenu();
     renderMobileInfoMenu();
     renderMobileStitchMenu();
+    renderMobileCutPopover();
     renderExportMenu();
   }
 
@@ -3780,6 +3796,7 @@
       state.mobileFileOpen = false;
       state.exportMenuOpen = false;
       state.mobileStitchMenuOpen = false;
+      if((opts.mobileSection || sectionForMode(m)) !== 'cut') state.mobileCutPopoverOpen = false;
       state.mobileToolPopoverOpen = false;
       hideToolPopover();
     }
@@ -3964,6 +3981,7 @@
     if(!state.images.length){ toast('请先导入图片'); return; }
     const ratioKey = state.cutCropRatio || '1:1';
     state.mobileCutSubmode = 'crop';
+    state.mobileCutPopoverOpen = false;
     if(ratioKey === 'free'){
       setMode('imageCrop', {mobileSection:'cut'});
       toast('自由裁剪');
@@ -4032,6 +4050,7 @@
   function completeCutEditing(){
     if(!state.images.length) return;
     state.mobileCutSubmode = 'split';
+    state.mobileCutPopoverOpen = false;
     ensureCutLines(false);
     state.mode = 'cut';
     state.mobileSection = 'cut';
@@ -4452,7 +4471,7 @@
     const [axis, delta] = btn.dataset.mobileCutStep.split(':');
     stepMobileCut(axis, Math.round(+delta || 0));
   }));
-  $$('[data-mobile-cut-mode]').forEach(btn => btn.addEventListener('click', () => setMobileCutSubmode(btn.dataset.mobileCutMode)));
+  $$('[data-mobile-cut-mode]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); setMobileCutSubmode(btn.dataset.mobileCutMode); }));
   $('[data-mobile-split="ok"]')?.addEventListener('click', () => completeCutEditing());
   $('[data-mobile-crop="ok"]')?.addEventListener('click', () => applyCropRatio());
   $('[data-mobile-crop-ratio="free"]')?.addEventListener('click', () => {
@@ -4464,7 +4483,7 @@
     updateModeButtons();
   });
   $('#customRatioInput')?.addEventListener('input', e => { state.customCropRatio = e.target.value; });
-  $$('.mobile-tool-group').forEach(btn => btn.addEventListener('click', e => {
+  $$('.mobile-tool-group[data-tool-group]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
     setToolGroup(btn.dataset.toolGroup);
   }));
@@ -4476,8 +4495,8 @@
   document.addEventListener('pointerup', endNavDrag);
   document.addEventListener('pointercancel', endNavDrag);
   document.addEventListener('pointerdown', e => {
-    if(mobileFileMenu?.contains(e.target) || $('#mobileFileBtn')?.contains(e.target) || mobileInfoMenu?.contains(e.target) || $('#mobileInfoBtn')?.contains(e.target) || exportMenu?.contains(e.target) || $('#exportBtn')?.contains(e.target) || mobileStitchMenu?.contains(e.target)) return;
-    if(state.mobileFileOpen || state.mobileInfoOpen || state.exportMenuOpen || state.mobileStitchMenuOpen) closeTopMenus();
+    if(mobileFileMenu?.contains(e.target) || $('#mobileFileBtn')?.contains(e.target) || mobileInfoMenu?.contains(e.target) || $('#mobileInfoBtn')?.contains(e.target) || exportMenu?.contains(e.target) || $('#exportBtn')?.contains(e.target) || mobileStitchMenu?.contains(e.target) || mobileCutPopover?.contains(e.target)) return;
+    if(state.mobileFileOpen || state.mobileInfoOpen || state.exportMenuOpen || state.mobileStitchMenuOpen || state.mobileCutPopoverOpen) closeTopMenus();
   });
 
   document.addEventListener('paste', async e => {
