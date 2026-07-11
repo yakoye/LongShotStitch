@@ -148,6 +148,7 @@
     .tool-dock-btn.active{background:#eff6ff;border-color:#3b82f6;color:#2563eb;box-shadow:0 0 0 2px rgba(59,130,246,.16)}
     .tool-dock-btn.danger.active{background:#fff1f2;border-color:#ef4444;color:#ef4444}
     .tool-dock-btn svg{width:20px;height:20px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .mosaic-mask-icon{width:22px;height:22px;display:block;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .tool-dock-sep{width:1px;height:22px;background:#e5e7eb;margin:0 2px;flex:0 0 auto}
     .tool-popover{position:absolute;z-index:13;display:none;min-width:0;max-width:min(430px,calc(100% - 16px));max-height:min(320px,calc(100% - 18px));overflow:auto;padding:6px;border:1px solid rgba(203,213,225,.94);border-radius:11px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px);pointer-events:auto}
     .tool-popover.show{display:block}
@@ -258,6 +259,7 @@
       .mobile-context-section.active{display:flex}
       .mobile-mode,.mobile-tool-group{height:50px;width:64px;min-width:64px;border:1px solid transparent;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#111827;font-weight:750;font-size:10px;flex:0 0 auto}
       .mobile-mode .mi,.mobile-tool-group .mi{font-size:22px;line-height:1;color:#111827}
+      .mobile-mode .mi svg,.mobile-tool-group .mi svg{width:22px;height:22px}
       .mobile-mode .single-crop-icon,.mobile-tool-group .single-crop-icon{width:22px;height:22px;font-size:12px}
       .stitch-extra-mark{font-size:12px;line-height:1;margin-left:1px;color:#64748b}
       .mobile-mode.active,.mobile-tool-group.active{color:var(--blue);background:#eff6ff;border-color:#bfdbfe}
@@ -489,7 +491,7 @@
       <button class="mobile-tool-group" data-tool-group="arrow"><span class="mi">↗</span><span>箭头</span></button>
       <button class="mobile-tool-group" data-tool-group="pen"><span class="mi">✎</span><span>画笔</span></button>
       <button class="mobile-tool-group" data-tool-group="text"><span class="mi">T</span><span>文字</span></button>
-      <button class="mobile-tool-group" data-tool-group="mosaic"><span class="mi">▦</span><span>马赛克</span></button>
+      <button class="mobile-tool-group" data-tool-group="mosaic" aria-label="马赛克"><span class="mi"><svg class="mosaic-mask-icon" viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="2"/><path d="M8 15h2M12 15h2M16 15h1M8 11h1M12 11h2M16 11h1"/><path d="M5 19L19 5"/></svg></span><span>马赛克</span></button>
       <button class="mobile-tool-group" data-tool-group="shape"><span class="mi">□</span><span>形状</span></button>
       <button class="mobile-tool-group" data-tool-group="badge"><span class="mi">①</span><span>标号</span></button>
       <button class="mobile-tool-group" data-tool-group="eraser"><span class="mi">⌫</span><span>橡皮</span></button>
@@ -1844,7 +1846,7 @@
     arrow:'<svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><path d="M10 5h9v9"/></svg>',
     text:'<svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M12 6v12"/><path d="M8 18h8"/></svg>',
     badge:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8"/><path d="M10 10l2-2 2 2"/></svg>',
-    mosaic:'<svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>',
+    mosaic:'<svg class="mosaic-mask-icon" viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="2"/><path d="M8 15h2M12 15h2M16 15h1M8 11h1M12 11h2M16 11h1"/><path d="M5 19L19 5"/></svg>',
     eraser:'<svg viewBox="0 0 24 24"><path d="M4 16l8-8 6 6-6 6H8z"/><path d="M12 20h8"/></svg>',
     watermark:'<svg viewBox="0 0 24 24"><path d="M4 16c3-8 13-8 16 0"/><path d="M7 16c2-4 8-4 10 0"/><path d="M9 9h6"/><path d="M12 6v6"/></svg>',
     line:'<svg viewBox="0 0 24 24"><path d="M5 19L19 5"/></svg>',
@@ -2163,7 +2165,7 @@
       compactRow(`<input class="tiny-number" type="number" data-tool-setting="badgeNumber" value="${Math.round(+s.badgeNumber||1)}" min="1" max="9999" step="1" title="编号">${colorPalette('badgeColor',s.badgeColor||'#2f80ed')}${sizeButtons('badgeSize',s.badgeSize||34,14,120)}`)
     );
     if(g === 'mosaic') return compactPanel(
-      compactRow(`${chip('mosaicKind','mosaic',s.mosaicKind!=='free','▦','矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}${widthControl('mosaicGrid',s.mosaicGrid||14,4,80)}`)
+      compactRow(`${chip('mosaicKind','mosaic',s.mosaicKind!=='free',svgIcon('mosaic'),'矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}${widthControl('mosaicGrid',s.mosaicGrid||14,4,80)}`)
     );
     if(g === 'eraser') return compactPanel(compactRow(`${widthControl('eraserSize',s.eraserSize||24,4,120,false,[4,8,16,32])}`));
     if(g === 'watermark') return compactPanel(

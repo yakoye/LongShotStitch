@@ -170,7 +170,10 @@ const required = [
   'annotationRotate',
   'textVertical',
   'syncBadgeSequence',
-  'c.clip()'
+  'c.clip()',
+  'mosaic-mask-icon',
+  'aria-label="马赛克"',
+  'svgIcon(\'mosaic\')'
 ];
 const emptyDropRequired = [
   'id="dropHint" tabindex="0"',
@@ -187,7 +190,7 @@ for (const token of emptyDropRequired) {
 for (const token of required) {
   if (!html.includes(token)) throw new Error(`missing token: ${token}`);
 }
-for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }", "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\"", "id=\"previewBtn\"", "id=\"mobileMoreBtn\"", "id=\"mobileVerticalBtn\"", "id=\"mobileHorizontalBtn\"", "data-mobile-action=\"paste\"", "mobile-more-menu", "exportCutPanel", "exportCutSize", "exportCutModeSelect", "applyExportCutSettings", "cutExportSizeText", "切割", "mobile-cut-mode-tabs", "<button class=\"mode-btn\" data-mode=\"subtitle\"", "id=\"autoStitchBtn\""]) {
+for (const token of ["if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }", "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\"", "id=\"previewBtn\"", "id=\"mobileMoreBtn\"", "id=\"mobileVerticalBtn\"", "id=\"mobileHorizontalBtn\"", "data-mobile-action=\"paste\"", "mobile-more-menu", "exportCutPanel", "exportCutSize", "exportCutModeSelect", "applyExportCutSettings", "cutExportSizeText", "切割", "mobile-cut-mode-tabs", "<button class=\"mode-btn\" data-mode=\"subtitle\"", "id=\"autoStitchBtn\"", "<span class=\"mi\">▦</span>", "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z", "'▦','矩形马赛克'"]) {
   if (html.includes(token)) throw new Error(`forbidden token remains: ${token}`);
 }
 if (html.includes('整体裁剪已分摊锁定')) throw new Error('internal canvas crop lock toast should not be shown');
