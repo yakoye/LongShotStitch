@@ -6,7 +6,13 @@ const html = fs.readFileSync(file, 'utf8');
 
 const required = [
   'TOOL_DRAG_THRESHOLD',
+  'pathExtents',
+  'imageDataStore',
+  'patchDataStore',
+  'snapshot(forHistory=false)',
+  'function onPointerCancel',
   'shouldCommitToolDraft',
+  'commitToolDraft',
   'cancelToolDraft',
   "group === 'marquee'",
   "toolArmed === 'marquee'",
@@ -69,15 +75,53 @@ if (!overlayBlock.includes('isFreePathAnnotation(a)')) {
   throw new Error('free paths must have a dedicated selection-overlay rule');
 }
 
-const commitSource = blockBetween('function shouldCommitToolDraft', 'function cancelToolDraft').trim();
-const shouldCommit = new Function('TOOL_DRAG_THRESHOLD', 'isFreePathAnnotation', `return (${commitSource});`)(
+const commitSource = blockBetween('function shouldCommitToolDraft', 'function commitToolDraft').trim();
+const pathSource = blockBetween('function pathExtents', 'function pointSegmentDistance').trim();
+const pathExtents = new Function(`return (${pathSource});`)();
+const shouldCommit = new Function('TOOL_DRAG_THRESHOLD', 'isFreePathAnnotation', 'pathExtents', `return (${commitSource});`)(
   6,
-  a => ['pen', 'highlight', 'mosaicPen'].includes(a?.type)
+  a => ['pen', 'highlight', 'mosaicPen'].includes(a?.type),
+  pathExtents
 );
 if (shouldCommit({type:'arrow', w:0, h:0})) throw new Error('a click must not create an arrow');
 if (shouldCommit({type:'box', w:3, h:4})) throw new Error('a sub-threshold shape drag must be cancelled');
 if (!shouldCommit({type:'box', w:6, h:0})) throw new Error('a threshold-length shape drag must commit');
 if (shouldCommit({type:'pen', points:[{x:0,y:0}]})) throw new Error('one pencil point must be cancelled');
 if (!shouldCommit({type:'pen', points:[{x:0,y:0},{x:6,y:0}]})) throw new Error('a valid pencil stroke must commit');
+const longPath = Array.from({length:120000}, (_,i)=>({x:i,y:i%7}));
+const extents = pathExtents(longPath);
+if (extents.minX !== 0 || extents.maxX !== 119999 || extents.minY !== 0 || extents.maxY !== 6) {
+  throw new Error('large pencil paths must compute bounds without spread-argument limits');
+}
+
+const cancelBlock = blockBetween('function cancelToolDraft', 'function addAnnotation');
+if (cancelBlock.includes('future = []') || cancelBlock.includes('history.pop()')) {
+  throw new Error('cancelling a no-op tool draft must preserve undo and redo history');
+}
+const commitBlock = blockBetween('function commitToolDraft', 'function cancelToolDraft');
+if (!commitBlock.includes('history.push(finished.historySnapshot)')) {
+  throw new Error('tool history must be recorded only when a real drag commits');
+}
+
+const pointerCancelBlock = blockBetween('function onPointerCancel', 'function getPointer');
+if (!pointerCancelBlock.includes("finished?.type === 'toolCreate'") || !pointerCancelBlock.includes('cancelToolDraft(finished)')) {
+  throw new Error('pointercancel must discard an unfinished drawing instead of committing it');
+}
+if (!pointerCancelBlock.includes("finished?.type === 'marqueeCreate'") || !pointerCancelBlock.includes('state.selectionDraft = null')) {
+  throw new Error('pointercancel must discard an unfinished marquee selection');
+}
+if (html.includes("stage.addEventListener('pointercancel', onPointerUp)")) {
+  throw new Error('pointercancel must not share the normal pointerup commit path');
+}
+
+const snapshotBlock = blockBetween('function snapshot(forHistory=false)', 'function pushHistory');
+if (!snapshotBlock.includes('if(!forHistory) record.dataUrl = im.dataUrl')) {
+  throw new Error('project saves must retain image data while history snapshots use references');
+}
+if (!snapshotBlock.includes('if(forHistory) delete record.dataUrl')) {
+  throw new Error('history snapshots must not duplicate patch base64 data');
+}
+const historyBlock = blockBetween('function pushHistory', 'function updateUndoRedo');
+if (!historyBlock.includes('snapshot(true)')) throw new Error('undo history must use lightweight snapshots');
 
 console.log('tool_interaction_check ok');

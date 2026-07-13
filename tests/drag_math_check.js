@@ -51,7 +51,8 @@ if (!html.includes('applyCanvasCropToImages')) {
 }
 
 const commitStart = html.indexOf('async function commitCanvasCrop');
-const commitEnd = html.indexOf('\n\n  async function generateSubtitleStitch', commitStart);
+const commitTail = html.slice(commitStart).search(/\r?\n\r?\n  async function generateSubtitleStitch/);
+const commitEnd = commitTail < 0 ? -1 : commitStart + commitTail;
 if (commitStart < 0 || commitEnd < 0) throw new Error('commitCanvasCrop block missing');
 const commitBlock = html.slice(commitStart, commitEnd);
 if (commitBlock.includes('state.images = [record]')) {

@@ -600,6 +600,8 @@
   let exportEstimateTimer = null;
   let exportEstimateSeq = 0;
   const patchImageCache = new Map();
+  const imageDataStore = new Map();
+  const patchDataStore = new Map();
 
   function toast(msg){
     toastEl.textContent = msg;
@@ -612,20 +614,36 @@
     alert(`LongShotStitch ${APP_VERSION}\n长图拼裁工具`);
   }
 
-  function snapshot(){
+  function snapshot(forHistory=false){
+    const snapshotImages = state.images.map(im => {
+      if(im.id && im.dataUrl) imageDataStore.set(im.id, im.dataUrl);
+      const record = {
+        id: im.id, name: im.name, fileSize: im.fileSize || 0,
+        width: im.width, height: im.height, sourceWidth: im.sourceWidth || im.width, sourceHeight: im.sourceHeight || im.height,
+        crop: {...im.crop}
+      };
+      if(!forHistory) record.dataUrl = im.dataUrl;
+      return record;
+    });
+    const snapshotAnnotations = state.annotations.map(a => {
+      const record = {...a};
+      if(a?.type === 'patch' && a.dataUrl){
+        const ref = a.dataRef || a.id;
+        record.dataRef = ref;
+        patchDataStore.set(ref, a.dataUrl);
+        if(forHistory) delete record.dataUrl;
+      }
+      return record;
+    });
     return JSON.stringify({
       orientation: state.orientation,
       mode: state.mode,
       selected: state.selected,
       autoStitchEnabled: !!state.autoStitchEnabled,
-      images: state.images.map(im => ({
-        id: im.id, name: im.name, dataUrl: im.dataUrl, fileSize: im.fileSize || 0,
-        width: im.width, height: im.height, sourceWidth: im.sourceWidth || im.width, sourceHeight: im.sourceHeight || im.height,
-        crop: {...im.crop}
-      })),
+      images: snapshotImages,
       seams: state.seams.map(s => ({...s, divider: s.divider ? {...s.divider} : null})),
       canvasCrop: {...state.canvasCrop},
-      annotations: state.annotations.map(a => ({...a})),
+      annotations: snapshotAnnotations,
       selectionDraft: state.selectionDraft ? {...state.selectionDraft} : null,
       toolSettings: {...state.toolSettings},
       toolArmed: state.toolArmed,
@@ -645,7 +663,7 @@
   }
 
   function pushHistory(){
-    history.push(snapshot());
+    history.push(snapshot(true));
     if(history.length > 80) history.shift();
     future = [];
     updateUndoRedo();
@@ -665,7 +683,15 @@
     state.autoStitchEnabled = !!data.autoStitchEnabled;
     state.canvasCrop = data.canvasCrop || {top:0,right:0,bottom:0,left:0};
     state.seams = data.seams || [];
-    state.annotations = data.annotations || [];
+    state.annotations = (data.annotations || []).map(raw => {
+      const a = {...raw};
+      if(a.type === 'patch'){
+        const ref = a.dataRef || a.id;
+        const dataUrl = a.dataUrl || patchDataStore.get(ref);
+        if(dataUrl){ a.dataUrl = dataUrl; a.dataRef = ref; patchDataStore.set(ref,dataUrl); }
+      }
+      return a;
+    });
     state.selectionDraft = data.selectionDraft || null;
     state.toolSettings = {...state.toolSettings, ...(data.toolSettings || {})};
     state.toolArmed = data.toolArmed || null;
@@ -684,11 +710,14 @@
     state.activeHandle = null;
     const imgs = [];
     for(const raw of data.images || []){
-      const img = await loadImage(raw.dataUrl);
+      const dataUrl = raw.dataUrl || imageDataStore.get(raw.id);
+      if(!dataUrl) throw new Error(`missing image data: ${raw.id || 'unknown'}`);
+      imageDataStore.set(raw.id,dataUrl);
+      const img = await loadImage(dataUrl);
       const record = makeImageRecord({
         id: raw.id,
         name: raw.name,
-        dataUrl: raw.dataUrl,
+        dataUrl,
         fileSize: raw.fileSize || 0,
         img,
         crop: raw.crop || {top:0,right:0,bottom:0,left:0}
@@ -708,14 +737,14 @@
 
   function undo(){
     if(!history.length) return;
-    future.push(snapshot());
+    future.push(snapshot(true));
     const last = history.pop();
     restoreFromSnapshot(last);
     updateUndoRedo();
   }
   function redo(){
     if(!future.length) return;
-    history.push(snapshot());
+    history.push(snapshot(true));
     const next = future.pop();
     restoreFromSnapshot(next);
     updateUndoRedo();
@@ -2403,21 +2432,29 @@
   async function captureSelectionBitmap(){
     const bounds = normalizedSelectionBounds();
     if(!bounds || !state.selectionDraft?.ready) return null;
-    if(bounds.w > 8192 || bounds.h > 8192 || bounds.w * bounds.h > MAX_SELECTION_PIXELS){
+    const maxSide = isMobileLayout() ? 4096 : 8192;
+    const maxPixels = isMobileLayout() ? 6_000_000 : MAX_SELECTION_PIXELS;
+    if(bounds.w > maxSide || bounds.h > maxSide || bounds.w * bounds.h > maxPixels){
       toast('选区过大，请缩小后再复制');
       return null;
     }
-    await ensurePatchImagesReady();
-    const out = document.createElement('canvas');
-    out.width = Math.max(1, bounds.w);
-    out.height = Math.max(1, bounds.h);
-    const oc = out.getContext('2d');
-    const full = computeLayout(true);
-    oc.save();
-    oc.translate(-bounds.x, -bounds.y);
-    drawComposition(oc, full, true, true);
-    oc.restore();
-    return {kind:'bitmap', dataUrl:out.toDataURL('image/png'), width:bounds.w, height:bounds.h, sourceX:bounds.x, sourceY:bounds.y, pasteCount:0};
+    try{
+      await ensurePatchImagesReady();
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, bounds.w);
+      out.height = Math.max(1, bounds.h);
+      const oc = out.getContext('2d');
+      if(!oc) throw new Error('canvas unavailable');
+      const full = computeLayout(true);
+      oc.save();
+      oc.translate(-bounds.x, -bounds.y);
+      drawComposition(oc, full, true, true);
+      oc.restore();
+      return {kind:'bitmap', dataUrl:out.toDataURL('image/png'), width:bounds.w, height:bounds.h, sourceX:bounds.x, sourceY:bounds.y, pasteCount:0};
+    }catch(e){
+      toast('选区复制失败，请缩小选区后重试');
+      return null;
+    }
   }
 
   async function copyPixelSelection(){
@@ -2470,7 +2507,9 @@
       a.x = Math.round((a.x || 0) + offset);
       a.y = Math.round((a.y || 0) + offset);
     } else {
-      a = {id:uid('ann'), type:'patch', x:Math.round((clip.sourceX || 0) + offset), y:Math.round((clip.sourceY || 0) + offset), w:clip.width, h:clip.height, dataUrl:clip.dataUrl, opacity:1};
+      const id = uid('ann');
+      a = {id, dataRef:id, type:'patch', x:Math.round((clip.sourceX || 0) + offset), y:Math.round((clip.sourceY || 0) + offset), w:clip.width, h:clip.height, dataUrl:clip.dataUrl, opacity:1};
+      patchDataStore.set(id,clip.dataUrl);
     }
     state.annotations.push(a);
     state.selected = {type:'annotation', index:state.annotations.length - 1};
@@ -2489,6 +2528,19 @@
   function isLineAnnotation(a){ return a && ['line','arrow','doubleArrow'].includes(a.type); }
   function isFreePathAnnotation(a){ return a && ['pen','highlight','mosaicPen'].includes(a.type); }
 
+  function pathExtents(points){
+    if(!points?.length) return null;
+    let minX=points[0].x, maxX=points[0].x, minY=points[0].y, maxY=points[0].y;
+    for(let i=1;i<points.length;i++){
+      const p=points[i];
+      if(p.x<minX) minX=p.x;
+      if(p.x>maxX) maxX=p.x;
+      if(p.y<minY) minY=p.y;
+      if(p.y>maxY) maxY=p.y;
+    }
+    return {minX,maxX,minY,maxY};
+  }
+
   function pointSegmentDistance(p, a, b){
     const dx=b.x-a.x, dy=b.y-a.y;
     const len2=dx*dx+dy*dy;
@@ -2499,16 +2551,30 @@
   function annotationPointDistance(a, p){
     if(isLineAnnotation(a)) return pointSegmentDistance(p,{x:a.x||0,y:a.y||0},{x:(a.x||0)+(a.w||0),y:(a.y||0)+(a.h||0)});
     if(isFreePathAnnotation(a)){
-      const pts=(a.points||[]).map(v=>({x:(a.x||0)+v.x,y:(a.y||0)+v.y}));
+      const pts=a.points||[];
       if(!pts.length) return Infinity;
-      if(pts.length===1) return Math.hypot(p.x-pts[0].x,p.y-pts[0].y);
+      const ox=a.x||0, oy=a.y||0;
+      if(pts.length===1) return Math.hypot(p.x-(ox+pts[0].x),p.y-(oy+pts[0].y));
       let best=Infinity;
-      for(let i=1;i<pts.length;i++) best=Math.min(best,pointSegmentDistance(p,pts[i-1],pts[i]));
+      for(let i=1;i<pts.length;i++){
+        best=Math.min(best,pointSegmentDistance(p,{x:ox+pts[i-1].x,y:oy+pts[i-1].y},{x:ox+pts[i].x,y:oy+pts[i].y}));
+      }
       return best;
     }
     const b=annotationBounds(a);
     const nx=clamp(p.x,b.x,b.x+b.w), ny=clamp(p.y,b.y,b.y+b.h);
     return Math.hypot(p.x-nx,p.y-ny);
+  }
+
+  function pointCutOutAfter(index, x, y){
+    for(let i=index+1;i<state.annotations.length;i++){
+      const a=state.annotations[i];
+      if(a?.type !== 'cutout') continue;
+      const x0=Math.min(a.x||0,(a.x||0)+(a.w||0)), x1=Math.max(a.x||0,(a.x||0)+(a.w||0));
+      const y0=Math.min(a.y||0,(a.y||0)+(a.h||0)), y1=Math.max(a.y||0,(a.y||0)+(a.h||0));
+      if(x>=x0 && x<=x1 && y>=y0 && y<=y1) return true;
+    }
+    return false;
   }
 
   function drawLineSelectionHandles(c, a, index, hs){
@@ -2538,7 +2604,7 @@
       const b = annotationBounds(a);
       const precise = isLineAnnotation(a) || isFreePathAnnotation(a);
       const tolerance = Math.max(8/state.zoom,(a.lineWidth||4)/2+4/state.zoom);
-      hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move', contains: precise ? ((x,y)=>annotationPointDistance(a,{x,y})<=tolerance) : null});
+      hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move', contains:(x,y)=>!pointCutOutAfter(i,x,y) && (!precise || annotationPointDistance(a,{x,y})<=tolerance)});
       const selected = state.selected?.type === 'annotation' && state.selected.index === i;
       if(selected){
         c.save();
@@ -2831,8 +2897,7 @@
     if(a.type === 'pen' || a.type === 'highlight' || a.type === 'mosaicPen'){
       const pts = a.points || [];
       if(!pts.length) return {x:a.x||0, y:a.y||0, w:24, h:24};
-      const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
-      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      const {minX,maxX,minY,maxY} = pathExtents(pts);
       const pad = Math.max(8, (a.lineWidth || (a.type === 'highlight' ? 18 : 4)) / 2 + 4);
       return {x:(a.x||0)+minX-pad, y:(a.y||0)+minY-pad, w:Math.max(24,maxX-minX+pad*2), h:Math.max(24,maxY-minY+pad*2)};
     }
@@ -2893,20 +2958,25 @@
     if(isFreePathAnnotation(a)){
       const pts = a.points || [];
       if(pts.length < 2) return false;
-      const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
-      return Math.hypot(Math.max(...xs)-Math.min(...xs), Math.max(...ys)-Math.min(...ys)) >= TOOL_DRAG_THRESHOLD;
+      const ext = pathExtents(pts);
+      return Math.hypot(ext.maxX-ext.minX, ext.maxY-ext.minY) >= TOOL_DRAG_THRESHOLD;
     }
     return Math.hypot(a.w || 0, a.h || 0) >= TOOL_DRAG_THRESHOLD;
+  }
+
+  function commitToolDraft(finished){
+    if(!finished?.historySnapshot) return;
+    history.push(finished.historySnapshot);
+    if(history.length > 80) history.shift();
+    future = [];
+    updateUndoRedo();
   }
 
   function cancelToolDraft(finished){
     const idx = finished?.index;
     const a = state.annotations[idx];
     if(a && (!finished.ann?.id || a.id === finished.ann.id)) state.annotations.splice(idx,1);
-    while(history.length > Math.max(0, finished?.historyLength || 0)) history.pop();
-    future = [];
     state.selected = null;
-    updateUndoRedo();
   }
 
   function addAnnotation(type){
@@ -2921,10 +2991,10 @@
       const existing = findExistingWatermarkIndex();
       if(existing >= 0) return selectAnnotationForEdit(existing);
     }
-    const historyLength = history.length;
-    pushHistory();
-    const a = makeAnnotation(type, pt);
     const pointTool = ['text','watermark','badge'].includes(type);
+    const historySnapshot = pointTool ? null : snapshot(true);
+    if(pointTool) pushHistory();
+    const a = makeAnnotation(type, pt);
     if(!pointTool){ a.w = 0; a.h = 0; }
     state.annotations.push(a);
     const idx = state.annotations.length - 1;
@@ -2937,7 +3007,7 @@
       if(type === 'text' && isMobileLayout()) openMobileTextEditor(idx, true);
       return true;
     }
-    drag = { type:'toolCreate', index:idx, tool:type, start:{...pt}, ann:cloneAnnotationForDrag(a), historyLength };
+    drag = { type:'toolCreate', index:idx, tool:type, start:{...pt}, ann:cloneAnnotationForDrag(a), historySnapshot };
     renderProps(); requestRender();
     return true;
   }
@@ -3528,6 +3598,7 @@
     if(finished && finished.type === 'toolCreate'){
       const a = state.annotations[finished.index];
       if(!shouldCommitToolDraft(a)) cancelToolDraft(finished);
+      else commitToolDraft(finished);
       applyActiveTool();
       renderProps(); requestRender();
     }
@@ -3542,6 +3613,19 @@
       }
       renderProps(); renderToolDock(); requestRender();
     }
+  }
+
+  function onPointerCancel(e){
+    activePointers.delete(e.pointerId);
+    if(activePointers.size < 2) pinchState = null;
+    const finished = drag;
+    drag = null;
+    stage.classList.remove('dragging');
+    if(finished?.type === 'toolCreate') cancelToolDraft(finished);
+    if(finished?.type === 'marqueeCreate') state.selectionDraft = null;
+    applyActiveTool();
+    renderProps(); renderToolDock(); requestRender();
+    e.preventDefault();
   }
 
   function getPointer(e){
@@ -5170,7 +5254,7 @@
   stage.addEventListener('pointerdown', onPointerDown);
   stage.addEventListener('pointermove', onPointerMove);
   stage.addEventListener('pointerup', onPointerUp);
-  stage.addEventListener('pointercancel', onPointerUp);
+  stage.addEventListener('pointercancel', onPointerCancel);
   stage.addEventListener('wheel', onWheel, {passive:false});
   stage.addEventListener('dblclick', e => {
     const p = getPointer(e); const w = screenToWorld(p.x,p.y); const h = hitTest(w.x,w.y);
