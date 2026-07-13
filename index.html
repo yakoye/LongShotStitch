@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.40 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.41 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -300,7 +300,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.40</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.41</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -488,6 +488,7 @@
     </div>
     <div class="mobile-context-section mobile-annotation-tools" id="mobileAnnotationTools" data-mobile-section-panel="annotate">
       <button class="mobile-tool-group active" data-tool-group="select"><span class="mi">⌖</span><span>选择</span></button>
+      <button class="mobile-tool-group" data-tool-group="marquee"><span class="mi">⬚</span><span>选取</span></button>
       <button class="mobile-tool-group" data-tool-group="arrow"><span class="mi">↗</span><span>箭头</span></button>
       <button class="mobile-tool-group" data-tool-group="pen"><span class="mi">✎</span><span>画笔</span></button>
       <button class="mobile-tool-group" data-tool-group="text"><span class="mi">T</span><span>文字</span></button>
@@ -532,7 +533,9 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.40';
+  const APP_VERSION = 'v1.41';
+  const TOOL_DRAG_THRESHOLD = 6;
+  const MAX_SELECTION_PIXELS = 16_000_000;
   const PROXY_LIMITS = {
     fileBytes: 8 * 1024 * 1024,
     mobileFileBytes: 5 * 1024 * 1024,
@@ -554,6 +557,8 @@
     pan: { x: 0, y: 0 },
     preview: false,
     annotations: [],
+    selectionDraft: null,
+    pixelClipboard: null,
     activeHandle: null,
     toolArmed: null,
     toolSettings: { group:'select', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:14, textBg:'transparent', textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
@@ -594,6 +599,7 @@
   let previewProxyBusy = false;
   let exportEstimateTimer = null;
   let exportEstimateSeq = 0;
+  const patchImageCache = new Map();
 
   function toast(msg){
     toastEl.textContent = msg;
@@ -620,6 +626,8 @@
       seams: state.seams.map(s => ({...s, divider: s.divider ? {...s.divider} : null})),
       canvasCrop: {...state.canvasCrop},
       annotations: state.annotations.map(a => ({...a})),
+      selectionDraft: state.selectionDraft ? {...state.selectionDraft} : null,
+      toolSettings: {...state.toolSettings},
       toolArmed: state.toolArmed,
       splitDraft: state.splitDraft ? {...state.splitDraft} : null,
       splitDraftManual: !!state.splitDraftManual,
@@ -650,6 +658,7 @@
 
   async function restoreFromSnapshot(str){
     const data = JSON.parse(str);
+    patchImageCache.clear();
     state.orientation = data.orientation || 'vertical';
     state.mode = data.mode || 'seam';
     state.selected = data.selected || null;
@@ -657,6 +666,8 @@
     state.canvasCrop = data.canvasCrop || {top:0,right:0,bottom:0,left:0};
     state.seams = data.seams || [];
     state.annotations = data.annotations || [];
+    state.selectionDraft = data.selectionDraft || null;
+    state.toolSettings = {...state.toolSettings, ...(data.toolSettings || {})};
     state.toolArmed = data.toolArmed || null;
     state.splitDraft = data.splitDraft || null;
     state.splitDraftManual = !!data.splitDraftManual;
@@ -686,6 +697,7 @@
       if(record.useProxy) schedulePreviewProxy(record);
     }
     state.images = imgs;
+    await ensurePatchImagesReady();
     syncSeams(false);
     updateModeButtons();
     updateToolbarButtons();
@@ -1172,6 +1184,8 @@
       zoom: state.zoom,
       worldCenter: screenToWorld(center.x, center.y)
     };
+    if(drag?.type === 'toolCreate') cancelToolDraft(drag);
+    if(drag?.type === 'marqueeCreate') state.selectionDraft = null;
     drag = null;
     stage.classList.remove('dragging');
     return true;
@@ -1845,7 +1859,8 @@
     pen:'<svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M13 6l3 3"/></svg>',
     arrow:'<svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><path d="M10 5h9v9"/></svg>',
     text:'<svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M12 6v12"/><path d="M8 18h8"/></svg>',
-    badge:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8"/><path d="M10 10l2-2 2 2"/></svg>',
+    badge:'<svg viewBox="0 0 24 24"><text x="12" y="16" text-anchor="middle" font-size="16" font-weight="800" fill="currentColor" stroke="none">①</text></svg>',
+    marquee:'<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1" stroke-dasharray="3 3"/></svg>',
     mosaic:'<svg class="mosaic-mask-icon" viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="2"/><path d="M8 15h2M12 15h2M16 15h1M8 11h1M12 11h2M16 11h1"/><path d="M5 19L19 5"/></svg>',
     eraser:'<svg viewBox="0 0 24 24"><path d="M4 16l8-8 6 6-6 6H8z"/><path d="M12 20h8"/></svg>',
     watermark:'<svg viewBox="0 0 24 24"><path d="M4 16c3-8 13-8 16 0"/><path d="M7 16c2-4 8-4 10 0"/><path d="M9 9h6"/><path d="M12 6v6"/></svg>',
@@ -1858,6 +1873,7 @@
   function activeToolFromSettings(){
     const s = state.toolSettings;
     if(s.group === 'select') return 'select';
+    if(s.group === 'marquee') return 'marquee';
     if(s.group === 'shape') return s.shapeKind === 'circle' ? (s.shapeFill ? 'circleFill' : 'circle') : (s.shapeFill ? 'boxFill' : 'box');
     if(s.group === 'pen') return s.penKind === 'highlight' ? 'highlight' : 'pen';
     if(s.group === 'arrow') return s.arrowKind || 'arrow';
@@ -1880,79 +1896,17 @@
   function selectAnnotationForEdit(index){
     if(index < 0 || index >= state.annotations.length) return false;
     state.selected = {type:'annotation', index};
-    const a = state.annotations[index];
-    syncToolSettingsFromAnnotation(a);
     if(isMobileLayout()) state.mobileToolPopoverOpen = true;
     closeInlineTextEditor(false);
     renderProps(); requestRender();
     return true;
   }
 
-  function syncToolSettingsFromAnnotation(a){
-    if(!a) return;
-    const s = state.toolSettings;
-    if(['box','boxFill','circle','circleFill'].includes(a.type)){
-      s.group = 'shape';
-      s.shapeKind = a.type.startsWith('circle') ? 'circle' : 'box';
-      s.shapeFill = a.type.endsWith('Fill');
-      if(a.color) s.color = a.color;
-      if(a.fillColor) s.fillColor = a.fillColor;
-      if(a.lineWidth) s.lineWidth = a.lineWidth;
-      if(a.opacity != null) s.opacity = a.opacity;
-    } else if(['line','arrow','doubleArrow'].includes(a.type)){
-      s.group = 'arrow';
-      s.arrowKind = a.type;
-      if(a.color) s.color = a.color;
-      if(a.lineWidth) s.lineWidth = a.lineWidth;
-    } else if(['pen','highlight'].includes(a.type)){
-      s.group = 'pen';
-      s.penKind = a.type === 'highlight' ? 'highlight' : 'pen';
-      if(a.color) s.penColor = a.color;
-      if(a.type === 'highlight') s.highlightWidth = a.lineWidth || s.highlightWidth;
-      else s.penWidth = a.lineWidth || s.penWidth;
-    } else if(a.type === 'text'){
-      s.group = 'text';
-      s.textValue = a.text || '';
-      s.textColor = a.color || s.textColor;
-      s.textSize = a.fontSize || s.textSize;
-      s.textBg = a.bg || 'transparent';
-      s.textOutline = !!a.outline;
-      s.textVertical = !!a.vertical;
-    } else if(a.type === 'badge'){
-      s.group = 'badge';
-      s.badgeNumber = Math.round(+a.text || s.badgeNumber || 1);
-      s.badgeColor = a.color || s.badgeColor;
-      s.badgeSize = a.fontSize || s.badgeSize;
-    } else if(['mosaic','mosaicPen'].includes(a.type)){
-      s.group = 'mosaic';
-      s.mosaicKind = a.type === 'mosaicPen' ? 'free' : 'mosaic';
-      s.mosaicGrid = a.gridSize || s.mosaicGrid;
-    } else if(a.type === 'watermark'){
-      s.group = 'watermark';
-      s.watermarkText = a.text || s.watermarkText;
-      s.watermarkSize = a.fontSize || s.watermarkSize;
-      s.watermarkColor = a.color || s.watermarkColor;
-      s.watermarkOpacity = a.opacity == null ? s.watermarkOpacity : a.opacity;
-      s.watermarkRepeat = a.repeatCount || s.watermarkRepeat;
-    }
-    applyActiveTool();
-  }
-
-  function groupForAnnotationType(type){
-    if(['box','boxFill','circle','circleFill','redact'].includes(type)) return 'shape';
-    if(['pen','highlight'].includes(type)) return 'pen';
-    if(['line','arrow','doubleArrow'].includes(type)) return 'arrow';
-    if(type === 'text') return 'text';
-    if(type === 'badge') return 'badge';
-    if(['mosaic','mosaicPen'].includes(type)) return 'mosaic';
-    if(type === 'watermark') return 'watermark';
-    return 'select';
-  }
-
   function setToolGroup(group){
     if(isMobileLayout()) return mobileToolGroupTap(group);
     const sameGroup = (state.toolSettings.group || 'select') === group;
     state.toolSettings.group = group;
+    if(group !== 'marquee') state.selectionDraft = null;
     state.mobileToolPopoverOpen = sameGroup ? !state.mobileToolPopoverOpen : true;
     if(group === 'watermark'){
       const idx = findExistingWatermarkIndex();
@@ -1970,6 +1924,7 @@
   function mobileToolGroupTap(group){
     const sameGroup = (state.toolSettings.group || 'select') === group;
     state.toolSettings.group = group;
+    if(group !== 'marquee') state.selectionDraft = null;
     state.mobileToolPopoverOpen = sameGroup ? !state.mobileToolPopoverOpen : false;
     if(group === 'watermark'){
       const idx = findExistingWatermarkIndex();
@@ -2011,6 +1966,7 @@
     }
     const groups = [
       ['select','select','选择 / 移动'],
+      ['marquee','marquee','像素选取'],
       ['shape','shape','几何图形'],
       ['pen','pen','铅笔 / 荧光笔'],
       ['arrow','arrow','直线 / 箭头'],
@@ -2026,7 +1982,7 @@
       renderToolPopover();
       return;
     }
-    toolDock.innerHTML = groups.map(([g,icon,title],i) => `${i===7?'<span class="tool-dock-sep"></span>':''}<button class="tool-dock-btn ${activeGroup===g?'active':''} ${g==='eraser'?'danger':''}" data-tool-group="${g}" title="${title}" aria-label="${title}">${svgIcon(icon)}</button>`).join('');
+    toolDock.innerHTML = groups.map(([g,icon,title]) => `${g==='eraser'?'<span class="tool-dock-sep"></span>':''}<button class="tool-dock-btn ${activeGroup===g?'active':''} ${g==='eraser'?'danger':''}" data-tool-group="${g}" title="${title}" aria-label="${title}">${svgIcon(icon)}</button>`).join('');
     toolDock.classList.add('show');
     toolDock.querySelectorAll('[data-tool-group]').forEach(btn=>{
       btn.addEventListener('pointerdown', e=>e.stopPropagation());
@@ -2143,6 +2099,10 @@
   function groupPopover(){
     const s = state.toolSettings, g = s.group || 'select';
     if(g === 'select') return '';
+    if(g === 'marquee'){
+      const ready = !!state.selectionDraft?.ready;
+      return compactPanel(`<div class="pop-actions compact-actions"><button class="mini-btn" data-selection-action="copy" ${ready?'':'disabled'} title="复制">⧉</button><button class="mini-btn" data-selection-action="cut" ${ready?'':'disabled'} title="剪切">✂</button><button class="mini-btn" data-selection-action="paste" ${state.pixelClipboard?'':'disabled'} title="粘贴">▣</button><button class="mini-btn" data-selection-action="clear" ${ready?'':'disabled'} title="取消选区">✕</button></div>`);
+    }
     if(g === 'shape') return compactPanel(
       compactRow(`${chip('shapeKind','box',s.shapeKind!=='circle',svgIcon('rect'),'矩形')}${chip('shapeKind','circle',s.shapeKind==='circle',svgIcon('circle'),'圆形')}${boolChip('shapeFill',!!s.shapeFill,'◩','填充 / 空心')}${colorPalette('color',s.color)}${widthControl('lineWidth',s.lineWidth||4,1,64)}${opacityControl('opacity',s.opacity||1)}`)
     );
@@ -2176,6 +2136,12 @@
   }
 
   function annotationPopover(a){
+    if(a.type === 'patch'){
+      return compactPanel(
+        compactRow(`<input class="tiny-number" type="number" data-ann="x" value="${Math.round(a.x||0)}" title="X"><input class="tiny-number" type="number" data-ann="y" value="${Math.round(a.y||0)}" title="Y"><input class="tiny-number" type="number" data-ann="w" value="${Math.round(a.w||1)}" title="宽"><input class="tiny-number" type="number" data-ann="h" value="${Math.round(a.h||1)}" title="高">`)+
+        `<div class="pop-actions compact-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat" title="删除">✕</button><button class="mini-btn" id="duplicateAnnotationBtnFloat" title="复制">⧉</button><button class="mini-btn" id="hideToolPopoverBtnFloat" title="收起">⌄</button></div>`
+      );
+    }
     const shapeLike = ['box','boxFill','circle','circleFill','mosaic','redact','line','arrow','doubleArrow'].includes(a.type);
     const lineLike = ['box','boxFill','circle','circleFill','line','arrow','doubleArrow','pen','highlight'].includes(a.type);
     const textLike = ['text','watermark'].includes(a.type);
@@ -2289,6 +2255,18 @@
     $('#deleteAnnotationBtnFloat')?.addEventListener('click', deleteSelectedAnnotation);
     $('#duplicateAnnotationBtnFloat')?.addEventListener('click', duplicateSelectedAnnotation);
     $('#hideToolPopoverBtnFloat')?.addEventListener('click', hideToolPopover);
+    toolPopover.querySelectorAll('[data-selection-action]').forEach(btn=>btn.addEventListener('click', async e=>{
+      e.preventDefault();
+      const action = btn.dataset.selectionAction;
+      if(action === 'copy') await copyPixelSelection();
+      if(action === 'cut') await cutPixelSelection();
+      if(action === 'paste') await pastePixelClipboard();
+      if(action === 'clear'){
+        state.selectionDraft = null;
+        state.mobileToolPopoverOpen = false;
+        renderToolDock(); requestRender();
+      }
+    }));
   }
 
   function hideToolPopover(){
@@ -2351,7 +2329,6 @@
       a[key] = val;
       if(a.type === 'badge' && key === 'text') syncBadgeSequence(state.selected.index, oldBadgeValue, Math.round(+val || 1));
     }
-    syncToolSettingsFromAnnotation(a);
     if(isLiveTextEdit){
       requestRender();
       return;
@@ -2384,6 +2361,126 @@
     renderProps(); requestRender();
   }
 
+  function normalizedSelectionBounds(){
+    const s = state.selectionDraft;
+    if(!s) return null;
+    const layout = computeLayout(true);
+    const x0 = Math.min(s.x || 0, (s.x || 0) + (s.w || 0));
+    const y0 = Math.min(s.y || 0, (s.y || 0) + (s.h || 0));
+    const x1 = Math.max(s.x || 0, (s.x || 0) + (s.w || 0));
+    const y1 = Math.max(s.y || 0, (s.y || 0) + (s.h || 0));
+    const x = clamp(Math.round(x0), 0, Math.max(0, layout.fullWidth - 1));
+    const y = clamp(Math.round(y0), 0, Math.max(0, layout.fullHeight - 1));
+    const right = clamp(Math.round(x1), x + 1, layout.fullWidth);
+    const bottom = clamp(Math.round(y1), y + 1, layout.fullHeight);
+    return {x, y, w:right - x, h:bottom - y};
+  }
+
+  function ensurePatchImage(a){
+    if(!a?.dataUrl) return Promise.resolve(null);
+    const cached = patchImageCache.get(a.id);
+    if(cached?.dataUrl === a.dataUrl) return cached.promise;
+    const img = new Image();
+    const promise = new Promise(resolve => {
+      img.onload = () => { requestRender(); resolve(img); };
+      img.onerror = () => resolve(null);
+    });
+    patchImageCache.set(a.id, {dataUrl:a.dataUrl, img, promise});
+    img.src = a.dataUrl;
+    return promise;
+  }
+
+  function patchImageFor(a){
+    const cached = patchImageCache.get(a.id);
+    if(!cached || cached.dataUrl !== a.dataUrl){ ensurePatchImage(a); return null; }
+    return cached.img.complete && cached.img.naturalWidth ? cached.img : null;
+  }
+
+  async function ensurePatchImagesReady(){
+    await Promise.all(state.annotations.filter(a=>a?.type === 'patch').map(ensurePatchImage));
+  }
+
+  async function captureSelectionBitmap(){
+    const bounds = normalizedSelectionBounds();
+    if(!bounds || !state.selectionDraft?.ready) return null;
+    if(bounds.w > 8192 || bounds.h > 8192 || bounds.w * bounds.h > MAX_SELECTION_PIXELS){
+      toast('选区过大，请缩小后再复制');
+      return null;
+    }
+    await ensurePatchImagesReady();
+    const out = document.createElement('canvas');
+    out.width = Math.max(1, bounds.w);
+    out.height = Math.max(1, bounds.h);
+    const oc = out.getContext('2d');
+    const full = computeLayout(true);
+    oc.save();
+    oc.translate(-bounds.x, -bounds.y);
+    drawComposition(oc, full, true, true);
+    oc.restore();
+    return {kind:'bitmap', dataUrl:out.toDataURL('image/png'), width:bounds.w, height:bounds.h, sourceX:bounds.x, sourceY:bounds.y, pasteCount:0};
+  }
+
+  async function copyPixelSelection(){
+    if(state.selectionDraft?.ready){
+      const captured = await captureSelectionBitmap();
+      if(!captured) return false;
+      state.pixelClipboard = captured;
+      renderToolDock();
+      toast('已复制选区');
+      return true;
+    }
+    const idx = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    if(idx < 0 || !state.annotations[idx] || state.annotations[idx].type === 'cutout') return false;
+    state.pixelClipboard = {kind:'annotation', annotation:cloneAnnotationForDrag(state.annotations[idx]), pasteCount:0};
+    toast('已复制标注');
+    return true;
+  }
+
+  async function cutPixelSelection(){
+    if(state.selectionDraft?.ready){
+      const captured = await captureSelectionBitmap();
+      if(!captured) return false;
+      pushHistory();
+      state.pixelClipboard = captured;
+      state.annotations.push({id:uid('ann'), type:'cutout', x:captured.sourceX, y:captured.sourceY, w:captured.width, h:captured.height, opacity:1});
+      state.selected = null;
+      state.selectionDraft = null;
+      renderToolDock(); renderProps(); requestRender();
+      toast('已剪切为透明区域');
+      return true;
+    }
+    const idx = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    if(idx < 0 || !state.annotations[idx] || state.annotations[idx].type === 'cutout') return false;
+    state.pixelClipboard = {kind:'annotation', annotation:cloneAnnotationForDrag(state.annotations[idx]), pasteCount:0};
+    deleteSelectedAnnotation();
+    toast('已剪切标注');
+    return true;
+  }
+
+  async function pastePixelClipboard(){
+    const clip = state.pixelClipboard;
+    if(!clip) return false;
+    pushHistory();
+    clip.pasteCount = Math.max(0, Math.round(clip.pasteCount || 0)) + 1;
+    const offset = 24 * clip.pasteCount;
+    let a;
+    if(clip.kind === 'annotation'){
+      a = cloneAnnotationForDrag(clip.annotation);
+      a.id = uid('ann');
+      a.x = Math.round((a.x || 0) + offset);
+      a.y = Math.round((a.y || 0) + offset);
+    } else {
+      a = {id:uid('ann'), type:'patch', x:Math.round((clip.sourceX || 0) + offset), y:Math.round((clip.sourceY || 0) + offset), w:clip.width, h:clip.height, dataUrl:clip.dataUrl, opacity:1};
+    }
+    state.annotations.push(a);
+    state.selected = {type:'annotation', index:state.annotations.length - 1};
+    state.selectionDraft = null;
+    if(a.type === 'patch') await ensurePatchImage(a);
+    renderProps(); renderToolDock(); requestRender();
+    toast('已粘贴');
+    return true;
+  }
+
 
   function cloneAnnotationForDrag(a){
     return JSON.parse(JSON.stringify(a || {}));
@@ -2392,20 +2489,65 @@
   function isLineAnnotation(a){ return a && ['line','arrow','doubleArrow'].includes(a.type); }
   function isFreePathAnnotation(a){ return a && ['pen','highlight','mosaicPen'].includes(a.type); }
 
+  function pointSegmentDistance(p, a, b){
+    const dx=b.x-a.x, dy=b.y-a.y;
+    const len2=dx*dx+dy*dy;
+    const t=len2 ? clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/len2,0,1) : 0;
+    return Math.hypot(p.x-(a.x+dx*t),p.y-(a.y+dy*t));
+  }
+
+  function annotationPointDistance(a, p){
+    if(isLineAnnotation(a)) return pointSegmentDistance(p,{x:a.x||0,y:a.y||0},{x:(a.x||0)+(a.w||0),y:(a.y||0)+(a.h||0)});
+    if(isFreePathAnnotation(a)){
+      const pts=(a.points||[]).map(v=>({x:(a.x||0)+v.x,y:(a.y||0)+v.y}));
+      if(!pts.length) return Infinity;
+      if(pts.length===1) return Math.hypot(p.x-pts[0].x,p.y-pts[0].y);
+      let best=Infinity;
+      for(let i=1;i<pts.length;i++) best=Math.min(best,pointSegmentDistance(p,pts[i-1],pts[i]));
+      return best;
+    }
+    const b=annotationBounds(a);
+    const nx=clamp(p.x,b.x,b.x+b.w), ny=clamp(p.y,b.y,b.y+b.h);
+    return Math.hypot(p.x-nx,p.y-ny);
+  }
+
+  function drawLineSelectionHandles(c, a, index, hs){
+    const p1 = {x:a.x||0, y:a.y||0};
+    const p2 = {x:(a.x||0)+(a.w||0), y:(a.y||0)+(a.h||0)};
+    c.setLineDash([]);
+    c.fillStyle = '#2f80ed';
+    c.beginPath(); c.arc(p1.x,p1.y,7/state.zoom,0,Math.PI*2); c.fill();
+    c.beginPath(); c.arc(p2.x,p2.y,7/state.zoom,0,Math.PI*2); c.fill();
+    hitAreas.push({type:'annotationLineStart', index, x:p1.x-hs, y:p1.y-hs, w:hs*2, h:hs*2, cursor:'crosshair'});
+    hitAreas.push({type:'annotationLineEnd', index, x:p2.x-hs, y:p2.y-hs, w:hs*2, h:hs*2, cursor:'crosshair'});
+  }
+
+  function drawFreePathSelectionHandles(c, a){
+    const pts = a.points || [];
+    if(!pts.length) return;
+    const endpoints = pts.length > 1 ? [pts[0], pts[pts.length-1]] : [pts[0]];
+    c.setLineDash([]);
+    c.fillStyle = '#2f80ed';
+    endpoints.forEach(p=>{ c.beginPath(); c.arc((a.x||0)+p.x,(a.y||0)+p.y,5/state.zoom,0,Math.PI*2); c.fill(); });
+  }
+
   function drawToolsOverlay(c, layout){
     for(let i=0;i<state.annotations.length;i++){
       const a = state.annotations[i];
+      if(!a || a.type === 'cutout') continue;
       const b = annotationBounds(a);
-      hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move'});
+      const precise = isLineAnnotation(a) || isFreePathAnnotation(a);
+      const tolerance = Math.max(8/state.zoom,(a.lineWidth||4)/2+4/state.zoom);
+      hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move', contains: precise ? ((x,y)=>annotationPointDistance(a,{x,y})<=tolerance) : null});
       const selected = state.selected?.type === 'annotation' && state.selected.index === i;
       if(selected){
         c.save();
         c.strokeStyle = '#2f80ed';
         c.lineWidth = 2/state.zoom;
-        c.setLineDash([8/state.zoom, 6/state.zoom]);
         const hs = 14 / state.zoom;
 
         if(!isFreePathAnnotation(a) && !isLineAnnotation(a)){
+          c.setLineDash([8/state.zoom, 6/state.zoom]);
           const fr = annotationFrame(a);
           const [tl,tr,br,bl] = fr.points;
           c.beginPath();
@@ -2433,25 +2575,37 @@
             c.stroke();
             hitAreas.push({type:'annotationRotate', index:i, x:rx-hs, y:ry-hs, w:hs*2, h:hs*2, cursor:'grab'});
           }
-        } else {
-          c.strokeRect(b.x, b.y, b.w, b.h);
-          c.setLineDash([]);
-          c.fillStyle = '#2f80ed';
-          c.fillRect(b.x+b.w-hs/2, b.y+b.h-hs/2, hs, hs);
-          hitAreas.push({type:'annotationResize', index:i, x:b.x+b.w-hs, y:b.y+b.h-hs, w:hs*2, h:hs*2, cursor:'nwse-resize'});
         }
 
         if(isLineAnnotation(a)){
-          const p1 = {x:a.x||0, y:a.y||0};
-          const p2 = {x:(a.x||0)+(a.w||0), y:(a.y||0)+(a.h||0)};
-          c.fillStyle = '#2f80ed';
-          c.beginPath(); c.arc(p1.x,p1.y,7/state.zoom,0,Math.PI*2); c.fill();
-          c.beginPath(); c.arc(p2.x,p2.y,7/state.zoom,0,Math.PI*2); c.fill();
-          hitAreas.push({type:'annotationLineStart', index:i, x:p1.x-hs, y:p1.y-hs, w:hs*2, h:hs*2, cursor:'crosshair'});
-          hitAreas.push({type:'annotationLineEnd', index:i, x:p2.x-hs, y:p2.y-hs, w:hs*2, h:hs*2, cursor:'crosshair'});
+          drawLineSelectionHandles(c, a, i, hs);
         }
+        if(isFreePathAnnotation(a)) drawFreePathSelectionHandles(c, a);
         c.restore();
       }
+    }
+    if(state.toolArmed === 'marquee' && state.selectionDraft){
+      const b = normalizedSelectionBounds();
+      if(b){
+        c.save();
+        c.fillStyle = 'rgba(47,128,237,.08)';
+        c.fillRect(b.x,b.y,b.w,b.h);
+        c.strokeStyle = '#2f80ed';
+        c.lineWidth = 2/state.zoom;
+        c.setLineDash([8/state.zoom,6/state.zoom]);
+        c.strokeRect(b.x,b.y,b.w,b.h);
+        c.restore();
+      }
+    }
+    if(drag?.type === 'eraserStroke'){
+      c.save();
+      c.strokeStyle = '#ef4444';
+      c.lineWidth = 1.5/state.zoom;
+      c.setLineDash([]);
+      c.beginPath();
+      c.arc(drag.last.x,drag.last.y,Math.max(4,(state.toolSettings.eraserSize||24)/2),0,Math.PI*2);
+      c.stroke();
+      c.restore();
     }
   }
 
@@ -2539,7 +2693,14 @@
         c.translate(-cx, -cy);
       }
 
-      if(a.type === 'text' || a.type === 'watermark'){
+      if(a.type === 'cutout'){
+        c.globalCompositeOperation = 'destination-out';
+        c.fillStyle = '#000';
+        c.fillRect(Math.min(0,w), Math.min(0,h), Math.abs(w), Math.abs(h));
+      } else if(a.type === 'patch'){
+        const patchImg = patchImageFor(a);
+        if(patchImg) c.drawImage(patchImg, Math.min(0,w), Math.min(0,h), Math.abs(w), Math.abs(h));
+      } else if(a.type === 'text' || a.type === 'watermark'){
         const m = measureTextAnnotation(a);
         const fs = m.fs;
         c.font = `600 ${fs}px ui-sans-serif, system-ui, sans-serif`;
@@ -2727,6 +2888,27 @@
     return base;
   }
 
+  function shouldCommitToolDraft(a){
+    if(!a) return false;
+    if(isFreePathAnnotation(a)){
+      const pts = a.points || [];
+      if(pts.length < 2) return false;
+      const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+      return Math.hypot(Math.max(...xs)-Math.min(...xs), Math.max(...ys)-Math.min(...ys)) >= TOOL_DRAG_THRESHOLD;
+    }
+    return Math.hypot(a.w || 0, a.h || 0) >= TOOL_DRAG_THRESHOLD;
+  }
+
+  function cancelToolDraft(finished){
+    const idx = finished?.index;
+    const a = state.annotations[idx];
+    if(a && (!finished.ann?.id || a.id === finished.ann.id)) state.annotations.splice(idx,1);
+    while(history.length > Math.max(0, finished?.historyLength || 0)) history.pop();
+    future = [];
+    state.selected = null;
+    updateUndoRedo();
+  }
+
   function addAnnotation(type){
     if(!state.images.length) return;
     const layout = computeLayout(true);
@@ -2734,17 +2916,20 @@
   }
 
   function beginToolDraw(type, pt){
-    if(!type || type === 'select' || !state.images.length) return false;
+    if(!type || ['select','marquee','eraser'].includes(type) || !state.images.length) return false;
     if(type === 'watermark'){
       const existing = findExistingWatermarkIndex();
       if(existing >= 0) return selectAnnotationForEdit(existing);
     }
+    const historyLength = history.length;
     pushHistory();
     const a = makeAnnotation(type, pt);
+    const pointTool = ['text','watermark','badge'].includes(type);
+    if(!pointTool){ a.w = 0; a.h = 0; }
     state.annotations.push(a);
     const idx = state.annotations.length - 1;
     state.selected = {type:'annotation', index:idx};
-    if(type === 'text' || type === 'watermark' || type === 'badge'){
+    if(pointTool){
       if(type === 'badge') state.toolSettings.badgeNumber = clamp(Math.round(+state.toolSettings.badgeNumber || 1) + 1, 1, 9999);
       applyActiveTool();
       renderProps(); requestRender();
@@ -2752,7 +2937,7 @@
       if(type === 'text' && isMobileLayout()) openMobileTextEditor(idx, true);
       return true;
     }
-    drag = { type:'toolCreate', index:idx, tool:type, start:{...pt}, ann:{...a} };
+    drag = { type:'toolCreate', index:idx, tool:type, start:{...pt}, ann:cloneAnnotationForDrag(a), historyLength };
     renderProps(); requestRender();
     return true;
   }
@@ -2765,8 +2950,9 @@
     const idx = state.selected?.type === 'annotation' ? state.selected.index : -1;
     if(idx < 0) return;
     pushHistory();
-    state.annotations.splice(idx,1);
-    state.selected = state.annotations.length ? {type:'annotation', index: clamp(idx, 0, state.annotations.length-1)} : null;
+    const [removed] = state.annotations.splice(idx,1);
+    if(removed?.id) patchImageCache.delete(removed.id);
+    state.selected = null;
     renderProps(); requestRender();
   }
 
@@ -2868,7 +3054,7 @@
   function hitTest(wx, wy){
     for(let i=hitAreas.length-1;i>=0;i--){
       const h = hitAreas[i];
-      if(wx >= h.x && wx <= h.x+h.w && wy >= h.y && wy <= h.y+h.h) return h;
+      if(wx >= h.x && wx <= h.x+h.w && wy >= h.y && wy <= h.y+h.h && (!h.contains || h.contains(wx,wy))) return h;
     }
     return null;
   }
@@ -2901,6 +3087,51 @@
     else state.pan.x = activeDrag.anchorScreen - sv.x * state.zoom;
   }
 
+  function beginMarqueeSelection(w){
+    state.selected = null;
+    state.selectionDraft = {x:Math.round(w.x), y:Math.round(w.y), w:0, h:0, ready:false};
+    drag = {type:'marqueeCreate', start:{...w}};
+    requestRender();
+  }
+
+  function beginEraserStroke(w){
+    state.selected = null;
+    drag = {type:'eraserStroke', start:{...w}, last:{...w}, historyStarted:false, erased:false};
+    requestRender();
+  }
+
+  function annotationIndicesAtBrush(pt, radius){
+    const indices = [];
+    for(let i=0;i<state.annotations.length;i++){
+      const a = state.annotations[i];
+      if(!a || a.type === 'cutout') continue;
+      const strokePad = isLineAnnotation(a) || isFreePathAnnotation(a) ? (a.lineWidth||4)/2 : 0;
+      if(annotationPointDistance(a,pt) <= radius + strokePad) indices.push(i);
+    }
+    return indices;
+  }
+
+  function eraseAnnotationsAlong(from, to){
+    const radius = Math.max(4, (state.toolSettings.eraserSize || 24) / 2);
+    const distance = Math.hypot(to.x-from.x, to.y-from.y);
+    const steps = Math.max(1, Math.ceil(distance / Math.max(2, radius * .5)));
+    const indices = new Set();
+    for(let step=0;step<=steps;step++){
+      const t = step/steps;
+      const pt = {x:from.x+(to.x-from.x)*t, y:from.y+(to.y-from.y)*t};
+      annotationIndicesAtBrush(pt, radius).forEach(i=>indices.add(i));
+    }
+    if(!indices.size) return false;
+    if(!drag.historyStarted){ pushHistory(); drag.historyStarted = true; }
+    [...indices].sort((a,b)=>b-a).forEach(i=>{
+      const [removed] = state.annotations.splice(i,1);
+      if(removed?.id) patchImageCache.delete(removed.id);
+    });
+    drag.erased = true;
+    state.selected = null;
+    return true;
+  }
+
   function onPointerDown(e){
     if(e.button !== undefined && e.button !== 0) return;
     stage.setPointerCapture?.(e.pointerId);
@@ -2914,11 +3145,12 @@
     }
     const w = screenToWorld(p.x,p.y);
     const h = hitTest(w.x,w.y);
+    if(!state.preview && state.mode === 'tools' && state.toolArmed === 'marquee'){
+      beginMarqueeSelection(w);
+      return;
+    }
     if(!state.preview && state.mode === 'tools' && state.toolArmed === 'eraser'){
-      if(h?.type === 'annotationSelect'){
-        state.selected = {type:'annotation', index:h.index};
-        deleteSelectedAnnotation();
-      }
+      beginEraserStroke(w);
       return;
     }
     if(!state.preview && state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select'){
@@ -3021,7 +3253,6 @@
     if(h.type === 'canvasCrop'){ state.selected = {type:'canvasCrop'}; state.activeHandle = {kind:'canvasCrop', edge:h.edge}; renderProps(); requestRender(); return; }
     if(h.type === 'imageCrop'){ state.selected = {type:'image', index:h.index}; state.activeHandle = {kind:'imageCrop', index:h.index, edge:h.edge}; renderProps(); requestRender(); return; }
     if(['seamBefore','seamAfter','seamCenter'].includes(h.type)){ state.selected = {type:'seam', index:h.index}; state.activeHandle = {kind:'seamCenter', index:h.index}; renderProps(); requestRender(); return; }
-    if(state.mode === 'tools' && state.toolArmed && !['select','eraser'].includes(state.toolArmed)){ addAnnotationAt(state.toolArmed, w); return; }
   }
 
   function startActiveDrag(w, sp){
@@ -3066,7 +3297,8 @@
     const w = screenToWorld(p.x,p.y);
     if(!drag){
       const h = hitTest(w.x,w.y);
-      stage.style.cursor = h?.cursor || 'grab';
+      const drawingTool = state.mode === 'tools' && state.toolArmed && state.toolArmed !== 'select';
+      stage.style.cursor = h?.cursor || (drawingTool ? 'crosshair' : 'grab');
       return;
     }
     if(drag.type === 'pan'){
@@ -3078,6 +3310,17 @@
         else state.pan.y = drag.pan.y;
       }
       requestRender(); return;
+    }
+    if(drag.type === 'marqueeCreate'){
+      state.selectionDraft = {x:Math.round(drag.start.x), y:Math.round(drag.start.y), w:Math.round(w.x-drag.start.x), h:Math.round(w.y-drag.start.y), ready:false};
+      requestRender(); return;
+    }
+    if(drag.type === 'eraserStroke'){
+      if(Math.hypot(w.x-drag.start.x, w.y-drag.start.y) < TOOL_DRAG_THRESHOLD) return;
+      eraseAnnotationsAlong(drag.last, w);
+      drag.last = {...w};
+      if(drag.erased){ renderProps(); requestRender(); }
+      return;
     }
     if(drag.type === 'splitDraft'){
       const layout = computeLayout(true);
@@ -3284,11 +3527,20 @@
     if(finished && finished.type === 'splitDraft') renderProps();
     if(finished && finished.type === 'toolCreate'){
       const a = state.annotations[finished.index];
-      if(a && a.type !== 'pen' && a.type !== 'highlight' && a.type !== 'mosaicPen'){
-        if(Math.abs(a.w || 0) < 6 && Math.abs(a.h || 0) < 6){ a.w = finished.ann.w || 180; a.h = finished.ann.h || 90; }
-      }
+      if(!shouldCommitToolDraft(a)) cancelToolDraft(finished);
       applyActiveTool();
       renderProps(); requestRender();
+    }
+    if(finished && finished.type === 'marqueeCreate'){
+      const s = state.selectionDraft;
+      if(!s || Math.abs(s.w || 0) < TOOL_DRAG_THRESHOLD || Math.abs(s.h || 0) < TOOL_DRAG_THRESHOLD){
+        state.selectionDraft = null;
+      } else {
+        const b = normalizedSelectionBounds();
+        state.selectionDraft = {...b, ready:true};
+        state.mobileToolPopoverOpen = true;
+      }
+      renderProps(); renderToolDock(); requestRender();
     }
   }
 
@@ -4052,6 +4304,17 @@
     }, delay);
   }
 
+  function flattenCanvasForJpeg(canvasEl){
+    const out = document.createElement('canvas');
+    out.width = canvasEl.width;
+    out.height = canvasEl.height;
+    const c = out.getContext('2d');
+    c.fillStyle = '#fff';
+    c.fillRect(0,0,out.width,out.height);
+    c.drawImage(canvasEl,0,0);
+    return out;
+  }
+
   function downloadCanvasImage(canvasEl, baseName, delay=0){
     const meta = exportMeta();
     const cleanBase = String(baseName || 'longshot').replace(/\.(png|jpe?g|webp|svg)$/i, '');
@@ -4063,13 +4326,15 @@
       const a = document.createElement('a');
       a.download = `${cleanBase}.${meta.ext}`;
       const q = ['jpeg','webp'].includes(meta.format) ? clamp(state.exportQuality || 0.92, 0.5, 1) : undefined;
-      a.href = canvasEl.toDataURL(meta.mime, q);
+      const outputCanvas = meta.format === 'jpeg' ? flattenCanvasForJpeg(canvasEl) : canvasEl;
+      a.href = outputCanvas.toDataURL(meta.mime, q);
       a.click();
     }, delay);
   }
 
   async function exportImage(){
     if(!state.images.length){ toast('请先导入图片'); return; }
+    await ensurePatchImagesReady();
     const layout = computeLayout(false);
     const maxSide = 32760;
     if(layout.width > maxSide || layout.height > maxSide){
@@ -4623,7 +4888,8 @@
     if(!confirm('确定清空当前图片和编辑参数吗？')) return;
     pushHistory();
     closeInlineTextEditor(false);
-    state.images=[]; state.seams=[]; state.annotations=[]; state.selected=null; state.canvasCrop={top:0,right:0,bottom:0,left:0};
+    state.images=[]; state.seams=[]; state.annotations=[]; state.selected=null; state.selectionDraft=null; state.pixelClipboard=null; state.canvasCrop={top:0,right:0,bottom:0,left:0};
+    patchImageCache.clear();
     state.zoom = 1; state.pan = {x:0,y:0}; state.mobileToolPopoverOpen = false; state.exportQualityAuto = true;
     renderProps(); renderToolDock(); requestRender();
   }
@@ -4632,6 +4898,15 @@
     if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)) return;
     if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); }
     else if((e.ctrlKey||e.metaKey) && (e.key.toLowerCase()==='y' || (e.shiftKey && e.key.toLowerCase()==='z'))){ e.preventDefault(); redo(); }
+    else if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='c'){
+      if(state.selectionDraft?.ready || state.selected?.type === 'annotation'){ e.preventDefault(); void copyPixelSelection(); }
+    }
+    else if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='x'){
+      if(state.selectionDraft?.ready || state.selected?.type === 'annotation'){ e.preventDefault(); void cutPixelSelection(); }
+    }
+    else if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='v'){
+      if(state.pixelClipboard){ e.preventDefault(); void pastePixelClipboard(); }
+    }
     else if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); exportPng(); }
     else if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Delete','Backspace'].includes(e.key)){
       if(!state.images.length) return;
@@ -4639,8 +4914,7 @@
       if(e.key === 'Delete' || e.key === 'Backspace'){
         if(state.selected?.type === 'seam'){ pushHistory(); const s=state.seams[state.selected.index]; if(s){s.beforeCrop=0;s.afterCrop=0;} }
         if(state.selected?.type === 'divider'){ toggleDivider(state.selected.index); return; }
-        // Keyboard Backspace/Delete must not remove annotations; use the explicit delete button instead.
-        if(state.selected?.type === 'annotation'){ return; }
+        if(state.selected?.type === 'annotation'){ deleteSelectedAnnotation(); return; }
         renderProps(); requestRender(); return;
       }
       const amount = e.shiftKey ? 10 : (e.ctrlKey || e.metaKey ? 50 : 1);

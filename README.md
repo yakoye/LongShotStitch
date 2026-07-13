@@ -2,7 +2,7 @@
 
 LongShotStitch 是一个网页版本的长截图拼接与裁剪工具。
 
-当前版本：v1.40
+当前版本：v1.41
 
 这个工具的想法参考了 Picsew。换到安卓手机之后，我发现安卓上很难找到一款能媲美 Picsew 的长截图拼接工具，于是仿照它的核心体验做了一个网页版本。它不依赖某个特定手机系统，只要设备有浏览器，就可以在手机、平板、电脑上使用。
 
@@ -11,6 +11,7 @@ LongShotStitch 是一个网页版本的长截图拼接与裁剪工具。
 - 多张截图自动拼接成长图
 - 对长图进行裁剪、旋转和基础调整
 - 添加标注、文字和辅助说明
+- 像绘图软件一样框选画面，复制、透明剪切并粘贴到其他位置
 - 自动判断纵向或横向拼接
 - 从视频截图中提取字幕区域并拼成长图
 - 将单张图片切成多页、横向/纵向多分或九宫格
@@ -20,6 +21,8 @@ LongShotStitch 是一个网页版本的长截图拼接与裁剪工具。
 ## 在线发布
 
 项目是纯静态网页，可以部署到 Cloudflare Pages、Workers Static Assets、GitHub Pages 或任意静态网站服务。
+
+当前发布流程为：提交并推送 GitHub `main` 分支；Cloudflare 项目连接该仓库后会自动同步、构建并发布。Cloudflare 的部署记录成功后，线上版本才算完成更新。
 
 当前入口文件：
 
@@ -47,6 +50,8 @@ LongShotStitch 是一个网页版本的长截图拼接与裁剪工具。
 node tests/entry_check.js
 node tests/static_check.js
 node tests/smoke_check.js
+node tests/drag_math_check.js
+node tests/tool_interaction_check.js
 ```
 
 这些脚本用于确认：
@@ -54,6 +59,7 @@ node tests/smoke_check.js
 - 发布入口 `index.html` 直接加载工具页
 - 最新版本页面包含关键功能标记
 - 主页面脚本可以被正常解析
+- 工具锁定、拖动创建、删除和像素选区规则没有回退
 
 完整测试规则见 `docs/测试规则.md`。
 

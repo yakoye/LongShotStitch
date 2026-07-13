@@ -1,5 +1,15 @@
 # LongShotStitch v1.14 Test Plan
 
+## v1.41 工具交互回归
+
+- 当前工具只由用户主动切换，选中已有对象不改变工具或子类型。
+- 方框、圆形、箭头、直线、矩形马赛克必须拖动超过阈值才创建，单击不创建。
+- 铅笔、荧光笔、自由马赛克和橡皮必须按住拖动才产生结果。
+- 箭头只显示端点控制柄，自由路径不显示多余虚线包围框。
+- `Delete` / `Backspace` 删除当前对象后保持空选中，连续按键无副作用。
+- 像素选区可复制、透明剪切、粘贴为可移动缩放的贴片，并支持撤销、重做和工程保存。
+- PNG、WebP、SVG 保留透明剪切区；JPEG 自动使用白色背景合成。
+
 - Mobile: enter Tools mode; tool dock is directly above the bottom mode bar with no large blank gap.
 - Tool parameter popover: selecting a tool shows only tool parameters, not delete/copy/collapse actions.
 - Object edit popover: selecting an existing annotation shows delete/copy/collapse actions.
@@ -33,7 +43,7 @@
 - 选中文字后，在属性面板文字输入框中可以连续输入完整句子，不会只能输入一个字符。
 - 新建文字默认字号比 v1.17 更小，适合截图标注。
 - 旋转文字后，文字内容、蓝色虚线框、旋转手柄保持同一旋转中心，文字不跑出虚线框。
-- 选中任意标注后，按 Backspace / Delete 不会删除标注；只能用显式删除按钮删除。
+- 选中任意标注后，按 Backspace / Delete 删除当前标注并清空选择；再次按键无副作用。
 - 回归检查：矩形/圆形、箭头、标号、马赛克、裁剪、分割线、多格式导出不受影响。
 
 
