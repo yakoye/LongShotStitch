@@ -171,8 +171,8 @@ const pasteBlock = blockBetween('async function pastePixelClipboard', 'function 
 if (!pasteBlock.includes("state.toolSettings.group = 'select'") || !pasteBlock.includes("state.toolArmed = 'select'")) {
   throw new Error('pasting pixels must switch to the select tool');
 }
-if (!pasteBlock.includes("state.selected = {type:'annotation', index:state.annotations.length - 1}")) {
-  throw new Error('the newest pasted object must remain selected');
+if (!pasteBlock.includes('setSelectedAnnotation(state.annotations.length - 1, true)')) {
+  throw new Error('the newest pasted object must remain selected through the stable selection helper');
 }
 const pasteRenderIndex = pasteBlock.indexOf('updateModeButtons(); renderProps(); renderToolDock(); requestRender()');
 const pasteDecodeIndex = pasteBlock.indexOf('ensurePatchImage(a)');

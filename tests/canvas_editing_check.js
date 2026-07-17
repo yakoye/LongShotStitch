@@ -10,7 +10,7 @@ function blockBetween(startToken, endToken) {
 }
 
 const required = [
-  "const APP_VERSION = 'v1.45.0'",
+  "const APP_VERSION = 'v1.47.0'",
   "canvasPadding: { top: 0, right: 0, bottom: 0, left: 0 }",
   "canvasBackground: '#ffffff'",
   "eraserMode:'local'",
@@ -35,8 +35,12 @@ if (!drawBlock.includes('inlineTextIndex === i') || !drawBlock.includes('!export
 }
 
 const commitBlock = blockBetween('function commitToolDraft', 'function cancelToolDraft');
-if (!commitBlock.includes("['pen','highlight','mosaicPen']") || !commitBlock.includes('state.selected = null')) {
-  throw new Error('continuous drawing tools must remain active without a selection frame');
+if (!commitBlock.includes("['pen','highlight','mosaicPen']") || !commitBlock.includes('setSelectedAnnotation(finished.index, isDesktopLayout())') || !commitBlock.includes('applyActiveTool()')) {
+  throw new Error('continuous drawing tools must remain active while selecting the completed stroke');
+}
+const overlayBlock = blockBetween('function drawToolsOverlay', 'function measureTextAnnotation');
+if (!overlayBlock.includes("drag?.type === 'toolCreate'") || !overlayBlock.includes('!activeToolDraft')) {
+  throw new Error('active freehand drawing must not show a selection frame before pointer-up');
 }
 
 const setToolBlock = blockBetween('function setToolGroup', 'function mobileToolGroupTap');

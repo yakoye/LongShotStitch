@@ -2,7 +2,7 @@
 
 LongShotStitch 是一个网页版本的长截图拼接与裁剪工具。
 
-当前版本：v1.45.0
+当前版本：v1.47.0
 
 这个工具的想法参考了 Picsew。换到安卓手机之后，我发现安卓上很难找到一款能媲美 Picsew 的长截图拼接工具，于是仿照它的核心体验做了一个网页版本。它不依赖某个特定手机系统，只要设备有浏览器，就可以在手机、平板、电脑上使用。
 
@@ -18,6 +18,31 @@ LongShotStitch 是一个网页版本的长截图拼接与裁剪工具。
 - 将单张图片切成多页、横向/纵向多分或九宫格
 - 在不同设备之间保持一致的使用方式
 - 不想安装 App，只想打开网页直接处理图片
+
+## v1.47.0 更新
+
+- 文字 Canvas、选择框和行内编辑器统一使用实际字体 ascent/descent、行高和内边距测量，修复文字在框内上下不居中及编辑框与对象尺寸不一致。
+- 手机端已有文字改为“单击选择、再次轻点打开属性、双击或显式按钮编辑内容”，不再因一次轻点弹出占屏输入框。
+- 手机端选择任意对象时默认只显示变换控制；属性由用户主动打开，拖动、缩放或旋转开始时自动收起，并在打开后避免遮住对象。
+- 小文字和小标号补充中心拖动命中区，避免四角触摸控制点覆盖整个对象导致无法移动。
+- 手机端工具顺序与桌面端统一；桌面工具改为整齐的 5×2 网格。
+- 标注按钮、数字输入、文字输入、颜色按钮和属性浮层统一紧凑尺寸；图层、复制、删除、收起合并为单行。
+- 桌面端属性面板限制在左侧栏内，不再因单行控件过长覆盖画布；手机端属性浮层不越过 390 px 视口。
+- 将开发约束改名并重构为 `SUPERPOWERS_REQUIREMENTS.md`，新增 `docs/ANNOTATION_UI_CHECKLIST.md` 作为长期标注 UI 与交互检查清单。
+- 新增真实 Chromium 手机、桌面及全工具矩阵测试，逐项验证工具创建、属性对应、边界、遮挡和文字编辑。
+
+完整范围见 `docs/v1.47.0修改记录.md`、`SUPERPOWERS_REQUIREMENTS.md` 与 `docs/ANNOTATION_UI_CHECKLIST.md`。
+
+## v1.46.0 更新
+
+- 铅笔、荧光笔和自由马赛克在按住拖动的绘制过程中不显示蓝色虚线框、缩放点或旋转点，画面只保留正在生成的轨迹。
+- 松开后，新轨迹保持选中并显示首尾标记、8 点缩放和旋转控制，同时继续保留当前连续绘制工具，可直接开始下一笔。
+- 标注选择改为以对象 ID 为主、数组索引为辅的稳定选择模型；移动图层、复制、粘贴和删除后不会因为索引变化而丢失或跳转选择。
+- 单击任意已有标注对象时，始终打开该对象对应的属性面板；矩形、圆形、线条、箭头、自由路径、文字、标号、马赛克、水印和贴图均走同一选择入口。
+- 导出菜单限制为紧凑宽度，桌面端最大 360 px；像素宽高、毫米和 DPI 输入框按数字内容收窄，不再被原生数字输入框撑大。
+- 新增 `tests/annotation_selection_export_check.js`，并通过 Chromium 真实指针绘制、属性重选和导出面板尺寸验证。
+
+完整范围见 `docs/v1.46.0修改记录.md`。
 
 ## v1.45.0 更新
 
@@ -87,13 +112,18 @@ LongShotStitch 是一个网页版本的长截图拼接与裁剪工具。
 
 ```bash
 node tests/entry_check.js
+node tests/mobile_annotation_ui_check.js
 node tests/annotation_maturity_check.js
+node tests/annotation_selection_export_check.js
 node tests/annotation_tool_matrix_check.js
 node tests/canvas_editing_check.js
 node tests/static_check.js
 node tests/smoke_check.js
 node tests/drag_math_check.js
 node tests/tool_interaction_check.js
+python tests/browser_mobile_annotation_check.py
+python tests/browser_annotation_matrix_check.py
+python tests/browser_desktop_annotation_check.py
 ```
 
 这些脚本用于确认：
@@ -103,7 +133,7 @@ node tests/tool_interaction_check.js
 - 主页面脚本可以被正常解析
 - 选择、绘制、删除、像素选区和文字原位编辑规则没有回退
 
-完整测试规则见 `docs/测试规则.md`。
+完整测试规则见 `docs/测试规则.md`；长期开发约束见 `SUPERPOWERS_REQUIREMENTS.md`，标注专项检查见 `docs/ANNOTATION_UI_CHECKLIST.md`。
 
 ## 说明
 

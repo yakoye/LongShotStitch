@@ -45,7 +45,14 @@ for (const token of requiredBehavior) {
 if (html.includes('data-tool-setting="textBg"') || html.includes('data-ann="bg"')) {
   throw new Error('text background controls returned');
 }
-if (!html.includes("!['mosaic','mosaicPen'].includes(a.type)")) {
+const popStart = html.indexOf('function annotationPopover');
+const popEnd = html.indexOf('function updateAnnotationInput', popStart);
+const popover = html.slice(popStart, popEnd);
+const mosaicStart = popover.indexOf("if(a.type==='mosaic' || a.type==='mosaicPen')");
+if (mosaicStart < 0) throw new Error('mosaic edit panel branch missing');
+const mosaicEnd = popover.indexOf('return annotationPopover', mosaicStart);
+const mosaicBlock = popover.slice(mosaicStart, mosaicEnd > mosaicStart ? mosaicEnd : undefined);
+if (mosaicBlock.includes("colorPalette('color'")) {
   throw new Error('mosaic edit panel must not show an ineffective color control');
 }
 if (!html.includes("state.annotations[idx]?.type === 'watermark'")) {

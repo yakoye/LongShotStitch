@@ -12,7 +12,7 @@ function blockBetween(startToken, endToken) {
 }
 
 const required = [
-  "const APP_VERSION = 'v1.45.0'",
+  "const APP_VERSION = 'v1.47.0'",
   'snapVectorToAngle',
   'constrainBoxFromStart',
   'applyShiftPenConstraint',

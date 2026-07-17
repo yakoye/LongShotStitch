@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
+  <!-- SUPERPOWERS_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.45.0 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.47.0 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -23,6 +23,8 @@
       --topbar:54px;
       --sidebar:300px;
       --mobilebar:74px;
+      --ui-control-height:28px;
+      --ui-control-radius:7px;
       font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", Arial, sans-serif;
     }
     *{box-sizing:border-box}
@@ -100,7 +102,7 @@
       linear-gradient(180deg,#f5f7fb,#eef2f7);}
     .stage.dragging{cursor:grabbing}
     canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
-    .inline-text-editor{position:absolute;z-index:18;display:none;box-sizing:content-box;border:0;border-radius:4px;background:transparent;box-shadow:none;outline:1.5px dashed #2f80ed;outline-offset:0;padding:0;color:#111827;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:600;resize:none;overflow:hidden;pointer-events:auto;transform-origin:center center;white-space:pre-wrap;caret-color:#2563eb}.inline-text-editor:focus{background:rgba(255,255,255,.06)}.inline-text-editor::placeholder{color:#94a3b8;opacity:.9}
+    .inline-text-editor{position:absolute;z-index:18;display:none;box-sizing:border-box;border:0;border-radius:4px;background:transparent;box-shadow:none;outline:1.5px dashed #2f80ed;outline-offset:0;padding:0;color:#111827;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:600;resize:none;overflow:hidden;pointer-events:auto;transform-origin:center center;white-space:pre-wrap;caret-color:#2563eb}.inline-text-editor:focus{background:rgba(255,255,255,.08)}.inline-text-editor::placeholder{color:#94a3b8;opacity:.9}.inline-text-editor.mobile-text-mode{max-width:calc(100vw - 20px)}
     .drop-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,82%);padding:28px;border:2px dashed #cbd5e1;border-radius:22px;background:rgba(255,255,255,.86);text-align:center;box-shadow:var(--shadow);pointer-events:auto;cursor:default}
     .drop-hint:focus-visible{outline:3px solid rgba(47,128,237,.35);outline-offset:4px}
     .drop-hint h2{margin:0 0 8px;font-size:23px}
@@ -118,12 +120,12 @@
     .mobile-info-menu .info-row{display:flex;align-items:center;justify-content:space-between;gap:18px;min-width:168px;padding:2px 0}
     .mobile-info-menu .info-row span:first-child{color:#64748b}
     .mobile-info-menu .info-row span:last-child{font-weight:700;color:#0f172a;text-align:right}
-    .export-menu{right:10px;min-width:214px}
+    .export-menu{right:10px;width:min(360px,calc(100vw - 20px));min-width:0;box-sizing:border-box}
     .mobile-file-menu.show,.mobile-info-menu.show,.export-menu.show{display:grid}
     .mobile-file-menu .mini-btn,.export-menu .mini-btn{height:36px;padding:0 10px;font-size:12px}
     .desktop-menu-only{display:block}
     .export-title{font-size:13px;font-weight:850;color:#111827;padding:2px 2px 4px}
-    .export-row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;font-size:12px;color:#64748b}
+    .export-row{display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;align-items:center;font-size:12px;color:#64748b}
     .export-row select,.export-row input{height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:0 8px;color:#111827}
     .export-format-options{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
     .export-format-options .mini-btn{height:32px;padding:0 6px}
@@ -150,7 +152,7 @@
     .tool-dock-btn svg{width:20px;height:20px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
     .mosaic-mask-icon{width:22px;height:22px;display:block;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .tool-dock-sep{width:1px;height:22px;background:#e5e7eb;margin:0 2px;flex:0 0 auto}
-    .tool-popover{position:absolute;z-index:13;display:none;min-width:0;max-width:min(430px,calc(100% - 16px));max-height:min(320px,calc(100% - 18px));overflow:auto;padding:6px;border:1px solid rgba(203,213,225,.94);border-radius:11px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px);pointer-events:auto}
+    .tool-popover{position:absolute;z-index:13;display:none;min-width:0;width:max-content;max-width:min(420px,calc(100% - 16px));max-height:min(320px,calc(100% - 18px));overflow:auto;padding:6px;border:1px solid rgba(203,213,225,.94);border-radius:10px;background:rgba(255,255,255,.98);box-shadow:0 14px 34px rgba(15,23,42,.20);backdrop-filter:blur(18px);pointer-events:auto}
     .tool-popover.show{display:block}
     .tool-popover.compact{min-width:0}
     .pop-title{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:800;font-size:12px;color:#334155;margin:0 0 8px}
@@ -159,20 +161,19 @@
     .pop-row input[type="number"],.pop-row input[type="text"],.pop-row select{height:32px;border:1px solid #d9dee7;border-radius:9px;background:#fff;padding:0 8px;min-width:0;flex:1}
     .pop-row input[type="color"]{width:34px;height:32px;border:1px solid #d9dee7;border-radius:9px;background:#fff;padding:3px;flex:0 0 auto}
     .pop-chip-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-    .pop-chip{height:26px;min-width:26px;padding:0 6px;border:1px solid #d9dee7;border-radius:8px;background:#fff;display:inline-grid;place-items:center;font-weight:750;color:#0f172a}
+    .pop-chip{height:var(--ui-control-height);min-width:var(--ui-control-height);padding:0 6px;border:1px solid #d9dee7;border-radius:var(--ui-control-radius);background:#fff;display:inline-grid;place-items:center;font-size:12px;line-height:1;font-weight:750;color:#0f172a}
     .pop-chip:hover{background:#f8fafc;border-color:#b8c1cf}
     .pop-chip.active{background:#111827;color:#fff;border-color:#111827}
     .pop-chip svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
     .pop-icon-chip{width:28px;padding:0}
-    .pop-actions{display:flex;gap:5px;margin-top:5px;border-top:1px solid #eef2f7;padding-top:6px}
-    .pop-actions .mini-btn{flex:1}
+    .pop-actions{display:flex;align-items:center;gap:4px;margin:0;padding:0;border:0}.pop-actions .mini-btn{flex:0 0 auto;width:var(--ui-control-height);min-width:var(--ui-control-height);height:var(--ui-control-height);padding:0}
     .tool-hint-card{font-size:12px;line-height:1.7;color:var(--muted)}
     .desktop-tools-slot{display:block}
     .tool-panel-card{padding:10px}
-    .tool-panel-card .floating-toolkit{position:static;left:auto;right:auto;bottom:auto;transform:none;display:flex;flex-wrap:wrap;justify-content:flex-start;max-width:100%;overflow:visible;box-shadow:none;border:0;background:transparent;backdrop-filter:none;padding:0;margin:0 0 10px;gap:6px}
+    .tool-panel-card .floating-toolkit{position:static;left:auto;right:auto;bottom:auto;transform:none;display:grid;grid-template-columns:repeat(5,34px);justify-content:start;max-width:100%;overflow:visible;box-shadow:none;border:0;background:transparent;backdrop-filter:none;padding:0;margin:0 0 10px;gap:6px}
     .tool-panel-card .floating-toolkit:not(.show){display:none}
     .tool-panel-card .tool-dock-btn{width:34px;height:34px;background:#fff;border-color:#e5e7eb;box-shadow:0 1px 2px rgba(15,23,42,.04)}
-    .tool-panel-card .tool-popover{position:static;display:block;min-width:0;max-width:none;max-height:none;overflow:visible;box-shadow:none;border-color:#e5e7eb;background:#fff;padding:10px;margin-top:8px;backdrop-filter:none}
+    .tool-panel-card .tool-popover{position:static;display:block;min-width:0;width:100%;max-width:100%;max-height:none;overflow-x:hidden;overflow-y:visible;box-sizing:border-box;box-shadow:none;border-color:#e5e7eb;background:#fff;padding:10px;margin-top:8px;backdrop-filter:none}
     .tool-panel-card .tool-popover:not(.show){display:none}
     .pop-section{border:1px solid #eef2f7;border-radius:10px;margin:8px 0;background:#fff;overflow:hidden}
     .pop-section summary{cursor:pointer;list-style:none;padding:8px 10px;font-size:12px;font-weight:800;color:#334155;background:#f8fafc;display:flex;align-items:center;justify-content:space-between}
@@ -180,19 +181,16 @@
     .pop-section summary::after{content:'⌄';font-size:12px;color:#64748b;transition:.16s}
     .pop-section:not([open]) summary::after{transform:rotate(-90deg)}
     .pop-section-body{padding:8px 10px}
-    .pop-compact{display:flex;flex-direction:column;gap:4px}
-    .pop-inline{display:flex;align-items:center;gap:3px;flex-wrap:wrap;min-height:26px}
-    .pop-compact .pop-chip{height:26px;min-width:26px;padding:0 5px;border-radius:7px}
+    .pop-compact{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .pop-inline{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;min-height:var(--ui-control-height);max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}.pop-inline::-webkit-scrollbar{display:none}
+    .pop-compact .pop-chip{height:var(--ui-control-height);min-width:var(--ui-control-height);padding:0 5px;border-radius:var(--ui-control-radius)}
     .pop-compact .pop-chip svg{width:16px;height:16px}
     .color-strip,.density-strip,.size-control,.width-control{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap}
     .color-swatch{width:22px;height:22px;padding:2px;border:1px solid #d9dee7;border-radius:6px;background:#fff;display:grid;place-items:center}
     .color-swatch span{width:14px;height:14px;border-radius:4px;border:1px solid rgba(15,23,42,.12);display:block}
     .color-swatch.active{border-color:#111827;box-shadow:0 0 0 2px rgba(17,24,39,.12)}
     .mini-color-input{width:24px!important;height:22px!important;border-radius:6px!important;padding:2px!important;flex:0 0 auto!important}
-    .mini-number-input,.tiny-number,.width-number{height:26px!important;border:1px solid #d9dee7;border-radius:7px;background:#fff;padding:0 4px;font-size:12px;min-width:0}
-    .tiny-number{width:42px!important;flex:0 0 auto!important;text-align:center}
-    .width-number{width:38px!important;flex:0 0 auto!important;text-align:center}
-    .compact-text-input{height:26px;border:1px solid #d9dee7;border-radius:7px;background:#fff;padding:0 6px;min-width:78px;max-width:100%;flex:1 1 100px;font-size:12px}
+    .mini-number-input,.tiny-number,.width-number,.compact-text-input{height:var(--ui-control-height)!important;border:1px solid #d9dee7;border-radius:var(--ui-control-radius);background:#fff;padding:0 6px;font-size:12px;line-height:1;min-width:0;color:#111827}.tiny-number{width:48px!important;flex:0 0 auto!important;text-align:center;font-variant-numeric:tabular-nums}.width-number{width:42px!important;flex:0 0 auto!important;text-align:center;font-variant-numeric:tabular-nums}.compact-text-input{width:132px;min-width:88px;max-width:180px;flex:1 1 112px!important}.geometry-inputs{opacity:.9}.object-control-row{gap:4px}.object-control-row .pop-label{margin-right:1px;white-space:nowrap;flex:0 0 auto}.pop-separator{width:1px;height:18px;background:#e5e7eb;flex:0 0 auto;margin:0 1px}.tool-popover .mini-btn{height:var(--ui-control-height);min-width:var(--ui-control-height);padding:0 8px;border-radius:var(--ui-control-radius)}
     .line-chip{height:24px;min-width:28px;padding:0 4px;border:1px solid #d9dee7;border-radius:7px;background:#fff;display:inline-grid;place-items:center}
     .line-chip.active{background:#111827;border-color:#111827}
     .line-chip.active .line-preview{background:#fff}
@@ -215,7 +213,7 @@
     .nav-scrollbar.vertical .nav-thumb{left:0;width:100%;min-height:28px}
     .nav-scrollbar.horizontal .nav-thumb{top:0;height:100%;min-width:28px}
 
-    .canvas-expand-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}.canvas-expand-grid label,.export-size-grid label{display:flex;align-items:center;gap:5px;font-size:12px;color:#475569}.canvas-expand-grid input,.export-size-grid input{width:72px;min-width:0}.canvas-expand-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.canvas-anchor-select{min-width:104px}.export-size-panel{border-top:1px solid #e5e7eb;padding-top:10px;display:grid;gap:8px}.export-size-head{display:flex;align-items:center;justify-content:space-between;font-size:12px}.export-size-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.export-size-options{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.export-size-options select{min-width:92px}.photo-presets{display:flex;gap:6px;flex-wrap:wrap}.photo-mm-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:5px;align-items:center}.photo-mm-row input{min-width:0;width:100%}
+    .canvas-expand-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}.canvas-expand-grid label,.export-size-grid label{display:flex;align-items:center;gap:5px;font-size:12px;color:#475569}.canvas-expand-grid input{width:72px;min-width:0}.canvas-expand-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.canvas-anchor-select{min-width:104px}.export-size-panel{border-top:1px solid #e5e7eb;padding-top:8px;display:grid;gap:7px}.export-size-head{display:flex;align-items:center;justify-content:space-between;font-size:12px}.export-size-grid{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.export-size-grid label{flex:0 0 auto}.export-size-grid input{width:76px;min-width:0;box-sizing:border-box;text-align:right;font-variant-numeric:tabular-nums}.export-size-options{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.export-size-options select{width:112px;min-width:0}.photo-presets{display:flex;gap:5px;flex-wrap:wrap}.photo-mm-row{display:grid;grid-template-columns:72px 72px 82px auto;gap:5px;align-items:center;justify-content:start}.photo-mm-row input{width:72px;min-width:0;box-sizing:border-box;text-align:right;font-variant-numeric:tabular-nums}.photo-mm-row input:last-of-type{width:82px}.photo-mm-row .mini-btn{padding:0 10px}
 
     @media (max-width: 760px){
       .mini-map{right:10px;top:10px;width:72px;padding:4px;border-radius:10px}
@@ -244,7 +242,7 @@
       .mobile-main-actions{width:100%;justify-content:space-between}
       .mobile-file-menu{left:44px;top:48px}
       .mobile-info-menu{right:8px;top:calc(var(--topbar) + var(--sectionbar) + 8px)}
-      .export-menu{right:6px;top:48px}
+      .export-menu{right:6px;top:48px;width:calc(100vw - 12px);max-width:360px}
       .desktop-menu-only{display:none!important}
       .mobile-title{display:none!important}
       .sidebar{display:none}
@@ -294,7 +292,13 @@
       .drop-hint h2{font-size:19px}
       .drop-actions{gap:8px}
       .drop-actions .mini-btn{min-width:0;flex:1 1 0;height:36px;padding:0 6px;font-size:13px}
-      .inline-text-editor.mobile-text-mode{position:fixed!important;left:12px!important;right:12px!important;top:auto!important;bottom:calc(var(--mobilebar) + 12px)!important;width:auto!important;height:96px!important;z-index:80;box-sizing:border-box;border:2px solid #2f80ed;border-radius:12px;background:#fff!important;box-shadow:0 14px 34px rgba(15,23,42,.22);outline:0;padding:10px 12px;font-size:18px!important;line-height:1.35!important;transform:none!important;writing-mode:horizontal-tb!important}
+      .inline-text-editor.mobile-text-mode{z-index:30;border-radius:5px;background:rgba(255,255,255,.12)!important;box-shadow:0 3px 10px rgba(15,23,42,.10)}
+      .tool-popover{width:min(360px,calc(100% - 12px));max-width:calc(100% - 12px);max-height:min(31vh,220px);padding:5px;border-radius:10px}
+      .tool-popover .geometry-inputs{display:none!important}
+      .tool-popover .pop-inline{max-width:100%}
+      .tool-popover .compact-text-input{max-width:142px}
+      .tool-popover .tool-hint-card{display:none}
+      .mobile-annotation-tools{gap:2px;padding-inline:4px}
     }
   </style>
 </head>
@@ -303,7 +307,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.45.0</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.47.0</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -517,12 +521,12 @@
     <div class="mobile-context-section mobile-annotation-tools" id="mobileAnnotationTools" data-mobile-section-panel="annotate">
       <button class="mobile-tool-group active" data-tool-group="select"><span class="mi">⌖</span><span>选择</span></button>
       <button class="mobile-tool-group" data-tool-group="marquee"><span class="mi">⬚</span><span>选区</span></button>
-      <button class="mobile-tool-group" data-tool-group="arrow"><span class="mi">↗</span><span>箭头</span></button>
-      <button class="mobile-tool-group" data-tool-group="pen"><span class="mi">✎</span><span>画笔</span></button>
-      <button class="mobile-tool-group" data-tool-group="text"><span class="mi">T</span><span>文字</span></button>
-      <button class="mobile-tool-group" data-tool-group="mosaic" aria-label="马赛克"><span class="mi"><svg class="mosaic-mask-icon" viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="2"/><path d="M8 15h2M12 15h2M16 15h1M8 11h1M12 11h2M16 11h1"/><path d="M5 19L19 5"/></svg></span><span>马赛克</span></button>
       <button class="mobile-tool-group" data-tool-group="shape"><span class="mi">□</span><span>形状</span></button>
+      <button class="mobile-tool-group" data-tool-group="pen"><span class="mi">✎</span><span>画笔</span></button>
+      <button class="mobile-tool-group" data-tool-group="arrow"><span class="mi">↗</span><span>箭头</span></button>
+      <button class="mobile-tool-group" data-tool-group="text"><span class="mi">T</span><span>文字</span></button>
       <button class="mobile-tool-group" data-tool-group="badge"><span class="mi">①</span><span>标号</span></button>
+      <button class="mobile-tool-group" data-tool-group="mosaic" aria-label="马赛克"><span class="mi"><svg class="mosaic-mask-icon" viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="2"/><path d="M8 15h2M12 15h2M16 15h1M8 11h1M12 11h2M16 11h1"/><path d="M5 19L19 5"/></svg></span><span>马赛克</span></button>
       <button class="mobile-tool-group" data-tool-group="eraser"><span class="mi">⌫</span><span>橡皮</span></button>
       <button class="mobile-tool-group" data-tool-group="watermark"><span class="mi">W</span><span>水印</span></button>
     </div>
@@ -593,7 +597,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.45.0';
+  const APP_VERSION = 'v1.47.0';
   const TOOL_DRAG_THRESHOLD = 6;
   const MAX_SELECTION_PIXELS = 16_000_000;
   const PROXY_LIMITS = {
@@ -1995,7 +1999,7 @@
   }
 
   function selectedTextAnnotation(){
-    const idx = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    const idx = selectedAnnotationIndex();
     const a = idx >= 0 ? state.annotations[idx] : null;
     return a && a.type === 'text' ? {a, idx} : null;
   }
@@ -2004,21 +2008,26 @@
     if(!inlineTextEditor || inlineTextIndex < 0) return;
     const a = state.annotations[inlineTextIndex];
     if(!a || a.type !== 'text' || state.mode !== 'tools' || state.preview){ closeInlineTextEditor(false); return; }
-    if(inlineTextEditor.classList.contains('mobile-text-mode')) return;
     const m = measureTextAnnotation(a);
     const b = annotationRawBounds(a);
-    const p = worldToScreen(b.x, b.y);
+    const raw = worldToScreen(b.x, b.y);
     const z = Math.max(0.0001, state.zoom);
+    const editorWidth = Math.max(1, m.width * z);
+    const editorHeight = Math.max(1, m.height * z);
+    const maxLeft = Math.max(2, stageWrap.clientWidth-editorWidth-2);
+    const maxTop = Math.max(2, stageWrap.clientHeight-editorHeight-2);
+    const p = {x:clamp(raw.x,2,maxLeft), y:clamp(raw.y,2,maxTop)};
     inlineTextEditor.style.display = 'block';
+    inlineTextEditor.style.boxSizing = 'border-box';
     inlineTextEditor.style.left = `${p.x}px`;
     inlineTextEditor.style.top = `${p.y}px`;
-    inlineTextEditor.style.width = `${m.contentWidth * z}px`;
-    inlineTextEditor.style.height = `${m.contentHeight * z}px`;
+    inlineTextEditor.style.width = `${m.width * z}px`;
+    inlineTextEditor.style.height = `${m.height * z}px`;
     inlineTextEditor.style.padding = `${m.padY * z}px ${m.padX * z}px`;
     inlineTextEditor.style.fontSize = `${m.fs * z}px`;
     inlineTextEditor.style.lineHeight = `${m.lineHeight * z}px`;
     inlineTextEditor.style.color = a.color || '#111827';
-    inlineTextEditor.style.background = (a.bg && a.bg !== 'transparent') ? a.bg : 'transparent';
+    inlineTextEditor.style.background = 'transparent';
     inlineTextEditor.style.writingMode = a.vertical ? 'vertical-rl' : 'horizontal-tb';
     inlineTextEditor.style.transform = `rotate(${Math.round(a.rotation || 0)}deg)`;
   }
@@ -2032,21 +2041,26 @@
     inlineTextEditor.value = a.text || '';
     inlineTextEditor.classList.remove('mobile-text-mode');
     positionInlineTextEditor();
-    inlineTextEditor.focus();
-    if(selectAll) inlineTextEditor.select();
+    setTimeout(() => {
+      if(inlineTextIndex !== index) return;
+      inlineTextEditor.focus({preventScroll:true});
+      if(selectAll) inlineTextEditor.select();
+    }, 30);
   }
 
   function openMobileTextEditor(index, selectAll=false, historyStarted=false){
     if(!inlineTextEditor) return;
     const a = state.annotations[index];
     if(!a || a.type !== 'text') return;
+    state.mobileToolPopoverOpen = false;
     inlineTextIndex = index;
     inlineTextHistoryStarted = historyStarted;
     inlineTextEditor.value = a.text || '';
     inlineTextEditor.classList.add('mobile-text-mode');
-    inlineTextEditor.style.display = 'block';
+    positionInlineTextEditor();
+    renderToolDock();
     setTimeout(() => {
-      inlineTextEditor.focus();
+      inlineTextEditor.focus({preventScroll:true});
       if(selectAll) inlineTextEditor.select();
     }, 30);
   }
@@ -2090,15 +2104,76 @@
     state.toolArmed = activeToolFromSettings();
   }
 
+  function selectedAnnotationIndex(){
+    if(state.selected?.type !== 'annotation') return -1;
+    const selectedId = state.selected.id;
+    let index = Number.isInteger(state.selected.index) ? state.selected.index : -1;
+    if(selectedId){
+      const byId = state.annotations.findIndex(annotation => annotation?.id === selectedId);
+      if(byId >= 0) index = byId;
+    }
+    const annotation = index >= 0 ? state.annotations[index] : null;
+    if(!annotation){
+      state.selected = null;
+      return -1;
+    }
+    state.selected.index = index;
+    state.selected.id = annotation.id;
+    return index;
+  }
+
+  function selectedAnnotation(){
+    const index = selectedAnnotationIndex();
+    return index >= 0 ? state.annotations[index] : null;
+  }
+
+  function setSelectedAnnotation(index, openProperties=true){
+    const annotation = state.annotations[index];
+    if(!annotation) return false;
+    state.selected = {type:'annotation', index, id:annotation.id};
+    state.mobileToolPopoverOpen = !!openProperties;
+    return true;
+  }
+
+  function avoidSelectedAnnotationOcclusion(){
+    if(!isMobileLayout() || !state.mobileToolPopoverOpen || !toolPopover?.classList.contains('show')) return;
+    const a = selectedAnnotation();
+    if(!a) return;
+    requestAnimationFrame(()=>{
+      if(!state.mobileToolPopoverOpen || !toolPopover.classList.contains('show')) return;
+      const stageRect = stageWrap.getBoundingClientRect();
+      const popRect = toolPopover.getBoundingClientRect();
+      const b = annotationBounds(a);
+      const p1 = worldToScreen(b.x,b.y);
+      const p2 = worldToScreen(b.x+b.w,b.y+b.h);
+      const objectTop = Math.min(p1.y,p2.y);
+      const objectBottom = Math.max(p1.y,p2.y);
+      const popTop = popRect.top-stageRect.top;
+      const popBottom = popRect.bottom-stageRect.top;
+      if(objectBottom > popTop-10 && objectTop < popBottom+10){
+        state.pan.y -= objectBottom-(popTop-14);
+        requestRender();
+      }
+    });
+  }
+
+  function toggleSelectedAnnotationProperties(force){
+    if(selectedAnnotationIndex() < 0) return false;
+    state.mobileToolPopoverOpen = typeof force === 'boolean' ? force : !state.mobileToolPopoverOpen;
+    renderToolDock();
+    if(state.mobileToolPopoverOpen) avoidSelectedAnnotationOcclusion();
+    requestRender();
+    return state.mobileToolPopoverOpen;
+  }
+
   function findExistingWatermarkIndex(){
     return state.annotations.findIndex(a => a && a.type === 'watermark');
   }
 
-  function selectAnnotationForEdit(index){
+  function selectAnnotationForEdit(index, openProperties=isDesktopLayout()){
     if(index < 0 || index >= state.annotations.length) return false;
     if(inlineTextIndex >= 0 && inlineTextIndex !== index) closeInlineTextEditor(true);
-    state.selected = {type:'annotation', index};
-    if(isMobileLayout()) state.mobileToolPopoverOpen = true;
+    if(!setSelectedAnnotation(index, openProperties)) return false;
     renderProps(); requestRender();
     return true;
   }
@@ -2108,8 +2183,7 @@
     state.toolArmed = 'select';
     state.selectionDraft = null;
     if(index != null && index >= 0 && index < state.annotations.length){
-      state.selected = {type:'annotation', index};
-      state.mobileToolPopoverOpen = true;
+      setSelectedAnnotation(index, isDesktopLayout());
     } else {
       state.selected = null;
       state.mobileToolPopoverOpen = false;
@@ -2137,7 +2211,8 @@
     state.mobileToolPopoverOpen = sameGroup ? !state.mobileToolPopoverOpen : true;
     if(group === 'watermark'){
       const idx = findExistingWatermarkIndex();
-      state.selected = idx >= 0 ? {type:'annotation', index:idx} : null;
+      if(idx >= 0) setSelectedAnnotation(idx, true);
+      else state.selected = null;
     } else if(group !== 'select') {
       state.selected = null;
     }
@@ -2162,7 +2237,8 @@
     state.mobileToolPopoverOpen = sameGroup ? !state.mobileToolPopoverOpen : false;
     if(group === 'watermark'){
       const idx = findExistingWatermarkIndex();
-      state.selected = idx >= 0 ? {type:'annotation', index:idx} : null;
+      if(idx >= 0) setSelectedAnnotation(idx, true);
+      else state.selected = null;
       if(idx >= 0) state.mobileToolPopoverOpen = true;
     } else if(group !== 'select') {
       state.selected = null;
@@ -2214,7 +2290,7 @@
       renderToolPopover();
       return;
     }
-    toolDock.innerHTML = groups.map(([g,icon,title]) => `${g==='eraser'?'<span class="tool-dock-sep"></span>':''}<button class="tool-dock-btn ${activeGroup===g?'active':''} ${g==='eraser'?'danger':''}" data-tool-group="${g}" title="${title}" aria-label="${title}">${svgIcon(icon)}</button>`).join('');
+    toolDock.innerHTML = groups.map(([g,icon,title]) => `<button class="tool-dock-btn ${activeGroup===g?'active':''} ${g==='eraser'?'danger':''}" data-tool-group="${g}" title="${title}" aria-label="${title}">${svgIcon(icon)}</button>`).join('');
     toolDock.classList.add('show');
     toolDock.querySelectorAll('[data-tool-group]').forEach(btn=>{
       btn.addEventListener('pointerdown', e=>e.stopPropagation());
@@ -2268,7 +2344,7 @@
       return;
     }
     toolPopover.classList.remove('mobile-collapsed');
-    const a = state.selected?.type === 'annotation' ? state.annotations[state.selected.index] : null;
+    const a = selectedAnnotation();
     if(a?.type !== 'text' && inlineTextIndex >= 0) closeInlineTextEditor(false);
     let html = a ? annotationPopover(a) : groupPopover();
     if(!html){ toolPopover.innerHTML = ''; toolPopover.classList.remove('show'); return; }
@@ -2277,7 +2353,7 @@
     toolPopover.onpointerdown = e => e.stopPropagation();
     bindToolPopoverEvents();
     toolPopover.classList.add('show');
-    requestAnimationFrame(()=>positionToolPopover(activeAnchorButton()));
+    requestAnimationFrame(()=>{ positionToolPopover(activeAnchorButton()); avoidSelectedAnnotationOcclusion(); });
   }
 
   const TOOL_COLORS = ['#ef4444','#f97316','#facc15','#22c55e','#3b82f6','#111827','#ffffff'];
@@ -2288,7 +2364,7 @@
   function chip(key, val, active, body, title=''){ return `<button class="pop-chip ${active?'active':''}" data-tool-setting="${key}" data-value="${val}" title="${title}" aria-label="${title}">${body}</button>`; }
   function boolChip(key, active, body, title=''){ return `<button class="pop-chip ${active?'active':''}" data-tool-setting="${key}" data-value="toggle" title="${title}" aria-label="${title}">${body}</button>`; }
   function compactPanel(body){ return `<div class="pop-compact">${body}</div>`; }
-  function compactRow(body){ return `<div class="pop-inline">${body}</div>`; }
+  function compactRow(body, className=''){ return `<div class="pop-inline ${className}">${body}</div>`; }
   function swatchButton(key, color, active=false, ann=false, title=''){
     const attr = ann ? `data-ann="${key}"` : `data-tool-setting="${key}"`;
     const label = title || (color === 'transparent' ? '透明' : color);
@@ -2373,43 +2449,47 @@
     return '';
   }
 
-  function layerControls(){
-    return compactRow(`<span class="pop-label">图层</span><button class="pop-chip" data-layer-action="front" title="置顶（Ctrl/Cmd + Shift + ]）">⇈</button><button class="pop-chip" data-layer-action="forward" title="上移一层（Ctrl/Cmd + ]）">↑</button><button class="pop-chip" data-layer-action="backward" title="下移一层（Ctrl/Cmd + [）">↓</button><button class="pop-chip" data-layer-action="back" title="置底（Ctrl/Cmd + Shift + [）">⇊</button>`);
+  function layerButtons(){
+    return `<span class="pop-label" title="图层">层</span><button class="pop-chip" data-layer-action="front" title="置顶（Ctrl/Cmd + Shift + ]）">⇈</button><button class="pop-chip" data-layer-action="forward" title="上移一层（Ctrl/Cmd + ]）">↑</button><button class="pop-chip" data-layer-action="backward" title="下移一层（Ctrl/Cmd + [）">↓</button><button class="pop-chip" data-layer-action="back" title="置底（Ctrl/Cmd + Shift + [）">⇊</button>`;
+  }
+
+  function objectControlRow(extra=''){
+    return compactRow(`${layerButtons()}<span class="pop-separator"></span>${extra}<span class="pop-actions"><button class="mini-btn" id="duplicateAnnotationBtnFloat" title="复制">⧉</button><button class="mini-btn warn" id="deleteAnnotationBtnFloat" title="删除">✕</button><button class="mini-btn" id="hideToolPopoverBtnFloat" title="收起">⌄</button></span>`, 'object-control-row');
+  }
+
+  function geometryInputs(a, shapeLike, rotateLike){
+    return compactRow(`<input class="tiny-number" type="number" data-ann="x" value="${Math.round(a.x||0)}" title="X"><input class="tiny-number" type="number" data-ann="y" value="${Math.round(a.y||0)}" title="Y">${shapeLike ? `<input class="tiny-number" type="number" data-ann="w" value="${Math.round(a.w||1)}" title="宽"><input class="tiny-number" type="number" data-ann="h" value="${Math.round(a.h||1)}" title="高">` : ''}${rotateLike ? `<input class="tiny-number" type="number" data-ann="rotation" value="${Math.round(a.rotation||0)}" min="-360" max="360" step="1" title="旋转">` : ''}`, 'geometry-inputs');
   }
 
   function annotationPopover(a){
     if(a.type === 'patch'){
+      const shrink = a.sourceSelection && classifyCanvasShrinkSelection(a.sourceSelection, computeLayout(true)) ? `<button class="mini-btn warn" data-selection-action="shrink" title="删除原选区并收缩画布">收缩</button>` : '';
       return compactPanel(
-        compactRow(`<input class="tiny-number" type="number" data-ann="x" value="${Math.round(a.x||0)}" title="X"><input class="tiny-number" type="number" data-ann="y" value="${Math.round(a.y||0)}" title="Y"><input class="tiny-number" type="number" data-ann="w" value="${Math.round(a.w||1)}" title="宽"><input class="tiny-number" type="number" data-ann="h" value="${Math.round(a.h||1)}" title="高"><input class="tiny-number" type="number" data-ann="rotation" value="${Math.round(a.rotation||0)}" min="-360" max="360" step="1" title="旋转">`)+
+        geometryInputs(a,true,true)+
         compactRow(`${opacityControl('opacity',a.opacity == null ? 1 : a.opacity,true)}`)+
-        layerControls()+
-        `${a.sourceSelection && classifyCanvasShrinkSelection(a.sourceSelection, computeLayout(true)) ? `<div class="compact-row"><button class="mini-btn warn" data-selection-action="shrink" title="删除原选区并收缩画布">删除并收缩</button></div>` : ''}`+
-        `<div class="pop-actions compact-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat" title="删除">✕</button><button class="mini-btn" id="duplicateAnnotationBtnFloat" title="复制">⧉</button><button class="mini-btn" id="hideToolPopoverBtnFloat" title="收起">⌄</button></div>`
+        objectControlRow(shrink)
       );
     }
     const shapeLike = ['box','boxFill','circle','circleFill','mosaic','redact','line','arrow','doubleArrow'].includes(a.type);
     const lineLike = ['box','boxFill','circle','circleFill','line','arrow','doubleArrow','pen','highlight'].includes(a.type);
     const textLike = ['text','watermark'].includes(a.type);
     const opacityLike = ['watermark','highlight','boxFill','circleFill','mosaic','mosaicPen'].includes(a.type);
-    let html = '';
     const rotateLike = !['badge','line','arrow','doubleArrow'].includes(a.type);
-    html += compactRow(`<input class="tiny-number" type="number" data-ann="x" value="${Math.round(a.x||0)}" title="X"><input class="tiny-number" type="number" data-ann="y" value="${Math.round(a.y||0)}" title="Y">${shapeLike ? `<input class="tiny-number" type="number" data-ann="w" value="${Math.round(a.w||180)}" title="宽"><input class="tiny-number" type="number" data-ann="h" value="${Math.round(a.h||90)}" title="高">` : ''}${rotateLike ? `<input class="tiny-number" type="number" data-ann="rotation" value="${Math.round(a.rotation||0)}" min="-360" max="360" step="1" title="旋转">` : ''}`);
+    let html = geometryInputs(a,shapeLike,rotateLike);
     if(['box','boxFill','circle','circleFill'].includes(a.type)){
       const isCircle = a.type.startsWith('circle');
       const isFill = a.type.endsWith('Fill');
-      html += compactRow(`${annChip('type',isFill?'boxFill':'box',!isCircle,svgIcon('rect'),'矩形')}${annChip('type',isFill?'circleFill':'circle',isCircle,svgIcon('circle'),'圆形')}${annChip('type',isCircle?(isFill?'circle':'circleFill'):(isFill?'box':'boxFill'),isFill,'◩','填充 / 空心')}`);
+      html += compactRow(`${annChip('type',isFill?'boxFill':'box',!isCircle,svgIcon('rect'),'矩形')}${annChip('type',isFill?'circleFill':'circle',isCircle,svgIcon('circle'),'圆形')}${annChip('type',isCircle?(isFill?'circle':'circleFill'):(isFill?'box':'boxFill'),isFill,'◩','填充 / 空心')}${colorPalette('color',a.color||'#ef4444',true)}${widthControl('lineWidth',a.lineWidth||4,1,96,true)}`);
     }
-    if(['line','arrow','doubleArrow'].includes(a.type)) html += compactRow(`${annChip('type','line',a.type==='line',svgIcon('line'),'直线')}${annChip('type','arrow',a.type==='arrow',svgIcon('arrow'),'单箭头')}${annChip('type','doubleArrow',a.type==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}`);
-    if(textLike) html += compactRow(`${textInput('text',a.text||'',true,'文字')}${sizeButtons('fontSize',a.fontSize||14,8,180,true)}${a.type==='text' ? annChip('vertical','toggle',!!a.vertical,'竖','竖排') : ''}`);
-    if(a.type === 'badge') html += compactRow(`<input class="tiny-number" type="number" data-ann="text" value="${Math.round(+a.text||1)}" min="1" max="9999" step="1" title="编号">${sizeButtons('fontSize',a.fontSize||34,14,120,true)}`);
-    if(!['mosaic','mosaicPen'].includes(a.type)) html += compactRow(`${colorPalette('color',a.color||'#ef4444',true)}${['boxFill','circleFill'].includes(a.type) ? colorPalette('fillColor',a.fillColor||'#fee2e2',true,['#fee2e2','#ffedd5','#fef9c3','#dcfce7','#dbeafe','#ffffff']) : ''}`);
-    if(textLike) html += compactRow(`${annChip('outline','toggle',!!a.outline,'Å','描边')}`);
-    if(lineLike) html += compactRow(`${widthControl('lineWidth',a.lineWidth || (a.type==='highlight'?18:4),1,96,true)}`);
-    if(a.type==='mosaic' || a.type==='mosaicPen') html += compactRow(`${widthControl('gridSize',a.gridSize||14,4,80,true)}`);
-    if(a.type==='watermark') html += compactRow(`${repeatControl('repeatCount',a.repeatCount||1,true)}`);
-    if(opacityLike) html += compactRow(`${opacityControl('opacity',a.opacity == null ? 1 : a.opacity,true)}`);
-    html += layerControls();
-    html += `<div class="pop-actions compact-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat" title="删除">✕</button><button class="mini-btn" id="duplicateAnnotationBtnFloat" title="复制">⧉</button><button class="mini-btn" id="hideToolPopoverBtnFloat" title="收起">⌄</button></div>`;
+    if(['line','arrow','doubleArrow'].includes(a.type)) html += compactRow(`${annChip('type','line',a.type==='line',svgIcon('line'),'直线')}${annChip('type','arrow',a.type==='arrow',svgIcon('arrow'),'单箭头')}${annChip('type','doubleArrow',a.type==='doubleArrow',svgIcon('doubleArrow'),'双箭头')}${colorPalette('color',a.color||'#ef4444',true)}${widthControl('lineWidth',a.lineWidth||4,1,96,true)}`);
+    if(a.type === 'text') html += compactRow(`<button class="pop-chip" data-edit-text title="编辑文字">✎</button>${textInput('text',a.text||'',true,'文字')}${sizeButtons('fontSize',a.fontSize||14,8,180,true)}${annChip('vertical','toggle',!!a.vertical,'竖','竖排')}`);
+    if(a.type === 'watermark') html += compactRow(`${textInput('text',a.text||'',true,'文字')}${sizeButtons('fontSize',a.fontSize||34,8,180,true)}${repeatControl('repeatCount',a.repeatCount||1,true)}`);
+    if(textLike) html += compactRow(`${colorPalette('color',a.color||'#111827',true)}${annChip('outline','toggle',!!a.outline,'Å','描边')}${opacityLike?opacityControl('opacity',a.opacity == null ? 1 : a.opacity,true):''}`);
+    if(a.type === 'badge') html += compactRow(`<input class="tiny-number" type="number" data-ann="text" value="${Math.round(+a.text||1)}" min="1" max="9999" step="1" title="编号">${sizeButtons('fontSize',a.fontSize||34,14,120,true)}${colorPalette('color',a.color||'#2f80ed',true)}`);
+    if(['pen','highlight'].includes(a.type)) html += compactRow(`${colorPalette('color',a.color||'#ef4444',true)}${widthControl('lineWidth',a.lineWidth || (a.type==='highlight'?18:4),1,96,true)}${a.type==='highlight'?opacityControl('opacity',a.opacity == null ? .45 : a.opacity,true):''}`);
+    if(a.type==='mosaic' || a.type==='mosaicPen') html += compactRow(`${widthControl('gridSize',a.gridSize||14,4,80,true)}${opacityLike?opacityControl('opacity',a.opacity == null ? 1 : a.opacity,true):''}`);
+    if(['boxFill','circleFill'].includes(a.type)) html += compactRow(`${colorPalette('fillColor',a.fillColor||'#fee2e2',true,['#fee2e2','#ffedd5','#fef9c3','#dcfce7','#dbeafe','#ffffff'])}${opacityControl('opacity',a.opacity == null ? 1 : a.opacity,true)}`);
+    html += objectControlRow();
     return compactPanel(html);
   }
   function bindToolPopoverEvents(){
@@ -2501,7 +2581,7 @@
     toolPopover.querySelectorAll('[data-ann-width]').forEach(box=>{
       box.addEventListener('wheel', e=>{
         e.preventDefault();
-        const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+        const idx = selectedAnnotationIndex();
         if(idx < 0) return;
         const key = box.dataset.annWidth;
         const min = Math.round(+box.dataset.min || 1);
@@ -2516,7 +2596,7 @@
     toolPopover.querySelectorAll('[data-ann-step]').forEach(btn=>{
       btn.addEventListener('click', e=>{
         e.preventDefault();
-        const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+        const idx = selectedAnnotationIndex();
         if(idx < 0) return;
         const key = btn.dataset.annStep;
         const min = Math.round(+btn.dataset.min || 1);
@@ -2529,6 +2609,7 @@
       });
     });
 
+    toolPopover.querySelector('[data-edit-text]')?.addEventListener('click', e=>{ e.preventDefault(); const idx=selectedAnnotationIndex(); if(idx<0) return; state.mobileToolPopoverOpen=false; renderToolDock(); if(isMobileLayout()) openMobileTextEditor(idx,true); else openInlineTextEditor(idx,true); });
     $('#deleteAnnotationBtnFloat')?.addEventListener('click', deleteSelectedAnnotation);
     $('#duplicateAnnotationBtnFloat')?.addEventListener('click', duplicateSelectedAnnotation);
     $('#hideToolPopoverBtnFloat')?.addEventListener('click', hideToolPopover);
@@ -2580,7 +2661,7 @@
   }
 
   function updateAnnotationInput(inp){
-    const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+    const idx = selectedAnnotationIndex();
     if(idx < 0) return;
     const a = state.annotations[idx];
     const key = inp.dataset.ann;
@@ -2599,14 +2680,14 @@
       else {
         const oldBadgeValue = (a.type === 'badge' && key === 'text') ? Math.round(+a.text || 1) : null;
         a[key] = Math.round(+val || 0);
-        if(a.type === 'badge' && key === 'text') syncBadgeSequence(state.selected.index, oldBadgeValue, Math.round(+val || 1));
+        if(a.type === 'badge' && key === 'text') syncBadgeSequence(idx, oldBadgeValue, Math.round(+val || 1));
       }
     } else if(key === 'opacity'){
       a[key] = clamp(parseFloat(val || '1'), .05, 1);
     } else {
       const oldBadgeValue = (a.type === 'badge' && key === 'text') ? Math.round(+a.text || 1) : null;
       a[key] = val;
-      if(a.type === 'badge' && key === 'text') syncBadgeSequence(state.selected.index, oldBadgeValue, Math.round(+val || 1));
+      if(a.type === 'badge' && key === 'text') syncBadgeSequence(idx, oldBadgeValue, Math.round(+val || 1));
     }
     if(isLiveTextEdit){
       requestRender();
@@ -2630,7 +2711,7 @@
   }
 
   function moveSelectedAnnotationLayer(action){
-    const idx = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    const idx = selectedAnnotationIndex();
     const current = state.annotations[idx];
     if(idx < 0 || !current || current.type === 'cutout') return false;
     const selectedId = current.id;
@@ -2651,7 +2732,7 @@
     else insertIndex = remainingVisible[targetPosition];
     state.annotations.splice(insertIndex,0,moved);
     const nextIndex = state.annotations.findIndex(annotation=>annotation?.id === selectedId);
-    state.selected = nextIndex >= 0 ? {type:'annotation', index:nextIndex} : null;
+    if(nextIndex >= 0) setSelectedAnnotation(nextIndex, true); else state.selected = null;
     renderProps(); renderToolDock(); requestRender();
     return true;
   }
@@ -2665,14 +2746,14 @@
   }
 
   function duplicateSelectedAnnotation(){
-    const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+    const idx = selectedAnnotationIndex();
     if(idx < 0) return;
     if(state.annotations[idx]?.type === 'watermark'){ toast('水印保持单一对象'); return; }
     pushHistory();
     const copy = detachAnnotationSourceLink(JSON.parse(JSON.stringify(state.annotations[idx])));
     copy.id = uid('ann'); copy.x = (copy.x||0)+24; copy.y = (copy.y||0)+24;
     state.annotations.push(copy);
-    state.selected = {type:'annotation', index:state.annotations.length-1};
+    setSelectedAnnotation(state.annotations.length-1, true);
     renderProps(); requestRender();
   }
 
@@ -2814,7 +2895,7 @@
       toast('已复制选区');
       return true;
     }
-    const idx = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    const idx = selectedAnnotationIndex();
     if(idx < 0 || !state.annotations[idx] || state.annotations[idx].type === 'cutout') return false;
     state.pixelClipboard = {kind:'annotation', annotation:cloneAnnotationForDrag(state.annotations[idx]), pasteCount:0};
     toast('已复制标注');
@@ -2834,7 +2915,7 @@
       toast(`已剪切，原位置填充：${selectionFillLabel()}`);
       return true;
     }
-    const idx = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    const idx = selectedAnnotationIndex();
     if(idx < 0 || !state.annotations[idx] || state.annotations[idx].type === 'cutout') return false;
     state.pixelClipboard = {kind:'annotation', annotation:cloneAnnotationForDrag(state.annotations[idx]), pasteCount:0};
     deleteSelectedAnnotation();
@@ -2860,11 +2941,10 @@
       patchDataStore.set(id,clip.dataUrl);
     }
     state.annotations.push(a);
-    state.selected = {type:'annotation', index:state.annotations.length - 1};
+    setSelectedAnnotation(state.annotations.length - 1, true);
     state.selectionDraft = null;
     state.toolSettings.group = 'select';
     state.toolArmed = 'select';
-    state.mobileToolPopoverOpen = !isMobileLayout();
     updateModeButtons(); renderProps(); renderToolDock(); requestRender();
     if(a.type === 'patch') void ensurePatchImage(a);
     toast('已粘贴');
@@ -2949,7 +3029,7 @@
 
   async function deleteAndShrinkSelection(){
     if(!state.images.length) return false;
-    const selectedIndex = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    const selectedIndex = selectedAnnotationIndex();
     const selectedPatch = selectedIndex >= 0 && state.annotations[selectedIndex]?.type === 'patch' ? state.annotations[selectedIndex] : null;
     const selection = state.selectionDraft?.ready ? state.selectionDraft : selectedPatch?.sourceSelection;
     const full = computeLayout(true);
@@ -3194,6 +3274,7 @@
   }
 
   function drawToolsOverlay(c, layout){
+    const selectedIndex = selectedAnnotationIndex();
     for(let i=0;i<state.annotations.length;i++){
       const a = state.annotations[i];
       if(!a || a.type === 'cutout') continue;
@@ -3201,7 +3282,8 @@
       const precise = isLineAnnotation(a) || isFreePathAnnotation(a);
       const tolerance = Math.max(8/state.zoom,(a.lineWidth||4)/2+4/state.zoom);
       hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move', contains:(x,y)=>!pointCutOutAfter(i,x,y) && !pointInsideAnnotationErasure(a,x,y) && (!precise || annotationPointDistance(a,{x,y})<=tolerance)});
-      const selected = state.selected?.type === 'annotation' && state.selected.index === i && inlineTextIndex !== i;
+      const activeToolDraft = drag?.type === 'toolCreate' && drag.index === i;
+      const selected = selectedIndex === i && inlineTextIndex !== i && !activeToolDraft;
       if(selected){
         c.save();
         c.strokeStyle = '#2f80ed';
@@ -3225,6 +3307,7 @@
             c.strokeRect(hp.x-hs/2, hp.y-hs/2, hs, hs);
             hitAreas.push({type:'annotationResize', index:i, handle:handle.name, x:hp.x-hs, y:hp.y-hs, w:hs*2, h:hs*2, cursor:handle.cursor});
           }
+          if(isFreePathAnnotation(a)) drawFreePathSelectionHandles(c, a);
 
           if(a.type !== 'badge'){
             const rx = fr.rotateHandle.x, ry = fr.rotateHandle.y;
@@ -3243,6 +3326,30 @@
             c.stroke();
             hitAreas.push({type:'annotationRotate', index:i, x:rx-hs, y:ry-hs, w:hs*2, h:hs*2, cursor:'grab'});
           }
+
+          // Keep a reliable drag zone in the center of small selected objects.
+          // Mobile resize hit targets are intentionally generous, but without this
+          // center zone four corner handles can cover an entire short text object.
+          const centerMoveWidth = Math.min(fr.b.w, Math.max(16/state.zoom, fr.b.w*.45));
+          const centerMoveHeight = Math.min(fr.b.h, Math.max(16/state.zoom, fr.b.h*.45));
+          const centerMoveRect = {
+            x:fr.center.x-centerMoveWidth/2,
+            y:fr.center.y-centerMoveHeight/2,
+            w:centerMoveWidth,
+            h:centerMoveHeight
+          };
+          const centerMoveAabb = rotateAabb(centerMoveRect, a.rotation || 0);
+          hitAreas.push({
+            type:'annotationSelect', index:i,
+            x:centerMoveAabb.x, y:centerMoveAabb.y, w:centerMoveAabb.w, h:centerMoveAabb.h,
+            cursor:'move',
+            contains:(x,y)=>{
+              const probe = rotatePointAround({x,y}, fr.center, -(a.rotation||0));
+              return probe.x>=centerMoveRect.x && probe.x<=centerMoveRect.x+centerMoveRect.w &&
+                probe.y>=centerMoveRect.y && probe.y<=centerMoveRect.y+centerMoveRect.h &&
+                !pointCutOutAfter(i,x,y) && !pointInsideAnnotationErasure(a,x,y);
+            }
+          });
         }
 
         if(isLineAnnotation(a)){
@@ -3275,12 +3382,17 @@
     const columns = a.vertical ? raw.split('\n').map(column => [...column]) : [];
     const sourceLines = a.vertical ? columns.flat() : raw.split('\n');
     const lines = sourceLines.length ? sourceLines : [''];
-    const lineHeight = Math.ceil(fs * 1.25);
-    const contentWidth = a.vertical ? fs + Math.max(0, columns.length - 1) * lineHeight : Math.max(40, ...lines.map(line => temp.measureText(line).width));
-    const contentHeight = a.vertical ? Math.max(lineHeight, ...columns.map(column => column.length * lineHeight)) : Math.max(lineHeight, lines.length * lineHeight);
-    const padX = 8;
-    const padY = 6;
-    return {lines, columns, fs, step:lineHeight, lineHeight, contentWidth, contentHeight, padX, padY, width:contentWidth+padX*2, height:contentHeight+padY*2};
+    const lineHeight = Math.ceil(fs * 1.22);
+    const sample = temp.measureText('国Hg');
+    const ascent = Number.isFinite(sample.actualBoundingBoxAscent) ? sample.actualBoundingBoxAscent : fs * .78;
+    const descent = Number.isFinite(sample.actualBoundingBoxDescent) ? sample.actualBoundingBoxDescent : fs * .22;
+    const glyphHeight = Math.max(1, ascent + descent);
+    const baselineOffset = Math.max(ascent, (lineHeight-glyphHeight)/2 + ascent);
+    const contentWidth = a.vertical ? Math.max(fs, fs + Math.max(0, columns.length - 1) * lineHeight) : Math.max(1, ...lines.map(line => temp.measureText(line || ' ').width));
+    const contentHeight = a.vertical ? Math.max(lineHeight, ...columns.map(column => Math.max(1,column.length) * lineHeight)) : Math.max(lineHeight, lines.length * lineHeight);
+    const padX = 5;
+    const padY = 3;
+    return {lines, columns, fs, step:lineHeight, lineHeight, ascent, descent, baselineOffset, contentWidth, contentHeight, padX, padY, width:contentWidth+padX*2, height:contentHeight+padY*2};
   }
 
   function annotationLocalSize(a){
@@ -3384,16 +3496,16 @@ if(a.type === 'cutout'){
   const m = measureTextAnnotation(a);
   const fs = m.fs;
   c.font = `600 ${fs}px ui-sans-serif, system-ui, sans-serif`;
-  c.textAlign = 'left'; c.textBaseline = 'top';
+  c.textAlign = 'left'; c.textBaseline = 'alphabetic';
   const lines = m.lines;
   const forEachTextGlyph = callback => {
     if(a.vertical){
       m.columns.forEach((column,columnIndex)=>{
         const x = m.contentWidth - m.fs - columnIndex * m.lineHeight;
-        column.forEach((char,rowIndex)=>callback(char,x,rowIndex*m.step));
+        column.forEach((char,rowIndex)=>callback(char,x,rowIndex*m.step+m.baselineOffset));
       });
     } else {
-      lines.forEach((line,rowIndex)=>callback(line,0,rowIndex*m.step));
+      lines.forEach((line,rowIndex)=>callback(line,0,rowIndex*m.step+m.baselineOffset));
     }
   };
   const drawTextBlock = (ox=0, oy=0) => {
@@ -3776,8 +3888,7 @@ if(a.type === 'cutout'){
     future = [];
     updateUndoRedo();
     if(['pen','highlight','mosaicPen'].includes(finished.tool)){
-      state.selected = null;
-      state.mobileToolPopoverOpen = isDesktopLayout();
+      setSelectedAnnotation(finished.index, isDesktopLayout());
       applyActiveTool();
       renderProps();
       renderToolDock();
@@ -3814,7 +3925,8 @@ if(a.type === 'cutout'){
     if(!pointTool){ a.w = 0; a.h = 0; }
     state.annotations.push(a);
     const idx = state.annotations.length - 1;
-    state.selected = {type:'annotation', index:idx};
+    if(pointTool) setSelectedAnnotation(idx, isDesktopLayout());
+    else state.selected = null;
     if(pointTool){
       if(type === 'badge') state.toolSettings.badgeNumber = clamp(Math.round(+state.toolSettings.badgeNumber || 1) + 1, 1, 9999);
       if(type === 'text'){
@@ -3837,7 +3949,7 @@ if(a.type === 'cutout'){
   }
 
   function deleteSelectedAnnotation(){
-    const idx = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    const idx = selectedAnnotationIndex();
     if(idx < 0) return;
     pushHistory();
     const [removed] = state.annotations.splice(idx,1);
@@ -4130,15 +4242,13 @@ if(a.type === 'cutout'){
     if(h.type === 'seamSelect'){ state.activeHandle = null; state.selected = {type:'seam', index:h.index}; renderProps(); requestRender(); return; }
     if(h.type === 'annotationSelect'){
       if(state.mode === 'tools' && state.toolArmed === 'eraser'){
-        state.selected = {type:'annotation', index:h.index};
+        setSelectedAnnotation(h.index, false);
         deleteSelectedAnnotation();
         return;
       }
-      selectAnnotationForEdit(h.index);
-      if(isMobileLayout() && state.annotations[h.index]?.type === 'text'){
-        openMobileTextEditor(h.index, true);
-        return;
-      }
+      const wasSelected = selectedAnnotationIndex() === h.index;
+      const propertiesWereOpen = !!state.mobileToolPopoverOpen;
+      selectAnnotationForEdit(h.index, isDesktopLayout());
       {
         const historySnapshot = snapshot(true);
         let index = h.index;
@@ -4148,23 +4258,27 @@ if(a.type === 'cutout'){
           copy.id = uid('ann');
           state.annotations.push(copy);
           index = state.annotations.length - 1;
-          state.selected = {type:'annotation', index};
+          setSelectedAnnotation(index, isDesktopLayout());
         }
         const a = state.annotations[index];
-        drag = {type:'annotationMove', index, start:w, ann:cloneAnnotationForDrag(a), historySnapshot, createdByAlt:!!e.altKey && a.type !== 'watermark'};
+        if(isMobileLayout()) state.mobileToolPopoverOpen = false;
+        drag = {type:'annotationMove', index, start:w, startScreen:getPointer(e), ann:cloneAnnotationForDrag(a), historySnapshot, createdByAlt:!!e.altKey && a.type !== 'watermark', wasSelected, propertiesWereOpen, moved:false, openProperties:isDesktopLayout()};
       }
       return;
     }
     if(h.type === 'annotationResize'){
-      selectAnnotationForEdit(h.index);
+      selectAnnotationForEdit(h.index, isDesktopLayout());
+      if(isMobileLayout()) state.mobileToolPopoverOpen = false;
       const a = state.annotations[h.index]; drag = {type:'annotationResize', index:h.index, handle:h.handle || 'se', start:w, ann:cloneAnnotationForDrag(a), historySnapshot:snapshot(true)}; return;
     }
     if(h.type === 'annotationLineStart' || h.type === 'annotationLineEnd'){
-      selectAnnotationForEdit(h.index);
+      selectAnnotationForEdit(h.index, isDesktopLayout());
+      if(isMobileLayout()) state.mobileToolPopoverOpen = false;
       const a = state.annotations[h.index]; drag = {type:h.type, index:h.index, start:w, ann:cloneAnnotationForDrag(a), historySnapshot:snapshot(true)}; return;
     }
     if(h.type === 'annotationRotate'){
-      selectAnnotationForEdit(h.index);
+      selectAnnotationForEdit(h.index, isDesktopLayout());
+      if(isMobileLayout()) state.mobileToolPopoverOpen = false;
       const a = state.annotations[h.index]; const center = annotationFrame(a).center;
       drag = {type:'annotationRotate', index:h.index, center, startAngle:Math.atan2(w.y-center.y,w.x-center.x), rotation:+(a.rotation||0), ann:cloneAnnotationForDrag(a), historySnapshot:snapshot(true)}; return;
     }
@@ -4411,6 +4525,7 @@ if(a.type === 'cutout'){
     }
     if(drag.type === 'annotationMove'){
       const a = state.annotations[drag.index];
+      if(drag.startScreen && Math.hypot(p.x-drag.startScreen.x,p.y-drag.startScreen.y) >= TOOL_DRAG_THRESHOLD) drag.moved = true;
       const delta = lockDragAxis(w.x-drag.start.x, w.y-drag.start.y, e.shiftKey);
       a.x = Math.round(drag.ann.x + delta.dx);
       a.y = Math.round(drag.ann.y + delta.dy);
@@ -4531,6 +4646,9 @@ if(a.type === 'cutout'){
       requestRender();
     }
     if(finished && finished.type === 'splitDraft') renderProps();
+    if(finished?.type === 'annotationMove' && isMobileLayout() && !finished.moved && finished.wasSelected && !finished.createdByAlt){
+      toggleSelectedAnnotationProperties(!finished.propertiesWereOpen);
+    }
     if(commitAnnotationTransform(finished)){ renderProps(); requestRender(); }
     if(finished && finished.type === 'toolCreate'){
       const a = state.annotations[finished.index];
@@ -4549,7 +4667,7 @@ if(a.type === 'cutout'){
         renderProps(); renderToolDock(); requestRender();
       } else {
         state.selectionDraft = {...s, ...b, ready:true};
-        state.mobileToolPopoverOpen = true;
+        state.mobileToolPopoverOpen = isDesktopLayout();
         renderProps(); renderToolDock(); requestRender();
         void finalizeSelectionAsTransform();
       }
@@ -4931,7 +5049,7 @@ if(a.type === 'cutout'){
     $$('[data-tool]', props).forEach(btn => btn.addEventListener('click', () => { state.toolArmed = btn.dataset.tool; renderProps(); requestRender(); }));
     $('#deleteAnnotationBtn')?.addEventListener('click', () => deleteSelectedAnnotation());
     $$('[data-ann]', props).forEach(inp => inp.addEventListener(inp.type==='text' ? 'input' : 'change', () => {
-      const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
+      const idx = selectedAnnotationIndex();
       if(idx < 0) return;
       pushHistory();
       const a = state.annotations[idx];
@@ -6211,7 +6329,7 @@ if(a.type === 'cutout'){
     const verticalKey = key === 'ArrowUp' || key === 'ArrowDown';
     if(state.mode === 'seam' && state.selected?.type === 'seam'){
       const s = state.seams[state.selected.index]; if(!s) return;
-      
+
       pushHistory();
       if((state.orientation === 'vertical' && verticalKey) || (state.orientation === 'horizontal' && !verticalKey)){
         if(key==='ArrowUp' || key==='ArrowLeft') s.beforeCrop = Math.max(0, s.beforeCrop + Math.abs(delta));
@@ -6233,7 +6351,8 @@ if(a.type === 'cutout'){
       if(key==='ArrowRight') c.right = Math.max(0,c.right+amt);
     } else if(state.mode === 'tools' && state.toolArmed === 'select' && state.selected?.type === 'annotation'){
       pushHistory();
-      const a = state.annotations[state.selected.index];
+      const a = selectedAnnotation();
+      if(!a) return;
       if(key==='ArrowUp') a.y = Math.max(0,(a.y||0)-Math.abs(delta));
       if(key==='ArrowDown') a.y = Math.max(0,(a.y||0)+Math.abs(delta));
       if(key==='ArrowLeft') a.x = Math.max(0,(a.x||0)-Math.abs(delta));
@@ -6502,8 +6621,9 @@ if(a.type === 'cutout'){
     if(state.mode === 'tools' && state.toolArmed === 'select' && h?.type === 'annotationSelect'){
       const textAnnotation = state.annotations[h.index];
       if(textAnnotation?.type === 'text'){
-        state.selected = {type:'annotation', index:h.index};
-        openInlineTextEditor(h.index, true);
+        setSelectedAnnotation(h.index, true);
+        if(isMobileLayout()) openMobileTextEditor(h.index, true);
+        else openInlineTextEditor(h.index, true);
         renderProps(); requestRender();
         return;
       }
