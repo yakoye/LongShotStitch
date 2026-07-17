@@ -4,7 +4,7 @@
   <!-- POWERSTORM_REQUIREMENTS.md: follow project development constraints for every release. -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>LongShotStitch v1.44.0 - 长图拼接裁剪工具</title>
+  <title>LongShotStitch v1.45.0 - 长图拼接裁剪工具</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='48' x='8' font-size='44'%3E%E2%9C%82%3C/text%3E%3C/svg%3E">
   <style>
     :root{
@@ -214,6 +214,9 @@
     .nav-thumb:hover,.nav-scrollbar.dragging .nav-thumb{background:rgba(47,128,237,.78)}
     .nav-scrollbar.vertical .nav-thumb{left:0;width:100%;min-height:28px}
     .nav-scrollbar.horizontal .nav-thumb{top:0;height:100%;min-width:28px}
+
+    .canvas-expand-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}.canvas-expand-grid label,.export-size-grid label{display:flex;align-items:center;gap:5px;font-size:12px;color:#475569}.canvas-expand-grid input,.export-size-grid input{width:72px;min-width:0}.canvas-expand-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.canvas-anchor-select{min-width:104px}.export-size-panel{border-top:1px solid #e5e7eb;padding-top:10px;display:grid;gap:8px}.export-size-head{display:flex;align-items:center;justify-content:space-between;font-size:12px}.export-size-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.export-size-options{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.export-size-options select{min-width:92px}.photo-presets{display:flex;gap:6px;flex-wrap:wrap}.photo-mm-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:5px;align-items:center}.photo-mm-row input{min-width:0;width:100%}
+
     @media (max-width: 760px){
       .mini-map{right:10px;top:10px;width:72px;padding:4px;border-radius:10px}
       .nav-scrollbar.vertical{right:4px;top:8px;bottom:14px;width:7px}
@@ -300,7 +303,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">✂</div>
-      <div>LongShotStitch<small>长图拼裁工具 v1.44.0</small></div>
+      <div>LongShotStitch<small>长图拼裁工具 v1.45.0</small></div>
     </div>
     <div class="mobile-title"></div>
 
@@ -362,6 +365,29 @@
         <button class="mini-btn" data-export-format="svg">SVG</button>
       </div>
     </label>
+    <div class="export-size-panel" id="exportSizePanel">
+      <div class="export-size-head"><span>输出尺寸</span><label><input type="checkbox" id="exportResizeEnabled"> 指定像素</label></div>
+      <div class="export-size-grid">
+        <label>宽 <input type="number" id="exportResizeWidth" min="1" placeholder="原宽"></label>
+        <label>高 <input type="number" id="exportResizeHeight" min="1" placeholder="原高"></label>
+      </div>
+      <div class="export-size-options">
+        <label><input type="checkbox" id="exportResizeLockRatio" checked> 锁定比例</label>
+        <select id="exportResizeFit" title="尺寸不一致时的处理"><option value="contain">完整适应</option><option value="cover">填满裁边</option><option value="stretch">拉伸到尺寸</option></select>
+      </div>
+      <div class="photo-presets">
+        <button class="mini-btn" data-photo-preset="one-inch">1 寸</button>
+        <button class="mini-btn" data-photo-preset="two-inch">2 寸</button>
+        <button class="mini-btn" data-photo-preset="icon-128">128×128</button>
+        <button class="mini-btn" data-photo-preset="icon-256">256×256</button>
+      </div>
+      <div class="photo-mm-row">
+        <input type="number" id="exportPhotoMmWidth" min="1" step="0.1" value="25" title="毫米宽">
+        <input type="number" id="exportPhotoMmHeight" min="1" step="0.1" value="35" title="毫米高">
+        <input type="number" id="exportPhotoDpi" min="72" max="1200" value="300" title="DPI">
+        <button class="mini-btn" id="applyPhotoMmPreset" title="按毫米和 DPI 计算像素">应用</button>
+      </div>
+    </div>
     <div class="export-quality-panel" id="exportQualityPanel">
       <div class="export-quality-head"><span id="exportRecommend">推荐 清晰</span><span class="export-quality-value" id="exportQualityValue">92%</span></div>
       <input id="exportQuality" type="range" min="50" max="100" step="1" value="92" aria-label="导出质量">
@@ -464,6 +490,8 @@
         <button class="mini-btn" data-mobile-ratio="2:3">竖2:3</button>
         <button class="mini-btn" data-mobile-ratio="3:4">竖3:4</button>
         <button class="mini-btn" data-mobile-ratio="5:7">竖5:7</button>
+        <button class="mini-btn" data-mobile-ratio="25:35">证件照25:35</button>
+        <button class="mini-btn" data-mobile-ratio="35:49">证件照35:49</button>
         <button class="mini-btn" data-mobile-ratio="9:16">竖9:16</button>
         <button class="mini-btn" data-mobile-ratio="3:2">横3:2</button>
         <button class="mini-btn" data-mobile-ratio="4:3">横4:3</button>
@@ -565,7 +593,7 @@
   const vThumb = $('#vThumb');
   const hScroll = $('#hScroll');
   const hThumb = $('#hThumb');
-  const APP_VERSION = 'v1.44.0';
+  const APP_VERSION = 'v1.45.0';
   const TOOL_DRAG_THRESHOLD = 6;
   const MAX_SELECTION_PIXELS = 16_000_000;
   const PROXY_LIMITS = {
@@ -585,6 +613,10 @@
     images: [],
     seams: [],
     canvasCrop: { top: 0, right: 0, bottom: 0, left: 0 },
+    canvasPadding: { top: 0, right: 0, bottom: 0, left: 0 },
+    canvasBackground: '#ffffff',
+    canvasExpandLockRatio: false,
+    canvasExpandAnchor: 'center',
     zoom: 1,
     pan: { x: 0, y: 0 },
     preview: false,
@@ -593,7 +625,7 @@
     pixelClipboard: null,
     activeHandle: null,
     toolArmed: null,
-    toolSettings: { group:'select', selectionShape:'rect', selectionFillMode:'transparent', selectionFillColor:'#ffffff', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:14, textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
+    toolSettings: { group:'select', selectionShape:'rect', selectionFillMode:'transparent', selectionFillColor:'#ffffff', shapeKind:'box', shapeFill:false, color:'#ef4444', fillColor:'#fee2e2', lineWidth:4, opacity:1, penKind:'pen', penColor:'#ef4444', penWidth:4, highlightWidth:18, arrowKind:'arrow', textValue:'', textColor:'#111827', textSize:14, textOutline:false, badgeNumber:1, badgeColor:'#2f80ed', badgeSize:34, mosaicKind:'mosaic', mosaicGrid:14, eraserSize:24, eraserMode:'local', watermarkText:'水印', watermarkSize:34, watermarkColor:'#111827', watermarkOpacity:.22, watermarkRepeat:1 },
     selectionBusy: false,
     mobileToolPopoverOpen: false,
     mobileFileOpen: false,
@@ -613,7 +645,15 @@
     customCropRatio: '1:3',
     exportFormat: 'png',
     exportQuality: 0.92,
-    exportQualityAuto: true
+    exportQualityAuto: true,
+    exportResizeEnabled: false,
+    exportResizeWidth: 0,
+    exportResizeHeight: 0,
+    exportResizeLockRatio: true,
+    exportResizeFit: 'contain',
+    exportPhotoMmWidth: 25,
+    exportPhotoMmHeight: 35,
+    exportPhotoDpi: 300
   };
 
   let history = [];
@@ -677,6 +717,10 @@
       images: snapshotImages,
       seams: state.seams.map(s => ({...s, divider: s.divider ? {...s.divider} : null})),
       canvasCrop: {...state.canvasCrop},
+      canvasPadding: {...state.canvasPadding},
+      canvasBackground: state.canvasBackground || '#ffffff',
+      canvasExpandLockRatio: !!state.canvasExpandLockRatio,
+      canvasExpandAnchor: state.canvasExpandAnchor || 'center',
       annotations: snapshotAnnotations,
       selectionDraft: state.selectionDraft ? {...state.selectionDraft} : null,
       toolSettings: {...state.toolSettings},
@@ -692,6 +736,14 @@
       exportFormat: state.exportFormat || 'png',
       exportQuality: state.exportQuality || 0.92,
       exportQualityAuto: !!state.exportQualityAuto,
+      exportResizeEnabled: !!state.exportResizeEnabled,
+      exportResizeWidth: Math.max(0, Math.round(state.exportResizeWidth || 0)),
+      exportResizeHeight: Math.max(0, Math.round(state.exportResizeHeight || 0)),
+      exportResizeLockRatio: !!state.exportResizeLockRatio,
+      exportResizeFit: state.exportResizeFit || 'contain',
+      exportPhotoMmWidth: Number(state.exportPhotoMmWidth || 25),
+      exportPhotoMmHeight: Number(state.exportPhotoMmHeight || 35),
+      exportPhotoDpi: Math.max(72, Math.round(state.exportPhotoDpi || 300)),
       mobileSection: state.mobileSection || 'stitch'
     });
   }
@@ -716,6 +768,10 @@
     state.selected = data.selected || null;
     state.autoStitchEnabled = !!data.autoStitchEnabled;
     state.canvasCrop = data.canvasCrop || {top:0,right:0,bottom:0,left:0};
+    state.canvasPadding = data.canvasPadding || {top:0,right:0,bottom:0,left:0};
+    state.canvasBackground = data.canvasBackground || '#ffffff';
+    state.canvasExpandLockRatio = !!data.canvasExpandLockRatio;
+    state.canvasExpandAnchor = data.canvasExpandAnchor || 'center';
     state.seams = data.seams || [];
     state.annotations = (data.annotations || []).map(raw => {
       const a = {...raw};
@@ -740,6 +796,14 @@
     state.exportFormat = data.exportFormat || state.exportFormat || 'png';
     state.exportQuality = clamp(Number(data.exportQuality || state.exportQuality || 0.92), 0.5, 1);
     state.exportQualityAuto = data.exportQualityAuto !== undefined ? !!data.exportQualityAuto : true;
+    state.exportResizeEnabled = !!data.exportResizeEnabled;
+    state.exportResizeWidth = Math.max(0, Math.round(data.exportResizeWidth || 0));
+    state.exportResizeHeight = Math.max(0, Math.round(data.exportResizeHeight || 0));
+    state.exportResizeLockRatio = data.exportResizeLockRatio !== undefined ? !!data.exportResizeLockRatio : true;
+    state.exportResizeFit = data.exportResizeFit || 'contain';
+    state.exportPhotoMmWidth = Number(data.exportPhotoMmWidth || 25);
+    state.exportPhotoMmHeight = Number(data.exportPhotoMmHeight || 35);
+    state.exportPhotoDpi = Math.max(72, Math.round(data.exportPhotoDpi || 300));
     state.mobileSection = data.mobileSection || sectionForMode(state.mode);
     state.activeHandle = null;
     const imgs = [];
@@ -1097,6 +1161,20 @@
       fullWidth = x;
     }
 
+    const padding = state.canvasPadding || {top:0,right:0,bottom:0,left:0};
+    const padTop = Math.max(0, Math.round(padding.top || 0));
+    const padRight = Math.max(0, Math.round(padding.right || 0));
+    const padBottom = Math.max(0, Math.round(padding.bottom || 0));
+    const padLeft = Math.max(0, Math.round(padding.left || 0));
+    if(padLeft || padTop){
+      items = items.map(item=>({...item, dx:item.dx + padLeft, dy:item.dy + padTop}));
+      imageBounds = imageBounds.map(item=>({...item, x:item.x + padLeft, y:item.y + padTop}));
+      seamViews = seamViews.map(item=>({...item, x:item.x + padLeft, y:item.y + padTop}));
+      divViews = divViews.map(item=>({...item, x:item.x + padLeft, y:item.y + padTop}));
+    }
+    fullWidth += padLeft + padRight;
+    fullHeight += padTop + padBottom;
+
     const cc = state.canvasCrop;
     let crop = ignoreCanvasCrop ? {top:0,right:0,bottom:0,left:0} : {
       top: clamp(cc.top,0,fullHeight-1), left:clamp(cc.left,0,fullWidth-1),
@@ -1443,7 +1521,7 @@
     const crop = withUncroppedCanvas ? {left:0,top:0} : layout.crop || {left:0,top:0};
     c.save();
     if(!withUncroppedCanvas){ c.translate(-crop.left, -crop.top); }
-    c.fillStyle = '#fff';
+    c.fillStyle = state.canvasBackground || '#ffffff';
     c.fillRect(0,0,layout.fullWidth,layout.fullHeight);
     for(const item of layout.items){
       drawImageItem(c, item, exportMode);
@@ -2045,6 +2123,14 @@
   function setToolGroup(group){
     if(isMobileLayout()) return mobileToolGroupTap(group);
     const sameGroup = (state.toolSettings.group || 'select') === group;
+    if(sameGroup && group === 'select'){
+      state.selected = null;
+      state.selectionDraft = null;
+      state.mobileToolPopoverOpen = false;
+      applyActiveTool();
+      renderProps(); renderToolDock(); requestRender();
+      return;
+    }
     if(!sameGroup && inlineTextIndex >= 0) closeInlineTextEditor(true);
     state.toolSettings.group = group;
     if(group !== 'marquee') state.selectionDraft = null;
@@ -2062,6 +2148,14 @@
 
   function mobileToolGroupTap(group){
     const sameGroup = (state.toolSettings.group || 'select') === group;
+    if(sameGroup && group === 'select'){
+      state.selected = null;
+      state.selectionDraft = null;
+      state.mobileToolPopoverOpen = false;
+      applyActiveTool();
+      renderProps(); renderToolDock(); requestRender();
+      return;
+    }
     if(!sameGroup && inlineTextIndex >= 0) closeInlineTextEditor(true);
     state.toolSettings.group = group;
     if(group !== 'marquee') state.selectionDraft = null;
@@ -2271,7 +2365,7 @@
     if(g === 'mosaic') return compactPanel(
       compactRow(`${chip('mosaicKind','mosaic',s.mosaicKind!=='free',svgIcon('mosaic'),'矩形马赛克')}${chip('mosaicKind','free',s.mosaicKind==='free','✎','自由马赛克')}${widthControl('mosaicGrid',s.mosaicGrid||14,4,80)}`)
     );
-    if(g === 'eraser') return compactPanel(compactRow(`${widthControl('eraserSize',s.eraserSize||24,4,120,false,[4,8,16,32])}`));
+    if(g === 'eraser') return compactPanel(compactRow(`${chip('eraserMode','local',s.eraserMode!=='object','局部','一点点擦除')}${chip('eraserMode','object',s.eraserMode==='object','对象','整对象删除')}${widthControl('eraserSize',s.eraserSize||24,4,120,false,[4,8,16,32])}`));
     if(g === 'watermark') return compactPanel(
       compactRow(`${textInput('watermarkText',s.watermarkText||'水印',false,'水印')}`)+
       compactRow(`${sizeButtons('watermarkSize',s.watermarkSize||34,8,180)}${colorPalette('watermarkColor',s.watermarkColor||'#111827')}${opacityControl('watermarkOpacity',s.watermarkOpacity||.22)}${repeatControl('watermarkRepeat',s.watermarkRepeat||1)}`)
@@ -2289,6 +2383,7 @@
         compactRow(`<input class="tiny-number" type="number" data-ann="x" value="${Math.round(a.x||0)}" title="X"><input class="tiny-number" type="number" data-ann="y" value="${Math.round(a.y||0)}" title="Y"><input class="tiny-number" type="number" data-ann="w" value="${Math.round(a.w||1)}" title="宽"><input class="tiny-number" type="number" data-ann="h" value="${Math.round(a.h||1)}" title="高"><input class="tiny-number" type="number" data-ann="rotation" value="${Math.round(a.rotation||0)}" min="-360" max="360" step="1" title="旋转">`)+
         compactRow(`${opacityControl('opacity',a.opacity == null ? 1 : a.opacity,true)}`)+
         layerControls()+
+        `${a.sourceSelection && classifyCanvasShrinkSelection(a.sourceSelection, computeLayout(true)) ? `<div class="compact-row"><button class="mini-btn warn" data-selection-action="shrink" title="删除原选区并收缩画布">删除并收缩</button></div>` : ''}`+
         `<div class="pop-actions compact-actions"><button class="mini-btn warn" id="deleteAnnotationBtnFloat" title="删除">✕</button><button class="mini-btn" id="duplicateAnnotationBtnFloat" title="复制">⧉</button><button class="mini-btn" id="hideToolPopoverBtnFloat" title="收起">⌄</button></div>`
       );
     }
@@ -2443,6 +2538,7 @@
       if(action === 'copy') await copyPixelSelection();
       if(action === 'cut') await cutPixelSelection();
       if(action === 'paste') await pastePixelClipboard();
+      if(action === 'shrink') await deleteAndShrinkSelection();
       if(action === 'clear'){
         state.selectionDraft = null;
         state.mobileToolPopoverOpen = false;
@@ -2560,12 +2656,20 @@
     return true;
   }
 
+  function detachAnnotationSourceLink(annotation){
+    if(!annotation) return annotation;
+    delete annotation.sourceSelection;
+    delete annotation.sourceCutoutId;
+    delete annotation.sourcePatchId;
+    return annotation;
+  }
+
   function duplicateSelectedAnnotation(){
     const idx = state.selected?.type==='annotation' ? state.selected.index : -1;
     if(idx < 0) return;
     if(state.annotations[idx]?.type === 'watermark'){ toast('水印保持单一对象'); return; }
     pushHistory();
-    const copy = JSON.parse(JSON.stringify(state.annotations[idx]));
+    const copy = detachAnnotationSourceLink(JSON.parse(JSON.stringify(state.annotations[idx])));
     copy.id = uid('ann'); copy.x = (copy.x||0)+24; copy.y = (copy.y||0)+24;
     state.annotations.push(copy);
     state.selected = {type:'annotation', index:state.annotations.length-1};
@@ -2746,7 +2850,7 @@
     const offset = 24 * clip.pasteCount;
     let a;
     if(clip.kind === 'annotation'){
-      a = cloneAnnotationForDrag(clip.annotation);
+      a = detachAnnotationSourceLink(cloneAnnotationForDrag(clip.annotation));
       a.id = uid('ann');
       a.x = Math.round((a.x || 0) + offset);
       a.y = Math.round((a.y || 0) + offset);
@@ -2782,9 +2886,11 @@
       if(!sameCanvas || !stillSelecting) return false;
       state.selectionDraft = null;
       pushHistory();
-      const cutout = {id:uid('ann'), type:'cutout', x:captured.sourceX, y:captured.sourceY, w:captured.width, h:captured.height, shape:captured.shape || 'rect', points:(captured.points || []).map(point=>({...point})), fillMode:selectionFillMode(), fillColor:selectionFillColor(), opacity:1};
+      const cutoutId = uid('ann');
       const id = uid('ann');
-      const patch = {id, dataRef:id, type:'patch', x:captured.sourceX, y:captured.sourceY, w:captured.width, h:captured.height, dataUrl:captured.dataUrl, opacity:1, rotation:0};
+      const sourceSelection = {...selection, x:captured.sourceX, y:captured.sourceY, w:captured.width, h:captured.height, ready:true, points:(selection.points || []).map(point=>({...point}))};
+      const cutout = {id:cutoutId, type:'cutout', x:captured.sourceX, y:captured.sourceY, w:captured.width, h:captured.height, shape:captured.shape || 'rect', points:(captured.points || []).map(point=>({...point})), fillMode:selectionFillMode(), fillColor:selectionFillColor(), opacity:1, sourcePatchId:id};
+      const patch = {id, dataRef:id, type:'patch', x:captured.sourceX, y:captured.sourceY, w:captured.width, h:captured.height, dataUrl:captured.dataUrl, opacity:1, rotation:0, sourceSelection, sourceCutoutId:cutoutId};
       patchDataStore.set(id,captured.dataUrl);
       state.annotations.push(cutout, patch);
       const index = state.annotations.length - 1;
@@ -2803,7 +2909,213 @@
     if(!a) return {};
     const clone = {...a};
     if(Array.isArray(a.points)) clone.points = a.points.map(point => ({...point}));
+    if(Array.isArray(a.erasures)) clone.erasures = a.erasures.map(mark => ({...mark}));
+    if(a.sourceSelection){
+      clone.sourceSelection = {...a.sourceSelection};
+      if(Array.isArray(a.sourceSelection.points)) clone.sourceSelection.points = a.sourceSelection.points.map(point => ({...point}));
+    }
     return clone;
+  }
+
+  function classifyCanvasShrinkSelection(selection, full){
+    if(!selection || !selection.ready || (selection.shape || 'rect') !== 'rect') return null;
+    const fullWidth = Math.max(1, Math.round(Number(full && (full.fullWidth || full.width)) || 0));
+    const fullHeight = Math.max(1, Math.round(Number(full && (full.fullHeight || full.height)) || 0));
+    const rawX1 = Math.min(Number(selection.x) || 0, (Number(selection.x) || 0) + (Number(selection.w) || 0));
+    const rawY1 = Math.min(Number(selection.y) || 0, (Number(selection.y) || 0) + (Number(selection.h) || 0));
+    const rawX2 = Math.max(Number(selection.x) || 0, (Number(selection.x) || 0) + (Number(selection.w) || 0));
+    const rawY2 = Math.max(Number(selection.y) || 0, (Number(selection.y) || 0) + (Number(selection.h) || 0));
+    const x1 = Math.max(0, Math.min(fullWidth, Math.round(rawX1)));
+    const y1 = Math.max(0, Math.min(fullHeight, Math.round(rawY1)));
+    const x2 = Math.max(x1, Math.min(fullWidth, Math.round(rawX2)));
+    const y2 = Math.max(y1, Math.min(fullHeight, Math.round(rawY2)));
+    if(x2 - x1 < 1 || y2 - y1 < 1) return null;
+    const left = x1 <= 0;
+    const right = x2 >= fullWidth;
+    const top = y1 <= 0;
+    const bottom = y2 >= fullHeight;
+    const spansWidth = left && right;
+    const spansHeight = top && bottom;
+    if(spansWidth && y2 - y1 < fullHeight) return {axis:'y', start:y1, end:y2, edge:top ? 'top' : bottom ? 'bottom' : 'internal'};
+    if(spansHeight && x2 - x1 < fullWidth) return {axis:'x', start:x1, end:x2, edge:left ? 'left' : right ? 'right' : 'internal'};
+    const touched = [left,right,top,bottom].filter(Boolean).length;
+    if(touched !== 1) return null;
+    if(top) return {axis:'y', start:0, end:y2, edge:'top'};
+    if(bottom) return {axis:'y', start:y1, end:fullHeight, edge:'bottom'};
+    if(left) return {axis:'x', start:0, end:x2, edge:'left'};
+    if(right) return {axis:'x', start:x1, end:fullWidth, edge:'right'};
+    return null;
+  }
+
+  async function deleteAndShrinkSelection(){
+    if(!state.images.length) return false;
+    const selectedIndex = state.selected?.type === 'annotation' ? state.selected.index : -1;
+    const selectedPatch = selectedIndex >= 0 && state.annotations[selectedIndex]?.type === 'patch' ? state.annotations[selectedIndex] : null;
+    const selection = state.selectionDraft?.ready ? state.selectionDraft : selectedPatch?.sourceSelection;
+    const full = computeLayout(true);
+    const shrink = classifyCanvasShrinkSelection(selection, full);
+    if(!shrink){
+      toast('仅支持贴边选区、横跨全宽或纵跨全高的矩形选区');
+      return false;
+    }
+    if(shrink.end - shrink.start >= (shrink.axis === 'y' ? full.fullHeight : full.fullWidth)){
+      toast('不能删除整个画布');
+      return false;
+    }
+    const rollbackSnapshot = snapshot(true);
+    pushHistory();
+    if(selectedPatch){
+      const linkedIds = new Set([selectedPatch.id, selectedPatch.sourceCutoutId].filter(Boolean));
+      state.annotations = state.annotations.filter(a => !linkedIds.has(a.id));
+      patchDataStore.delete(selectedPatch.id);
+      patchImageCache.delete(selectedPatch.id);
+    }
+    state.selectionDraft = null;
+    state.selected = null;
+
+    if(shrink.edge !== 'internal'){
+      const crop = {top:0,right:0,bottom:0,left:0};
+      if(shrink.axis === 'y'){
+        if(shrink.start <= 0) crop.top = shrink.end;
+        else crop.bottom = full.fullHeight - shrink.start;
+      } else {
+        if(shrink.start <= 0) crop.left = shrink.end;
+        else crop.right = full.fullWidth - shrink.start;
+      }
+      const applied = applyCanvasCropToImages(full, crop);
+      if(!applied){
+        await restoreFromSnapshot(rollbackSnapshot);
+        history.pop(); updateUndoRedo();
+        return false;
+      }
+      state.mode = 'tools';
+      state.toolSettings.group = 'select';
+      state.toolArmed = 'select';
+      updateModeButtons(); renderProps(); renderToolDock(); fitToView(false); requestRender();
+      toast(`已删除${shrink.edge === 'top' ? '顶部' : shrink.edge === 'bottom' ? '底部' : shrink.edge === 'left' ? '左侧' : '右侧'}区域并收缩画布`);
+      return true;
+    }
+
+    try{
+      await ensurePatchImagesReady();
+      const visibleAnnotations = state.annotations.filter(a=>a?.type !== 'cutout').map(cloneAnnotationForDrag);
+    const cutoutAnnotations = state.annotations.filter(a=>a?.type === 'cutout').map(cloneAnnotationForDrag);
+    const source = document.createElement('canvas');
+    source.width = Math.max(1, Math.round(full.fullWidth));
+    source.height = Math.max(1, Math.round(full.fullHeight));
+    const sc = source.getContext('2d');
+    state.annotations = cutoutAnnotations;
+    try{
+      drawComposition(sc, full, true, true);
+    } finally {
+      state.annotations = [];
+    }
+    const removed = Math.max(1, shrink.end - shrink.start);
+    const out = document.createElement('canvas');
+    out.width = shrink.axis === 'x' ? source.width - removed : source.width;
+    out.height = shrink.axis === 'y' ? source.height - removed : source.height;
+    const oc = out.getContext('2d');
+    oc.fillStyle = state.canvasBackground || '#ffffff';
+    oc.fillRect(0,0,out.width,out.height);
+    if(shrink.axis === 'y'){
+      if(shrink.start > 0) oc.drawImage(source,0,0,source.width,shrink.start,0,0,source.width,shrink.start);
+      const after = source.height - shrink.end;
+      if(after > 0) oc.drawImage(source,0,shrink.end,source.width,after,0,shrink.start,source.width,after);
+    } else {
+      if(shrink.start > 0) oc.drawImage(source,0,0,shrink.start,source.height,0,0,shrink.start,source.height);
+      const after = source.width - shrink.end;
+      if(after > 0) oc.drawImage(source,shrink.end,0,after,source.height,shrink.start,0,after,source.height);
+    }
+    const nextAnnotations = await collapseAnnotationsAroundBand(visibleAnnotations, shrink, full);
+    const record = await canvasToImageRecord(out, 'delete-shrink.png');
+    state.images = [record];
+    state.orientation = 'vertical';
+    state.seams = [];
+    state.annotations = nextAnnotations;
+    state.canvasCrop = {top:0,right:0,bottom:0,left:0};
+    state.canvasPadding = {top:0,right:0,bottom:0,left:0};
+    state.splitDraft = null;
+    state.cutLines = {imageId:null, rows:state.cutSettings.rows, cols:state.cutSettings.cols, x:[], y:[]};
+    state.mode = 'tools';
+    state.toolSettings.group = 'select';
+    state.toolArmed = 'select';
+    nextAnnotations.filter(a=>a.type === 'patch').forEach(a=>void ensurePatchImage(a));
+    updateModeButtons(); renderProps(); renderToolDock(); fitToView(false); requestRender();
+      toast('已删除整条区域并收缩画布；未跨越删除带的标注保持可编辑，跨带标注转为可编辑图片片段');
+      return true;
+    }catch(error){
+      await restoreFromSnapshot(rollbackSnapshot);
+      history.pop(); updateUndoRedo();
+      toast('删除并收缩失败，工程已恢复');
+      return false;
+    }
+  }
+
+  function shiftAnnotationAfterBand(annotation, dx, dy){
+    const a = detachAnnotationSourceLink(cloneAnnotationForDrag(annotation));
+    a.x = (a.x||0) + dx;
+    a.y = (a.y||0) + dy;
+    if(Array.isArray(a.erasures)) a.erasures = a.erasures.map(mark=>({...mark,x:(mark.x||0)+dx,y:(mark.y||0)+dy}));
+    return a;
+  }
+
+  function canvasRegionHasPixels(c, width, height){
+    if(width * height > 5_000_000) return true;
+    try{
+      const data = c.getImageData(0,0,width,height).data;
+      for(let i=3;i<data.length;i+=4) if(data[i]) return true;
+    }catch(e){ return true; }
+    return false;
+  }
+
+  async function rasterizeAnnotationOutsideBand(annotation, shrink, full){
+    const overlay = document.createElement('canvas');
+    overlay.width = Math.max(1,Math.round(full.fullWidth));
+    overlay.height = Math.max(1,Math.round(full.fullHeight));
+    const c = overlay.getContext('2d');
+    drawAnnotationWithErasures(c,annotation,full,true);
+    const removed = shrink.end-shrink.start;
+    const b = annotationBounds(annotation);
+    const regions = shrink.axis === 'y'
+      ? [{x1:0,y1:0,x2:overlay.width,y2:shrink.start,dx:0,dy:0},{x1:0,y1:shrink.end,x2:overlay.width,y2:overlay.height,dx:0,dy:-removed}]
+      : [{x1:0,y1:0,x2:shrink.start,y2:overlay.height,dx:0,dy:0},{x1:shrink.end,y1:0,x2:overlay.width,y2:overlay.height,dx:-removed,dy:0}];
+    const pieces=[];
+    for(const region of regions){
+      const x1=Math.max(0,Math.floor(Math.max(b.x,region.x1)));
+      const y1=Math.max(0,Math.floor(Math.max(b.y,region.y1)));
+      const x2=Math.min(overlay.width,Math.ceil(Math.min(b.x+b.w,region.x2)));
+      const y2=Math.min(overlay.height,Math.ceil(Math.min(b.y+b.h,region.y2)));
+      if(x2-x1<1 || y2-y1<1) continue;
+      const piece=document.createElement('canvas');
+      piece.width=x2-x1; piece.height=y2-y1;
+      const pc=piece.getContext('2d');
+      pc.drawImage(overlay,x1,y1,piece.width,piece.height,0,0,piece.width,piece.height);
+      if(!canvasRegionHasPixels(pc,piece.width,piece.height)) continue;
+      const id=uid('ann');
+      const dataUrl=piece.toDataURL('image/png');
+      patchDataStore.set(id,dataUrl);
+      pieces.push({id,dataRef:id,type:'patch',x:x1+region.dx,y:y1+region.dy,w:piece.width,h:piece.height,dataUrl,opacity:1,rotation:0});
+    }
+    return pieces;
+  }
+
+  async function collapseAnnotationsAroundBand(annotations, shrink, full){
+    const result=[];
+    const removed=shrink.end-shrink.start;
+    for(const original of annotations){
+      if(!original) continue;
+      if(original.type === 'watermark'){
+        result.push(detachAnnotationSourceLink(cloneAnnotationForDrag(original)));
+        continue;
+      }
+      const b=annotationBounds(original);
+      const before=shrink.axis === 'y' ? b.y+b.h <= shrink.start : b.x+b.w <= shrink.start;
+      const after=shrink.axis === 'y' ? b.y >= shrink.end : b.x >= shrink.end;
+      if(before){ result.push(detachAnnotationSourceLink(cloneAnnotationForDrag(original))); continue; }
+      if(after){ result.push(shiftAnnotationAfterBand(original,shrink.axis==='x'?-removed:0,shrink.axis==='y'?-removed:0)); continue; }
+      result.push(...await rasterizeAnnotationOutsideBand(original,shrink,full));
+    }
+    return result;
   }
 
   function isLineAnnotation(a){ return a && ['line','arrow','doubleArrow'].includes(a.type); }
@@ -2888,7 +3200,7 @@
       const b = annotationBounds(a);
       const precise = isLineAnnotation(a) || isFreePathAnnotation(a);
       const tolerance = Math.max(8/state.zoom,(a.lineWidth||4)/2+4/state.zoom);
-      hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move', contains:(x,y)=>!pointCutOutAfter(i,x,y) && (!precise || annotationPointDistance(a,{x,y})<=tolerance)});
+      hitAreas.push({type:'annotationSelect', index:i, x:b.x, y:b.y, w:b.w, h:b.h, cursor:'move', contains:(x,y)=>!pointCutOutAfter(i,x,y) && !pointInsideAnnotationErasure(a,x,y) && (!precise || annotationPointDistance(a,{x,y})<=tolerance)});
       const selected = state.selected?.type === 'annotation' && state.selected.index === i && inlineTextIndex !== i;
       if(selected){
         c.save();
@@ -3040,7 +3352,7 @@
     return localX >= x0 && localX <= x0+ww && localY >= y0 && localY <= y0+hh;
   }
 
-  function drawAnnotations(c, layout, exportMode=false){
+  function drawAnnotationContent(c, a, layout, exportMode=false){
     const drawArrowHead = (x1,y1,x2,y2,color,lineWidth=4) => {
       const ang = Math.atan2(y2-y1, x2-x1);
       const len = Math.max(12, (lineWidth || 4) * 4.2);
@@ -3054,173 +3366,219 @@
       c.fill();
       c.restore();
     };
-
-    c.save();
-    if(layout){
-      c.beginPath();
-      for(const ib of layout.imageBounds || []) c.rect(ib.x, ib.y, ib.w, ib.h);
-      for(const dv of layout.dividers || []) c.rect(dv.x, dv.y, dv.w, dv.h);
-      c.clip();
+    const w = a.w == null ? 180 : a.w;
+    const h = a.h == null ? 90 : a.h;
+    const lw = Math.max(1, a.lineWidth || 3);
+    const color = a.color || '#ef4444';
+if(a.type === 'cutout'){
+  const fillMode = a.fillMode || 'transparent';
+  if(fillMode === 'transparent') c.globalCompositeOperation = 'destination-out';
+  else c.globalCompositeOperation = 'source-over';
+  c.fillStyle = fillMode === 'white' ? '#ffffff' : fillMode === 'black' ? '#111827' : (a.fillColor || '#ffffff');
+  traceCutoutPath(c, a);
+  c.fill();
+} else if(a.type === 'patch'){
+  const patchImg = patchImageFor(a);
+  if(patchImg) c.drawImage(patchImg, Math.min(0,w), Math.min(0,h), Math.abs(w), Math.abs(h));
+} else if(a.type === 'text' || a.type === 'watermark'){
+  const m = measureTextAnnotation(a);
+  const fs = m.fs;
+  c.font = `600 ${fs}px ui-sans-serif, system-ui, sans-serif`;
+  c.textAlign = 'left'; c.textBaseline = 'top';
+  const lines = m.lines;
+  const forEachTextGlyph = callback => {
+    if(a.vertical){
+      m.columns.forEach((column,columnIndex)=>{
+        const x = m.contentWidth - m.fs - columnIndex * m.lineHeight;
+        column.forEach((char,rowIndex)=>callback(char,x,rowIndex*m.step));
+      });
+    } else {
+      lines.forEach((line,rowIndex)=>callback(line,0,rowIndex*m.step));
     }
-    for(const a of state.annotations){
-      c.save();
-      c.globalAlpha = clamp(a.opacity == null ? 1 : +a.opacity, 0.05, 1);
-      c.translate(a.x || 0, a.y || 0);
-      const w = a.w == null ? 180 : a.w;
-      const h = a.h == null ? 90 : a.h;
-      const lw = Math.max(1, a.lineWidth || 3);
-      const color = a.color || '#ef4444';
-      if(a.rotation || 0){
-        // Rotate around the same visual frame center used by the blue dashed selection box.
-        const rb = annotationRawBounds(a);
-        const cx = (rb.x - (a.x || 0)) + rb.w / 2;
-        const cy = (rb.y - (a.y || 0)) + rb.h / 2;
-        c.translate(cx, cy);
-        c.rotate((a.rotation || 0) * Math.PI / 180);
-        c.translate(-cx, -cy);
+  };
+  const drawTextBlock = (ox=0, oy=0) => {
+    if(a.outline){
+      c.strokeStyle = a.outlineColor || '#ffffff';
+      c.lineWidth = Math.max(2, fs/10);
+      forEachTextGlyph((text,x,y)=> c.strokeText(text,ox+x,oy+y));
+    }
+    c.fillStyle = a.color || '#111827';
+    forEachTextGlyph((text,x,y)=> c.fillText(text,ox+x,oy+y));
+  };
+  if(a.type === 'watermark' && (a.repeatCount || 1) > 1 && layout){
+    const count = clamp(Math.round(a.repeatCount || 1), 1, 120);
+    const cols = Math.max(1, Math.ceil(Math.sqrt(count * Math.max(1, layout.fullWidth) / Math.max(1, layout.fullHeight))));
+    const rows = Math.max(1, Math.ceil(count / cols));
+    let n = 0;
+    for(let r=0;r<rows;r++){
+      for(let col=0;col<cols && n<count;col++,n++){
+        const px = (col + .5) * layout.fullWidth / cols - (a.x||0);
+        const py = (r + .5) * layout.fullHeight / rows - (a.y||0);
+        c.save(); c.translate(px, py); c.rotate(-Math.PI/9); drawTextBlock(0,0); c.restore();
       }
-
-      if(a.type === 'cutout'){
-        const fillMode = a.fillMode || 'transparent';
-        if(fillMode === 'transparent') c.globalCompositeOperation = 'destination-out';
-        else c.globalCompositeOperation = 'source-over';
-        c.fillStyle = fillMode === 'white' ? '#ffffff' : fillMode === 'black' ? '#111827' : (a.fillColor || '#ffffff');
-        traceCutoutPath(c, a);
-        c.fill();
-      } else if(a.type === 'patch'){
-        const patchImg = patchImageFor(a);
-        if(patchImg) c.drawImage(patchImg, Math.min(0,w), Math.min(0,h), Math.abs(w), Math.abs(h));
-      } else if(a.type === 'text' || a.type === 'watermark'){
-        const m = measureTextAnnotation(a);
-        const fs = m.fs;
-        c.font = `600 ${fs}px ui-sans-serif, system-ui, sans-serif`;
-        c.textAlign = 'left'; c.textBaseline = 'top';
-        const lines = m.lines;
-        const forEachTextGlyph = callback => {
-          if(a.vertical){
-            m.columns.forEach((column,columnIndex)=>{
-              const x = m.contentWidth - m.fs - columnIndex * m.lineHeight;
-              column.forEach((char,rowIndex)=>callback(char,x,rowIndex*m.step));
-            });
-          } else {
-            lines.forEach((line,rowIndex)=>callback(line,0,rowIndex*m.step));
-          }
-        };
-        const drawTextBlock = (ox=0, oy=0) => {
-          if(a.outline){
-            c.strokeStyle = a.outlineColor || '#ffffff';
-            c.lineWidth = Math.max(2, fs/10);
-            forEachTextGlyph((text,x,y)=> c.strokeText(text,ox+x,oy+y));
-          }
-          c.fillStyle = a.color || '#111827';
-          forEachTextGlyph((text,x,y)=> c.fillText(text,ox+x,oy+y));
-        };
-        if(a.type === 'watermark' && (a.repeatCount || 1) > 1 && layout){
-          const count = clamp(Math.round(a.repeatCount || 1), 1, 120);
-          const cols = Math.max(1, Math.ceil(Math.sqrt(count * Math.max(1, layout.fullWidth) / Math.max(1, layout.fullHeight))));
-          const rows = Math.max(1, Math.ceil(count / cols));
-          let n = 0;
-          for(let r=0;r<rows;r++){
-            for(let col=0;col<cols && n<count;col++,n++){
-              const px = (col + .5) * layout.fullWidth / cols - (a.x||0);
-              const py = (r + .5) * layout.fullHeight / rows - (a.y||0);
-              c.save(); c.translate(px, py); c.rotate(-Math.PI/9); drawTextBlock(0,0); c.restore();
-            }
-          }
-        } else drawTextBlock(0,0);
-      } else if(a.type === 'badge'){
-        const fs = a.fontSize || 34;
-        const r = Math.max(12, fs * .62);
-        c.beginPath(); c.arc(r, r, r, 0, Math.PI*2);
-        c.fillStyle = a.color || '#2f80ed'; c.fill();
-        c.strokeStyle = '#fff'; c.lineWidth = Math.max(2, fs/10); c.stroke();
-        c.fillStyle = '#fff'; c.font = `800 ${fs}px ui-sans-serif, system-ui, sans-serif`; c.textAlign='center'; c.textBaseline='middle';
-        c.fillText(String(a.text || '1'), r, r+1);
-      } else if(a.type === 'mosaic'){
-        const cell = Math.max(6, a.gridSize || 14);
-        const x0 = Math.min(0,w), y0 = Math.min(0,h), ww = Math.abs(w), hh = Math.abs(h);
-        c.save();
-        c.beginPath(); c.rect(x0,y0,ww,hh); c.clip();
-        c.fillStyle = 'rgba(229,231,235,.88)';
-        c.fillRect(x0,y0,ww,hh);
-        for(let yy=y0; yy<y0+hh; yy+=cell){
-          for(let xx=x0; xx<x0+ww; xx+=cell){
+    }
+  } else drawTextBlock(0,0);
+} else if(a.type === 'badge'){
+  const fs = a.fontSize || 34;
+  const r = Math.max(12, fs * .62);
+  c.beginPath(); c.arc(r, r, r, 0, Math.PI*2);
+  c.fillStyle = a.color || '#2f80ed'; c.fill();
+  c.strokeStyle = '#fff'; c.lineWidth = Math.max(2, fs/10); c.stroke();
+  c.fillStyle = '#fff'; c.font = `800 ${fs}px ui-sans-serif, system-ui, sans-serif`; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(String(a.text || '1'), r, r+1);
+} else if(a.type === 'mosaic'){
+  const cell = Math.max(6, a.gridSize || 14);
+  const x0 = Math.min(0,w), y0 = Math.min(0,h), ww = Math.abs(w), hh = Math.abs(h);
+  c.save();
+  c.beginPath(); c.rect(x0,y0,ww,hh); c.clip();
+  c.fillStyle = 'rgba(229,231,235,.88)';
+  c.fillRect(x0,y0,ww,hh);
+  for(let yy=y0; yy<y0+hh; yy+=cell){
+    for(let xx=x0; xx<x0+ww; xx+=cell){
+      const k = (Math.floor(xx/cell) + Math.floor(yy/cell)) % 4;
+      c.fillStyle = ['rgba(31,41,55,.42)','rgba(107,114,128,.42)','rgba(209,213,219,.72)','rgba(17,24,39,.30)'][k];
+      c.fillRect(xx, yy, cell+0.5, cell+0.5);
+    }
+  }
+  c.restore();
+} else if(a.type === 'redact'){
+  c.fillStyle = a.color || '#111827';
+  c.fillRect(0,0,w,h);
+} else if(a.type === 'box' || a.type === 'boxFill'){
+  if(a.type === 'boxFill'){
+    c.fillStyle = a.fillColor || color;
+    c.fillRect(0,0,w,h);
+  }
+  c.strokeStyle = color;
+  c.lineWidth = lw;
+  c.strokeRect(0,0,w,h);
+} else if(a.type === 'circle' || a.type === 'circleFill'){
+  const x0 = Math.min(0,w), y0 = Math.min(0,h), ww = Math.abs(w), hh = Math.abs(h);
+  c.beginPath();
+  c.ellipse(x0+ww/2, y0+hh/2, Math.max(1,ww/2), Math.max(1,hh/2), 0, 0, Math.PI*2);
+  if(a.type === 'circleFill'){
+    c.fillStyle = a.fillColor || color;
+    c.fill();
+  }
+  c.strokeStyle = color;
+  c.lineWidth = lw;
+  c.stroke();
+} else if(a.type === 'line' || a.type === 'arrow' || a.type === 'doubleArrow'){
+  c.strokeStyle = color;
+  c.fillStyle = color;
+  c.lineWidth = lw;
+  c.lineCap = 'round';
+  c.lineJoin = 'round';
+  c.beginPath(); c.moveTo(0,0); c.lineTo(w,h); c.stroke();
+  if(a.type === 'arrow' || a.type === 'doubleArrow') drawArrowHead(0,0,w,h,color,lw);
+  if(a.type === 'doubleArrow') drawArrowHead(w,h,0,0,color,lw);
+} else if(a.type === 'pen' || a.type === 'highlight' || a.type === 'mosaicPen'){
+  const pts = a.points || [];
+  if(pts.length){
+    if(a.type === 'mosaicPen'){
+      const cell = Math.max(6, a.gridSize || 14);
+      const size = Math.max(cell*1.4, a.lineWidth || cell*2);
+      const samples = [];
+      if(pts.length === 1) samples.push(pts[0]);
+      for(let i=1;i<pts.length;i++){
+        const from = pts[i-1], to = pts[i];
+        const steps = Math.max(1, Math.ceil(Math.hypot(to.x-from.x,to.y-from.y) / Math.max(2,cell*.5)));
+        for(let step=0;step<=steps;step++){
+          const t = step/steps;
+          samples.push({x:from.x+(to.x-from.x)*t, y:from.y+(to.y-from.y)*t});
+        }
+      }
+      for(const p of samples){
+        const x0 = p.x - size/2, y0 = p.y - size/2;
+        for(let yy=y0; yy<y0+size; yy+=cell){
+          for(let xx=x0; xx<x0+size; xx+=cell){
             const k = (Math.floor(xx/cell) + Math.floor(yy/cell)) % 4;
             c.fillStyle = ['rgba(31,41,55,.42)','rgba(107,114,128,.42)','rgba(209,213,219,.72)','rgba(17,24,39,.30)'][k];
             c.fillRect(xx, yy, cell+0.5, cell+0.5);
           }
         }
-        c.restore();
-      } else if(a.type === 'redact'){
-        c.fillStyle = a.color || '#111827';
-        c.fillRect(0,0,w,h);
-      } else if(a.type === 'box' || a.type === 'boxFill'){
-        if(a.type === 'boxFill'){
-          c.fillStyle = a.fillColor || color;
-          c.fillRect(0,0,w,h);
-        }
-        c.strokeStyle = color;
-        c.lineWidth = lw;
-        c.strokeRect(0,0,w,h);
-      } else if(a.type === 'circle' || a.type === 'circleFill'){
-        const x0 = Math.min(0,w), y0 = Math.min(0,h), ww = Math.abs(w), hh = Math.abs(h);
-        c.beginPath();
-        c.ellipse(x0+ww/2, y0+hh/2, Math.max(1,ww/2), Math.max(1,hh/2), 0, 0, Math.PI*2);
-        if(a.type === 'circleFill'){
-          c.fillStyle = a.fillColor || color;
-          c.fill();
-        }
-        c.strokeStyle = color;
-        c.lineWidth = lw;
-        c.stroke();
-      } else if(a.type === 'line' || a.type === 'arrow' || a.type === 'doubleArrow'){
-        c.strokeStyle = color;
-        c.fillStyle = color;
-        c.lineWidth = lw;
-        c.lineCap = 'round';
-        c.lineJoin = 'round';
-        c.beginPath(); c.moveTo(0,0); c.lineTo(w,h); c.stroke();
-        if(a.type === 'arrow' || a.type === 'doubleArrow') drawArrowHead(0,0,w,h,color,lw);
-        if(a.type === 'doubleArrow') drawArrowHead(w,h,0,0,color,lw);
-      } else if(a.type === 'pen' || a.type === 'highlight' || a.type === 'mosaicPen'){
-        const pts = a.points || [];
-        if(pts.length){
-          if(a.type === 'mosaicPen'){
-            const cell = Math.max(6, a.gridSize || 14);
-            const size = Math.max(cell*1.4, a.lineWidth || cell*2);
-            const samples = [];
-            if(pts.length === 1) samples.push(pts[0]);
-            for(let i=1;i<pts.length;i++){
-              const from = pts[i-1], to = pts[i];
-              const steps = Math.max(1, Math.ceil(Math.hypot(to.x-from.x,to.y-from.y) / Math.max(2,cell*.5)));
-              for(let step=0;step<=steps;step++){
-                const t = step/steps;
-                samples.push({x:from.x+(to.x-from.x)*t, y:from.y+(to.y-from.y)*t});
-              }
-            }
-            for(const p of samples){
-              const x0 = p.x - size/2, y0 = p.y - size/2;
-              for(let yy=y0; yy<y0+size; yy+=cell){
-                for(let xx=x0; xx<x0+size; xx+=cell){
-                  const k = (Math.floor(xx/cell) + Math.floor(yy/cell)) % 4;
-                  c.fillStyle = ['rgba(31,41,55,.42)','rgba(107,114,128,.42)','rgba(209,213,219,.72)','rgba(17,24,39,.30)'][k];
-                  c.fillRect(xx, yy, cell+0.5, cell+0.5);
-                }
-              }
-            }
-          } else {
-            c.strokeStyle = a.color || (a.type === 'highlight' ? '#facc15' : '#ef4444');
-            c.lineWidth = a.lineWidth || (a.type === 'highlight' ? 18 : 4);
-            c.lineCap = 'round'; c.lineJoin = 'round';
-            if(a.type === 'highlight') c.globalCompositeOperation = 'multiply';
-            c.beginPath();
-            c.moveTo(pts[0].x, pts[0].y);
-            for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x, pts[i].y);
-            c.stroke();
-          }
-        }
       }
-      c.restore();
+    } else {
+      c.strokeStyle = a.color || (a.type === 'highlight' ? '#facc15' : '#ef4444');
+      c.lineWidth = a.lineWidth || (a.type === 'highlight' ? 18 : 4);
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      if(a.type === 'highlight') c.globalCompositeOperation = 'multiply';
+      c.beginPath();
+      c.moveTo(pts[0].x, pts[0].y);
+      for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x, pts[i].y);
+      c.stroke();
+    }
+  }
+}
+  }
+
+  function drawAnnotationObject(c, a, layout, exportMode=false){
+    c.save();
+    c.globalAlpha = clamp(a.opacity == null ? 1 : +a.opacity, 0.05, 1);
+    c.translate(a.x || 0, a.y || 0);
+    if(a.rotation || 0){
+      const rb = annotationRawBounds(a);
+      const cx = (rb.x - (a.x || 0)) + rb.w / 2;
+      const cy = (rb.y - (a.y || 0)) + rb.h / 2;
+      c.translate(cx, cy);
+      c.rotate((a.rotation || 0) * Math.PI / 180);
+      c.translate(-cx, -cy);
+    }
+    drawAnnotationContent(c, a, layout, exportMode);
+    c.restore();
+  }
+
+  function pointInsideAnnotationErasure(a, x, y){
+    const erasures = Array.isArray(a?.erasures) ? a.erasures : [];
+    return erasures.some(mark => Math.hypot(x-(mark.x||0), y-(mark.y||0)) <= Math.max(1, mark.r||1));
+  }
+
+  function drawAnnotationWithErasures(c, a, layout, exportMode=false){
+    if(!Array.isArray(a.erasures) || !a.erasures.length || a.type === 'cutout'){
+      drawAnnotationObject(c, a, layout, exportMode);
+      return;
+    }
+    const sourceBounds = annotationBounds(a);
+    const margin = Math.max(4, Math.ceil(Math.max(...a.erasures.map(mark=>mark.r||1))));
+    const width = Math.max(1, Math.ceil(sourceBounds.w + margin*2));
+    const height = Math.max(1, Math.ceil(sourceBounds.h + margin*2));
+    if(width * height > MAX_SELECTION_PIXELS){
+      drawAnnotationObject(c, a, layout, exportMode);
+      return;
+    }
+    const layer = document.createElement('canvas');
+    layer.width = width;
+    layer.height = height;
+    const lc = layer.getContext('2d');
+    lc.translate(-sourceBounds.x + margin, -sourceBounds.y + margin);
+    drawAnnotationObject(lc, a, layout, exportMode);
+    lc.setTransform(1,0,0,1,0,0);
+    lc.globalAlpha = 1;
+    lc.globalCompositeOperation = 'destination-out';
+    lc.fillStyle = '#000';
+    for(const mark of a.erasures){
+      lc.beginPath();
+      lc.arc((mark.x||0)-sourceBounds.x+margin, (mark.y||0)-sourceBounds.y+margin, Math.max(1,mark.r||1), 0, Math.PI*2);
+      lc.fill();
+    }
+    c.save();
+    if(a.type === 'highlight') c.globalCompositeOperation = 'multiply';
+    c.drawImage(layer, sourceBounds.x-margin, sourceBounds.y-margin);
+    c.restore();
+  }
+
+  function drawAnnotations(c, layout, exportMode=false){
+    c.save();
+    if(layout){
+      c.beginPath();
+      c.rect(0, 0, layout.fullWidth, layout.fullHeight);
+      c.clip();
+    }
+    for(let i=0;i<state.annotations.length;i++){
+      const a = state.annotations[i];
+      if(!a) continue;
+      if(!exportMode && inlineTextIndex === i && a.type === 'text') continue;
+      drawAnnotationWithErasures(c, a, layout, exportMode);
     }
     c.restore();
   }
@@ -3417,6 +3775,15 @@
     if(history.length > 80) history.shift();
     future = [];
     updateUndoRedo();
+    if(['pen','highlight','mosaicPen'].includes(finished.tool)){
+      state.selected = null;
+      state.mobileToolPopoverOpen = isDesktopLayout();
+      applyActiveTool();
+      renderProps();
+      renderToolDock();
+      requestRender();
+      return;
+    }
     switchToTransformTool(finished.index);
   }
 
@@ -3629,28 +3996,53 @@
     for(let i=0;i<state.annotations.length;i++){
       const a = state.annotations[i];
       if(!a || a.type === 'cutout') continue;
+      if(a.type === 'watermark' && (a.repeatCount || 1) > 1 && state.toolSettings.eraserMode !== 'object') continue;
       const strokePad = isLineAnnotation(a) || isFreePathAnnotation(a) ? (a.lineWidth||4)/2 : 0;
       if(annotationPointDistance(a,pt) <= radius + strokePad) indices.push(i);
     }
     return indices;
   }
 
+  function appendAnnotationErasure(a, pt, radius){
+    if(!a || a.type === 'cutout') return false;
+    const marks = Array.isArray(a.erasures) ? a.erasures : (a.erasures = []);
+    const last = marks[marks.length-1];
+    if(last && Math.hypot((last.x||0)-pt.x,(last.y||0)-pt.y) < Math.max(1,radius*.28)) return false;
+    marks.push({x:Math.round(pt.x), y:Math.round(pt.y), r:Math.max(1,Math.round(radius))});
+    return true;
+  }
+
   function eraseAnnotationsAlong(from, to){
     const radius = Math.max(4, (state.toolSettings.eraserSize || 24) / 2);
     const distance = Math.hypot(to.x-from.x, to.y-from.y);
-    const steps = Math.max(1, Math.ceil(distance / Math.max(2, radius * .5)));
+    const steps = Math.max(1, Math.ceil(distance / Math.max(2, radius * .35)));
+    const objectMode = state.toolSettings.eraserMode === 'object';
     const indices = new Set();
+    let changed = false;
     for(let step=0;step<=steps;step++){
       const t = step/steps;
       const pt = {x:from.x+(to.x-from.x)*t, y:from.y+(to.y-from.y)*t};
-      annotationIndicesAtBrush(pt, radius).forEach(i=>indices.add(i));
+      const hits = annotationIndicesAtBrush(pt, radius);
+      if(objectMode){
+        hits.forEach(i=>indices.add(i));
+      } else {
+        for(const i of hits){
+          const a = state.annotations[i];
+          if(!a || a.type === 'cutout') continue;
+          if(!drag.historyStarted){ pushHistory(); drag.historyStarted = true; }
+          if(appendAnnotationErasure(a, pt, radius)) changed = true;
+        }
+      }
     }
-    if(!indices.size) return false;
-    if(!drag.historyStarted){ pushHistory(); drag.historyStarted = true; }
-    [...indices].sort((a,b)=>b-a).forEach(i=>{
-      const [removed] = state.annotations.splice(i,1);
-      if(removed?.id) patchImageCache.delete(removed.id);
-    });
+    if(objectMode && indices.size){
+      if(!drag.historyStarted){ pushHistory(); drag.historyStarted = true; }
+      [...indices].sort((a,b)=>b-a).forEach(i=>{
+        const [removed] = state.annotations.splice(i,1);
+        if(removed?.id) patchImageCache.delete(removed.id);
+      });
+      changed = true;
+    }
+    if(!changed) return false;
     drag.erased = true;
     state.selected = null;
     return true;
@@ -3684,7 +4076,7 @@
     if(!state.preview && state.mode === 'tools' && state.toolArmed === 'select'){
       if(h) handleHitDown(h, w, e);
       else {
-        drag = { type:'pan', startX:p.x, startY:p.y, pan:{...state.pan} };
+        drag = { type:'pan', startX:p.x, startY:p.y, pan:{...state.pan}, blankSelectClick:true, moved:false };
         stage.classList.add('dragging');
       }
       return;
@@ -3752,7 +4144,7 @@
         let index = h.index;
         if(e.altKey && state.annotations[h.index]?.type !== 'watermark'){
           const source = state.annotations[h.index];
-          const copy = cloneAnnotationForDrag(source);
+          const copy = detachAnnotationSourceLink(cloneAnnotationForDrag(source));
           copy.id = uid('ann');
           state.annotations.push(copy);
           index = state.annotations.length - 1;
@@ -3847,6 +4239,7 @@
       return;
     }
     if(drag.type === 'pan'){
+      if(Math.hypot(p.x-drag.startX, p.y-drag.startY) >= TOOL_DRAG_THRESHOLD) drag.moved = true;
       const factor = mobilePanFactor();
       state.pan.x = drag.pan.x + (p.x - drag.startX) * factor;
       state.pan.y = drag.pan.y + (p.y - drag.startY) * factor;
@@ -4047,6 +4440,7 @@
       a.h = Math.round(delta.dy);
       renderProps(); requestRender(); return;
     }
+    // Rotate around the same visual frame center used by the blue dashed selection box.
     if(drag.type === 'annotationRotate'){
       const a = state.annotations[drag.index];
       const ang = Math.atan2(w.y-drag.center.y, w.x-drag.center.x);
@@ -4127,7 +4521,15 @@
     const finished = drag;
     drag = null;
     stage.classList.remove('dragging');
-    if(finished && finished.type === 'pan') requestRender();
+    if(finished && finished.type === 'pan'){
+      if(finished.blankSelectClick && !finished.moved){
+        state.selected = null;
+        state.selectionDraft = null;
+        state.mobileToolPopoverOpen = false;
+        renderProps(); renderToolDock();
+      }
+      requestRender();
+    }
     if(finished && finished.type === 'splitDraft') renderProps();
     if(commitAnnotationTransform(finished)){ renderProps(); requestRender(); }
     if(finished && finished.type === 'toolCreate'){
@@ -4263,12 +4665,91 @@
     </div>`;
   }
 
+  function distributeCanvasExpansion(delta, axis, anchor='center'){
+    const value = Math.max(0, Math.round(delta || 0));
+    if(!value) return {before:0, after:0};
+    const parts = String(anchor || 'center').split('-');
+    const pin = axis === 'x'
+      ? (parts.includes('left') ? 'before' : parts.includes('right') ? 'after' : 'center')
+      : (parts.includes('top') ? 'before' : parts.includes('bottom') ? 'after' : 'center');
+    if(pin === 'before') return {before:0, after:value};
+    if(pin === 'after') return {before:value, after:0};
+    const before = Math.floor(value/2);
+    return {before, after:value-before};
+  }
+
+  async function applyCanvasExpansion(expansion, background=state.canvasBackground){
+    if(!state.images.length) return false;
+    if(hasCanvasCrop()) await commitCanvasCrop();
+    const add = {
+      top:Math.max(0,Math.round(expansion?.top||0)),
+      right:Math.max(0,Math.round(expansion?.right||0)),
+      bottom:Math.max(0,Math.round(expansion?.bottom||0)),
+      left:Math.max(0,Math.round(expansion?.left||0))
+    };
+    const nextBackground = background || '#ffffff';
+    if(!Object.values(add).some(Boolean) && nextBackground === state.canvasBackground) return false;
+    pushHistory();
+    state.canvasBackground = nextBackground;
+    state.canvasPadding = state.canvasPadding || {top:0,right:0,bottom:0,left:0};
+    for(const edge of ['top','right','bottom','left']) state.canvasPadding[edge] = Math.max(0,Math.round((state.canvasPadding[edge]||0)+add[edge]));
+    if(add.left || add.top){
+      for(const a of state.annotations){
+        a.x = Math.round((a.x||0)+add.left);
+        a.y = Math.round((a.y||0)+add.top);
+        if(Array.isArray(a.erasures)) a.erasures = a.erasures.map(mark=>({...mark,x:(mark.x||0)+add.left,y:(mark.y||0)+add.top}));
+        if(a.sourceSelection){
+          a.sourceSelection.x = Math.round((a.sourceSelection.x||0)+add.left);
+          a.sourceSelection.y = Math.round((a.sourceSelection.y||0)+add.top);
+          if(Array.isArray(a.sourceSelection.points)) a.sourceSelection.points = a.sourceSelection.points.map(point=>({...point,x:(point.x||0)+add.left,y:(point.y||0)+add.top}));
+        }
+      }
+      if(state.splitDraft){
+        if(state.orientation === 'vertical') state.splitDraft.pos = Math.round((state.splitDraft.pos||0)+add.top);
+        else state.splitDraft.pos = Math.round((state.splitDraft.pos||0)+add.left);
+      }
+    }
+    state.selected = {type:'canvasCrop'};
+    state.selectionDraft = null;
+    state.exportQualityAuto = true;
+    renderProps();
+    fitToView(false);
+    requestRender();
+    toast(`画布已扩展：${computeLayout(true).fullWidth}×${computeLayout(true).fullHeight}px`);
+    return true;
+  }
+
   function canvasCropProps(){
     const c = state.canvasCrop;
+    const layout = computeLayout(true);
+    const bg = state.canvasBackground || '#ffffff';
     return `<div class="prop-card desktop-compact-card">${cropInputs('canvas', c)}
       <div class="mini-grid">
         <button class="mini-btn" id="resetCanvasCrop">重置</button>
         <button class="mini-btn" id="autoWhiteCanvas">去白边</button>
+      </div>
+    </div>
+    <div class="prop-card desktop-compact-card">
+      <div class="compact-row"><strong>扩图</strong><span class="hint">当前 ${Math.round(layout.fullWidth)}×${Math.round(layout.fullHeight)} px</span></div>
+      <div class="canvas-expand-grid">
+        <label>上 <input type="number" min="0" value="0" data-expand-side="top"></label>
+        <label>下 <input type="number" min="0" value="0" data-expand-side="bottom"></label>
+        <label>左 <input type="number" min="0" value="0" data-expand-side="left"></label>
+        <label>右 <input type="number" min="0" value="0" data-expand-side="right"></label>
+      </div>
+      <div class="canvas-expand-actions"><input type="color" id="canvasExpandBackground" value="${bg}" title="扩展背景色"><button class="mini-btn" id="applyCanvasSideExpansion">按四边扩展</button></div>
+      <div class="canvas-expand-grid">
+        <label>目标宽 <input type="number" min="1" id="canvasTargetWidth" value="${Math.round(layout.fullWidth)}"></label>
+        <label>目标高 <input type="number" min="1" id="canvasTargetHeight" value="${Math.round(layout.fullHeight)}"></label>
+      </div>
+      <div class="canvas-expand-actions">
+        <label><input type="checkbox" id="canvasExpandLockRatio" ${state.canvasExpandLockRatio?'checked':''}> 按比例</label>
+        <select id="canvasExpandAnchor" class="canvas-anchor-select">
+          <option value="top-left" ${state.canvasExpandAnchor==='top-left'?'selected':''}>左上固定</option><option value="top" ${state.canvasExpandAnchor==='top'?'selected':''}>顶部居中</option><option value="top-right" ${state.canvasExpandAnchor==='top-right'?'selected':''}>右上固定</option>
+          <option value="left" ${state.canvasExpandAnchor==='left'?'selected':''}>左侧居中</option><option value="center" ${state.canvasExpandAnchor==='center'?'selected':''}>中心固定</option><option value="right" ${state.canvasExpandAnchor==='right'?'selected':''}>右侧居中</option>
+          <option value="bottom-left" ${state.canvasExpandAnchor==='bottom-left'?'selected':''}>左下固定</option><option value="bottom" ${state.canvasExpandAnchor==='bottom'?'selected':''}>底部居中</option><option value="bottom-right" ${state.canvasExpandAnchor==='bottom-right'?'selected':''}>右下固定</option>
+        </select>
+        <button class="mini-btn primary" id="applyCanvasTargetExpansion">扩展到尺寸</button>
       </div>
     </div>`;
   }
@@ -4386,6 +4867,35 @@
 
     $('#resetCanvasCrop')?.addEventListener('click', () => { pushHistory(); state.canvasCrop={top:0,right:0,bottom:0,left:0}; renderProps(); requestRender(); });
     $('#autoWhiteCanvas')?.addEventListener('click', () => { autoWhiteCanvas(); });
+    $('#applyCanvasSideExpansion')?.addEventListener('click', async () => {
+      const expansion = {top:0,right:0,bottom:0,left:0};
+      $$('[data-expand-side]', props).forEach(input=>{ expansion[input.dataset.expandSide] = Math.max(0,Math.round(+input.value||0)); });
+      await applyCanvasExpansion(expansion, $('#canvasExpandBackground')?.value || state.canvasBackground);
+    });
+    const canvasTargetWidth = $('#canvasTargetWidth');
+    const canvasTargetHeight = $('#canvasTargetHeight');
+    const syncCanvasTargetRatio = source => {
+      if(!$('#canvasExpandLockRatio')?.checked) return;
+      const layout = computeLayout(true);
+      if(source === 'width') canvasTargetHeight.value = Math.max(1,Math.round((+canvasTargetWidth.value||layout.fullWidth) * layout.fullHeight / Math.max(1,layout.fullWidth)));
+      else canvasTargetWidth.value = Math.max(1,Math.round((+canvasTargetHeight.value||layout.fullHeight) * layout.fullWidth / Math.max(1,layout.fullHeight)));
+    };
+    canvasTargetWidth?.addEventListener('input', ()=>syncCanvasTargetRatio('width'));
+    canvasTargetHeight?.addEventListener('input', ()=>syncCanvasTargetRatio('height'));
+    $('#canvasExpandLockRatio')?.addEventListener('change', e=>{ state.canvasExpandLockRatio=!!e.target.checked; if(e.target.checked) syncCanvasTargetRatio('width'); });
+    $('#canvasExpandAnchor')?.addEventListener('change', e=>{ state.canvasExpandAnchor=e.target.value||'center'; });
+    $('#applyCanvasTargetExpansion')?.addEventListener('click', async () => {
+      const layout = computeLayout(true);
+      const targetW = Math.max(1,Math.round(+canvasTargetWidth?.value||layout.fullWidth));
+      const targetH = Math.max(1,Math.round(+canvasTargetHeight?.value||layout.fullHeight));
+      if(targetW < layout.fullWidth || targetH < layout.fullHeight){ toast('扩图目标不能小于当前画布；缩小请使用裁剪'); return; }
+      const anchorValue = $('#canvasExpandAnchor')?.value || state.canvasExpandAnchor || 'center';
+      state.canvasExpandAnchor = anchorValue;
+      state.canvasExpandLockRatio = !!$('#canvasExpandLockRatio')?.checked;
+      const x = distributeCanvasExpansion(targetW-layout.fullWidth,'x',anchorValue);
+      const y = distributeCanvasExpansion(targetH-layout.fullHeight,'y',anchorValue);
+      await applyCanvasExpansion({left:x.before,right:x.after,top:y.before,bottom:y.after}, $('#canvasExpandBackground')?.value || state.canvasBackground);
+    });
     $('#resetImageCrop')?.addEventListener('click', () => { const idx = selectedImageIndex(); pushHistory(); state.images[idx].crop={top:0,right:0,bottom:0,left:0}; renderProps(); requestRender(); });
     $('#copyCropNext')?.addEventListener('click', () => { const idx=selectedImageIndex(); if(!state.images[idx+1])return; pushHistory(); state.images[idx+1].crop={...state.images[idx].crop}; renderProps(); requestRender(); });
     $('#applyCropAll')?.addEventListener('click', () => { const idx=selectedImageIndex(); pushHistory(); const c={...state.images[idx].crop}; state.images.forEach(im=>im.crop={...c}); renderProps(); requestRender(); });
@@ -4590,6 +5100,7 @@
     const exportQualityValue = $('#exportQualityValue');
     if(exportQualityValue) exportQualityValue.textContent = `${q}%`;
     updateExportQualityUi();
+    updateExportSizeUi();
     renderMobileFileMenu();
     renderMobileInfoMenu();
     renderMobileStitchMenu();
@@ -4698,6 +5209,24 @@
     $$('.export-preset').forEach(btn => btn.classList.toggle('active', Number(btn.dataset.exportQuality) === pct));
   }
 
+  function updateExportSizeUi(){
+    const source = currentExportSourceSize();
+    const enabled = !!state.exportResizeEnabled;
+    const enabledBox = $('#exportResizeEnabled');
+    if(enabledBox) enabledBox.checked = enabled;
+    const width = $('#exportResizeWidth');
+    const height = $('#exportResizeHeight');
+    if(width){ width.placeholder = String(source.width); width.value = state.exportResizeWidth ? String(Math.round(state.exportResizeWidth)) : ''; }
+    if(height){ height.placeholder = String(source.height); height.value = state.exportResizeHeight ? String(Math.round(state.exportResizeHeight)) : ''; }
+    const lock = $('#exportResizeLockRatio');
+    if(lock) lock.checked = !!state.exportResizeLockRatio;
+    const fit = $('#exportResizeFit');
+    if(fit) fit.value = state.exportResizeFit || 'contain';
+    $('#exportPhotoMmWidth') && ($('#exportPhotoMmWidth').value = String(state.exportPhotoMmWidth || 25));
+    $('#exportPhotoMmHeight') && ($('#exportPhotoMmHeight').value = String(state.exportPhotoMmHeight || 35));
+    $('#exportPhotoDpi') && ($('#exportPhotoDpi').value = String(state.exportPhotoDpi || 300));
+  }
+
   function formatBytes(bytes){
     if(!isFinite(bytes) || bytes <= 0) return '--';
     if(bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(bytes >= 10 * 1024 * 1024 ? 1 : 2)} MB`;
@@ -4748,6 +5277,12 @@
       const sxScale = source === im.previewImg ? im.previewScaleX || 1 : 1;
       const syScale = source === im.previewImg ? im.previewScaleY || 1 : 1;
       preview.ctx.drawImage(source, crop.left * sxScale, crop.top * syScale, sw * sxScale, sh * syScale, 0, 0, preview.canvas.width, preview.canvas.height);
+      const target = computeExportTargetSize(sw,sh,exportTargetSettings());
+      if(target.width !== sw || target.height !== sh){
+        const sized = makePreviewCanvas(target.width,target.height);
+        drawCanvasFitted(sized.ctx,preview.canvas,sized.canvas.width,sized.canvas.height,state.exportResizeFit || 'contain');
+        return {...sized, fullPixels:target.width*target.height};
+      }
       return {...preview, fullPixels:sw * sh};
     }
     const layout = computeLayout(false);
@@ -4758,6 +5293,12 @@
     preview.ctx.translate(-state.canvasCrop.left, -state.canvasCrop.top);
     drawComposition(preview.ctx, full, false, true);
     preview.ctx.restore();
+    const target = computeExportTargetSize(layout.width,layout.height,exportTargetSettings());
+    if(target.width !== Math.round(layout.width) || target.height !== Math.round(layout.height)){
+      const sized = makePreviewCanvas(target.width,target.height);
+      drawCanvasFitted(sized.ctx,preview.canvas,sized.canvas.width,sized.canvas.height,state.exportResizeFit || 'contain');
+      return {...sized, fullPixels:target.width*target.height};
+    }
     return {...preview, fullPixels:layout.width * layout.height};
   }
 
@@ -4841,7 +5382,7 @@
   function renderExportMenu(){
     if(!exportMenu) return;
     exportMenu.classList.toggle('show', !!state.exportMenuOpen);
-    if(state.exportMenuOpen) scheduleExportEstimate();
+    if(state.exportMenuOpen){ updateExportSizeUi(); scheduleExportEstimate(); }
   }
 
   function closeTopMenus(){
@@ -4903,6 +5444,89 @@
     updateModeButtons(); updateToolbarButtons(); renderProps(); requestRender();
   }
 
+  function computeExportTargetSize(sourceWidth, sourceHeight, settings){
+    const sw = Math.max(1, Math.round(Number(sourceWidth) || 1));
+    const sh = Math.max(1, Math.round(Number(sourceHeight) || 1));
+    if(!settings || !settings.enabled) return {width:sw, height:sh};
+    let width = Math.max(0, Math.round(Number(settings.width) || 0));
+    let height = Math.max(0, Math.round(Number(settings.height) || 0));
+    if(!width && !height) return {width:sw, height:sh};
+    if(settings.lockRatio){
+      if(width && !height) height = Math.max(1, Math.round(width * sh / sw));
+      else if(height && !width) width = Math.max(1, Math.round(height * sw / sh));
+    }
+    if(!width) width = sw;
+    if(!height) height = sh;
+    return {width:Math.max(1,width), height:Math.max(1,height)};
+  }
+
+  function exportTargetSettings(){
+    return {
+      enabled:!!state.exportResizeEnabled,
+      width:Math.max(0,Math.round(state.exportResizeWidth||0)),
+      height:Math.max(0,Math.round(state.exportResizeHeight||0)),
+      lockRatio:!!state.exportResizeLockRatio,
+      fit:['contain','cover','stretch'].includes(state.exportResizeFit) ? state.exportResizeFit : 'contain'
+    };
+  }
+
+  function currentExportSourceSize(){
+    if(!state.images.length) return {width:1,height:1};
+    if(state.mode === 'cut' || (state.mobileSection === 'cut' && state.mobileCutSubmode === 'crop')){
+      const im = state.images[selectedImageIndex()];
+      if(im){
+        const c = getEffectiveCrop(selectedImageIndex());
+        return {width:Math.max(1,im.width-c.left-c.right),height:Math.max(1,im.height-c.top-c.bottom)};
+      }
+    }
+    const layout = computeLayout(false);
+    return {width:Math.max(1,Math.round(layout.width)),height:Math.max(1,Math.round(layout.height))};
+  }
+
+  function drawCanvasFitted(c, source, width, height, fit='contain', background=state.canvasBackground){
+    c.save();
+    c.fillStyle = background || '#ffffff';
+    c.fillRect(0,0,width,height);
+    if(fit === 'stretch'){
+      c.drawImage(source,0,0,width,height);
+      c.restore();
+      return;
+    }
+    const scale = fit === 'cover' ? Math.max(width/source.width,height/source.height) : Math.min(width/source.width,height/source.height);
+    const dw = source.width * scale;
+    const dh = source.height * scale;
+    c.drawImage(source,(width-dw)/2,(height-dh)/2,dw,dh);
+    c.restore();
+  }
+
+  function resizeCanvasForExport(source, settings=exportTargetSettings()){
+    const target = computeExportTargetSize(source.width, source.height, settings);
+    if(target.width === source.width && target.height === source.height) return source;
+    const out = document.createElement('canvas');
+    out.width = target.width;
+    out.height = target.height;
+    const c = out.getContext('2d');
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'high';
+    drawCanvasFitted(c,source,target.width,target.height,settings.fit || 'contain');
+    return out;
+  }
+
+  async function renderFinalCompositionCanvas(){
+    await ensurePatchImagesReady();
+    const layout = computeLayout(false);
+    const full = computeLayout(true);
+    const out = document.createElement('canvas');
+    out.width = Math.max(1,Math.round(layout.width));
+    out.height = Math.max(1,Math.round(layout.height));
+    const c = out.getContext('2d');
+    c.save();
+    c.translate(-state.canvasCrop.left,-state.canvasCrop.top);
+    drawComposition(c,full,true,true);
+    c.restore();
+    return out;
+  }
+
   function exportMeta(){
     const format = state.exportFormat || $('#exportFormatSelect')?.value || 'png';
     if(format === 'jpeg') return {format, mime:'image/jpeg', ext:'jpg', label:'JPEG'};
@@ -4958,25 +5582,25 @@
 
   async function exportImage(){
     if(!state.images.length){ toast('请先导入图片'); return; }
-    await ensurePatchImagesReady();
-    const layout = computeLayout(false);
+    const sourceSize = currentExportSourceSize();
+    const targetSize = computeExportTargetSize(sourceSize.width,sourceSize.height,exportTargetSettings());
     const maxSide = 32760;
-    if(layout.width > maxSide || layout.height > maxSide){
-      toast('输出尺寸过大，建议先裁剪或分批导出');
+    if(sourceSize.width > maxSide || sourceSize.height > maxSide){
+      toast('原始画布尺寸超过浏览器限制，请先裁剪或分批导出');
       return;
     }
-    const out = document.createElement('canvas');
-    out.width = Math.max(1, Math.round(layout.width));
-    out.height = Math.max(1, Math.round(layout.height));
-    const oc = out.getContext('2d');
-    oc.fillStyle = '#fff'; oc.fillRect(0,0,out.width,out.height);
-    const full = computeLayout(true);
-    oc.save();
-    oc.translate(-state.canvasCrop.left, -state.canvasCrop.top);
-    drawComposition(oc, full, true, true);
-    oc.restore();
+    if(targetSize.width > maxSide || targetSize.height > maxSide){
+      toast('指定输出尺寸超过浏览器限制，请降低像素');
+      return;
+    }
+    const native = await renderFinalCompositionCanvas();
+    const out = resizeCanvasForExport(native);
+    if(out.width > maxSide || out.height > maxSide){
+      toast('输出尺寸过大，建议降低指定像素或分批导出');
+      return;
+    }
     downloadCanvasImage(out, `longshot_${new Date().toISOString().replace(/[:.]/g,'-')}`);
-    toast(`${exportMeta().label} 已导出`);
+    toast(`${exportMeta().label} 已导出 · ${out.width}×${out.height}px`);
   }
 
   async function exportPng(){
@@ -5091,7 +5715,20 @@
     state.annotations.forEach(a => {
       a.x = Math.round((a.x || 0) - crop.left);
       a.y = Math.round((a.y || 0) - crop.top);
+      if(Array.isArray(a.erasures)) a.erasures = a.erasures.map(mark=>({...mark,x:(mark.x||0)-crop.left,y:(mark.y||0)-crop.top}));
+      if(a.sourceSelection){
+        a.sourceSelection.x = Math.round((a.sourceSelection.x||0)-crop.left);
+        a.sourceSelection.y = Math.round((a.sourceSelection.y||0)-crop.top);
+        if(Array.isArray(a.sourceSelection.points)) a.sourceSelection.points = a.sourceSelection.points.map(point=>({...point,x:(point.x||0)-crop.left,y:(point.y||0)-crop.top}));
+      }
     });
+    const padding = state.canvasPadding || {top:0,right:0,bottom:0,left:0};
+    state.canvasPadding = {
+      top:Math.max(0,Math.round((padding.top||0)-crop.top)),
+      right:Math.max(0,Math.round((padding.right||0)-crop.right)),
+      bottom:Math.max(0,Math.round((padding.bottom||0)-crop.bottom)),
+      left:Math.max(0,Math.round((padding.left||0)-crop.left))
+    };
     state.canvasCrop = {top:0,right:0,bottom:0,left:0};
     state.splitDraft = null;
     state.splitDraftManual = false;
@@ -5157,6 +5794,8 @@
     state.seams = [];
     state.annotations = [];
     state.canvasCrop = {top:0,right:0,bottom:0,left:0};
+    state.canvasPadding = {top:0,right:0,bottom:0,left:0};
+    state.canvasBackground = '#ffffff';
     state.selected = {type:'image', index:0};
     state.mode = 'canvasCrop';
     state.exportQualityAuto = true;
@@ -5178,6 +5817,8 @@
       ['2:3','竖 2:3'],
       ['3:4','竖 3:4'],
       ['5:7','竖 5:7'],
+      ['25:35','证件照 25:35'],
+      ['35:49','证件照 35:49'],
       ['9:16','竖 9:16'],
       ['3:2','横 3:2'],
       ['4:3','横 4:3'],
@@ -5194,6 +5835,8 @@
       '2:3':'竖2:3',
       '3:4':'竖3:4',
       '5:7':'竖5:7',
+      '25:35':'证件照25:35',
+      '35:49':'证件照35:49',
       '9:16':'竖9:16',
       '3:2':'横3:2',
       '4:3':'横4:3',
@@ -5326,7 +5969,8 @@
         oc.drawImage(im.img, sx, sy, out.width, out.height, 0, 0, out.width, out.height);
         const rowLabel = String(row + 1).padStart(2,'0');
         const colLabel = String(col + 1).padStart(2,'0');
-        downloadCanvasImage(out, `${base}_${rowLabel}_${colLabel}`, n * 140);
+        const resized = resizeCanvasForExport(out);
+        downloadCanvasImage(resized, `${base}_${rowLabel}_${colLabel}`, n * 140);
         n++;
       }
     }
@@ -5346,8 +5990,9 @@
     const oc = out.getContext('2d');
     oc.fillStyle = '#fff'; oc.fillRect(0,0,out.width,out.height);
     oc.drawImage(im.img, c.left, c.top, sw, sh, 0, 0, sw, sh);
-    downloadCanvasImage(out, `${imageBaseName(im.name)}_crop`);
-    toast(`${exportMeta().label} 已导出`);
+    const resized = resizeCanvasForExport(out);
+    downloadCanvasImage(resized, `${imageBaseName(im.name)}_crop`);
+    toast(`${exportMeta().label} 已导出 · ${resized.width}×${resized.height}px`);
   }
 
   function exportCurrent(){
@@ -5512,7 +6157,7 @@
     if(!confirm('确定清空当前图片和编辑参数吗？')) return;
     pushHistory();
     closeInlineTextEditor(false);
-    state.images=[]; state.seams=[]; state.annotations=[]; state.selected=null; state.selectionDraft=null; state.pixelClipboard=null; state.canvasCrop={top:0,right:0,bottom:0,left:0};
+    state.images=[]; state.seams=[]; state.annotations=[]; state.selected=null; state.selectionDraft=null; state.pixelClipboard=null; state.canvasCrop={top:0,right:0,bottom:0,left:0}; state.canvasPadding={top:0,right:0,bottom:0,left:0}; state.canvasBackground='#ffffff';
     patchImageCache.clear();
     state.zoom = 1; state.pan = {x:0,y:0}; state.mobileToolPopoverOpen = false; state.exportQualityAuto = true;
     renderProps(); renderToolDock(); requestRender();
@@ -5521,7 +6166,15 @@
   function handleKey(e){
     if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)) return;
     const selectAnnotationActive = state.mode === 'tools' && state.toolArmed === 'select' && state.selected?.type === 'annotation';
-    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); }
+    if(e.key === 'Escape' && state.mode === 'tools'){
+      e.preventDefault();
+      closeInlineTextEditor(false);
+      state.selected = null;
+      state.selectionDraft = null;
+      state.mobileToolPopoverOpen = false;
+      renderProps(); renderToolDock(); requestRender();
+    }
+    else if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); }
     else if((e.ctrlKey||e.metaKey) && (e.key.toLowerCase()==='y' || (e.shiftKey && e.key.toLowerCase()==='z'))){ e.preventDefault(); redo(); }
     else if(selectAnnotationActive && (e.ctrlKey||e.metaKey) && (e.key === ']' || e.code === 'BracketRight')){
       e.preventDefault(); moveSelectedAnnotationLayer(e.shiftKey ? 'front' : 'forward');
@@ -5690,6 +6343,47 @@
     updateToolbarButtons();
     scheduleExportEstimate();
   }));
+  function syncExportResizeFromInput(sourceKey){
+    const source = currentExportSourceSize();
+    let width = Math.max(0,Math.round(+( $('#exportResizeWidth')?.value || 0)));
+    let height = Math.max(0,Math.round(+( $('#exportResizeHeight')?.value || 0)));
+    state.exportResizeEnabled = true;
+    if(state.exportResizeLockRatio){
+      if(sourceKey === 'width' && width) height = Math.max(1,Math.round(width*source.height/source.width));
+      if(sourceKey === 'height' && height) width = Math.max(1,Math.round(height*source.width/source.height));
+    }
+    state.exportResizeWidth = width;
+    state.exportResizeHeight = height;
+    updateExportSizeUi();
+    scheduleExportEstimate();
+  }
+  $('#exportResizeEnabled')?.addEventListener('change', e=>{ state.exportResizeEnabled=!!e.target.checked; updateExportSizeUi(); scheduleExportEstimate(); });
+  $('#exportResizeWidth')?.addEventListener('input', ()=>syncExportResizeFromInput('width'));
+  $('#exportResizeHeight')?.addEventListener('input', ()=>syncExportResizeFromInput('height'));
+  $('#exportResizeLockRatio')?.addEventListener('change', e=>{ state.exportResizeLockRatio=!!e.target.checked; if(e.target.checked && state.exportResizeWidth) syncExportResizeFromInput('width'); else scheduleExportEstimate(); });
+  $('#exportResizeFit')?.addEventListener('change', e=>{ state.exportResizeFit=e.target.value||'contain'; scheduleExportEstimate(); });
+  function applyExportPixelPreset(width,height,fit='cover'){
+    state.exportResizeEnabled=true;
+    state.exportResizeWidth=Math.max(1,Math.round(width));
+    state.exportResizeHeight=Math.max(1,Math.round(height));
+    state.exportResizeLockRatio=false;
+    state.exportResizeFit=fit;
+    updateExportSizeUi(); scheduleExportEstimate();
+  }
+  $$('[data-photo-preset]').forEach(btn=>btn.addEventListener('click',()=>{
+    const preset=btn.dataset.photoPreset;
+    if(preset==='one-inch') applyExportPixelPreset(295,413,'cover');
+    if(preset==='two-inch') applyExportPixelPreset(413,579,'cover');
+    if(preset==='icon-128') applyExportPixelPreset(128,128,'cover');
+    if(preset==='icon-256') applyExportPixelPreset(256,256,'cover');
+  }));
+  $('#applyPhotoMmPreset')?.addEventListener('click',()=>{
+    const mmW=Math.max(1,Number($('#exportPhotoMmWidth')?.value||25));
+    const mmH=Math.max(1,Number($('#exportPhotoMmHeight')?.value||35));
+    const dpi=Math.max(72,Math.round(Number($('#exportPhotoDpi')?.value||300)));
+    state.exportPhotoMmWidth=mmW; state.exportPhotoMmHeight=mmH; state.exportPhotoDpi=dpi;
+    applyExportPixelPreset(Math.round(mmW/25.4*dpi),Math.round(mmH/25.4*dpi),'cover');
+  });
   $('#exportDirectBtn')?.addEventListener('click', directExportCurrent);
   $('#fitBtn').addEventListener('click', () => fitToView());
   $('#undoBtn').addEventListener('click', undo);

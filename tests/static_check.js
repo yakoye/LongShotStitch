@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.44.0',
+  'LongShotStitch v1.45.0',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -95,7 +95,7 @@ const required = [
   'data-mobile-file="paste"',
   'toggleOrientation',
   'showAbout',
-  'LongShotStitch v1.44.0',
+  'LongShotStitch v1.45.0',
   '<span class="mode-label">标注',
   "['select','select','选择 / 变换']",
   "['marquee','marquee','选区']",
