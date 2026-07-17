@@ -5,7 +5,7 @@ const html = fs.readFileSync(file, 'utf8');
 const versionArchives = fs.readdirSync(path.resolve(__dirname, '..')).filter(name => /^LongShotStitch_v.*\.html$/.test(name));
 if (versionArchives.length) throw new Error(`version archive html files should not remain: ${versionArchives.join(', ')}`);
 const required = [
-  'LongShotStitch v1.42',
+  'LongShotStitch v1.43.0',
   'rel="icon"',
   '✂',
   'autoStitchEnabled',
@@ -95,7 +95,20 @@ const required = [
   'data-mobile-file="paste"',
   'toggleOrientation',
   'showAbout',
-  'LongShotStitch v1.42',
+  'LongShotStitch v1.43.0',
+  '<span class="mode-label">标注',
+  "['select','select','选择 / 变换']",
+  "['marquee','marquee','选区']",
+  "selectionShape:'rect'",
+  'data-selection-shape="rect"',
+  'data-selection-shape="ellipse"',
+  'data-selection-shape="free"',
+  'selectionPath',
+  'drawSelectionPath',
+  'finalizeSelectionAsTransform',
+  'switchToTransformTool',
+  'pasteExternalImageAsAnnotation',
+  'selectionBusy',
   'desktop-compact-card',
   'compact-row',
   'compact-field',
@@ -193,7 +206,7 @@ for (const token of emptyDropRequired) {
 for (const token of required) {
   if (!html.includes(token)) throw new Error(`missing token: ${token}`);
 }
-for (const token of ["e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\"", "id=\"previewBtn\"", "id=\"mobileMoreBtn\"", "id=\"mobileVerticalBtn\"", "id=\"mobileHorizontalBtn\"", "data-mobile-action=\"paste\"", "mobile-more-menu", "exportCutPanel", "exportCutSize", "exportCutModeSelect", "applyExportCutSettings", "cutExportSizeText", "切割", "mobile-cut-mode-tabs", "<button class=\"mode-btn\" data-mode=\"subtitle\"", "id=\"autoStitchBtn\"", "<span class=\"mi\">▦</span>", "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z", "'▦','矩形马赛克'"]) {
+for (const token of ['<span class="mode-label">工具', "e.key === '1'", "e.key === '2'", "e.key === '3'", "e.key === '4'", "e.key === '5'", "导出 PNG", "<div class=\"mobile-title\">裁剪</div>", "data-mobile-action=\"vertical\"", "data-mobile-action=\"horizontal\"", "id=\"previewBtn\"", "id=\"mobileMoreBtn\"", "id=\"mobileVerticalBtn\"", "id=\"mobileHorizontalBtn\"", "data-mobile-action=\"paste\"", "mobile-more-menu", "exportCutPanel", "exportCutSize", "exportCutModeSelect", "applyExportCutSettings", "cutExportSizeText", "切割", "mobile-cut-mode-tabs", "<button class=\"mode-btn\" data-mode=\"subtitle\"", "id=\"autoStitchBtn\"", "<span class=\"mi\">▦</span>", "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z", "'▦','矩形马赛克'"]) {
   if (html.includes(token)) throw new Error(`forbidden token remains: ${token}`);
 }
 if (html.includes('整体裁剪已分摊锁定')) throw new Error('internal canvas crop lock toast should not be shown');

@@ -29,10 +29,14 @@ const required = [
   "a.type === 'cutout'",
   "c.globalCompositeOperation = 'destination-out'",
   'flattenCanvasForJpeg',
-  'data-selection-action="copy"',
-  'data-selection-action="cut"',
   'data-selection-action="paste"',
-  '①'
+  '①',
+  "selectionShape:'rect'",
+  'selectionPath',
+  'drawSelectionPath',
+  'finalizeSelectionAsTransform',
+  'switchToTransformTool',
+  'pasteExternalImageAsAnnotation'
 ];
 
 for (const token of required) {
@@ -257,6 +261,22 @@ if (!keyBlockSelectOnly.includes("state.mode === 'tools' && state.toolArmed === 
 const nudgeBlock = blockBetween('function nudge', 'function amountSign');
 if (!nudgeBlock.includes("state.mode === 'tools' && state.toolArmed === 'select' && state.selected?.type === 'annotation'")) {
   throw new Error('arrow-key annotation movement must require the select tool');
+}
+
+
+const selectionFinalizeBlock = blockBetween('async function finalizeSelectionAsTransform', 'function cloneAnnotationForDrag');
+for (const token of ["type:'patch'", "type:'cutout'", 'switchToTransformTool']) {
+  if (!selectionFinalizeBlock.includes(token)) throw new Error(`selection auto-transform missing ${token}`);
+}
+
+const toolCommitBlock = blockBetween('function commitToolDraft', 'function cancelToolDraft');
+if (!toolCommitBlock.includes('switchToTransformTool')) {
+  throw new Error('committed annotations must automatically enter select/transform mode');
+}
+
+const pasteExternalBlock = blockBetween('async function pasteExternalImageAsAnnotation', 'function inferAutoOrientation');
+if (!pasteExternalBlock.includes("type:'patch'") || !pasteExternalBlock.includes('switchToTransformTool')) {
+  throw new Error('external clipboard images must become editable patch objects');
 }
 
 console.log('tool_interaction_check ok');
